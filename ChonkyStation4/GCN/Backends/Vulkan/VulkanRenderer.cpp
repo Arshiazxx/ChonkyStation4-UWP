@@ -851,7 +851,7 @@ void VulkanRenderer::dispatch(ComputeJob job) {
 static bool fullscreen = false;
 static bool force_recreate_swapchain = false;
 static int texture_free_counter = 0;
-static constexpr int FREE_TEXTURES_EVERY_N_FRAMES = 5000;
+static constexpr int FREE_TEXTURES_EVERY_N_FRAMES = 500;
 void VulkanRenderer::flip(OS::Libs::SceVideoOut::SceVideoOutBuffer* buf) {
     endRendering();
     

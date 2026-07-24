@@ -9,6 +9,7 @@
 #include <GCN/Detiler/gnm/texture.h>
 #include <xxhash.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 #ifdef _WIN32
 #include <Windows.h>
@@ -132,6 +133,8 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
     };
 
     auto invalidate = [&](uptr addr) {
+        auto lk = std::unique_lock<std::mutex>(cache_mtx);
+
         for (auto it = currently_tracking.begin(); it != currently_tracking.end(); ) {
             auto& tracked_tex = *it;
             if (!tracked_tex) {
@@ -154,7 +157,7 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
         }
     };
 
-    //auto lk = std::unique_lock<std::mutex>(cache_mtx);
+    auto lk = std::unique_lock<std::mutex>(cache_mtx);
 
     // Check if we are already tracking this texture
     if (tracked_textures.contains(ptr)) {
@@ -353,28 +356,38 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
 }
 
 void freeUnusedTextures() {
+    auto lk = std::unique_lock<std::mutex>(cache_mtx);
+
     constexpr u64 treshold = 1000;
+    std::unordered_set<TrackedTexture*> deleted;
+
     for (auto it = tracked_textures.begin(); it != tracked_textures.end(); ) {
         for (auto tex = it->second.begin(); tex != it->second.end(); ) {
             if ((GCN::global_flip_counter - (*tex)->last_used_frame) > treshold) {
                 // Unprotect
                 const uptr   base = Helpers::alignDown<uptr>((uptr)(*tex)->base, Cache::page_size);
                 const uptr   end = Helpers::alignUp<uptr>((uptr)(*tex)->base + (*tex)->size, Cache::page_size);
-                for (u64 page = base >> Cache::page_bits; page < (end >> Cache::page_bits); page++)
-                    Cache::unprotect(page);
+                // TODO: This causes issues in some games. Not having this also causes issues in some other games. Find a solution.
+                //for (u64 page = base >> Cache::page_bits; page < (end >> Cache::page_bits); page++)
+                //    Cache::unprotect(page);
 
                 //Profiler::add("Released textures", 1);
+                deleted.insert(*tex);
                 delete *tex;
                 tex = it->second.erase(tex);
             }
-            else
-                tex++;
+            else tex++;
         }
 
         if (it->second.empty())
             it = tracked_textures.erase(it);
-        else
-            it++;
+        else it++;
+    }
+
+    for (auto it = currently_tracking.begin(); it != currently_tracking.end(); ) {
+        if (deleted.contains(*it))
+            it = currently_tracking.erase(it);
+        else it++;
     }
 }
 

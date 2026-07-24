@@ -133,12 +133,28 @@ Pipeline::Pipeline(ShaderCache::CachedShader* vert_shader, ShaderCache::CachedSh
         .pNext = &depth_clip_control
     };
 
-    vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
-    if (cfg.culling_poly_control.cull_back == 1)
-        cull_mode |= vk::CullModeFlagBits::eBack;
+    auto force_disable_culling = [&]() -> bool {
+        switch ((PrimitiveType)cfg.prim_type) {
+        
+        case PrimitiveType::None:
+        case PrimitiveType::PointList:
+        case PrimitiveType::LineList:
+        case PrimitiveType::LineStrip:
+        case PrimitiveType::AdjLineList:
+        case PrimitiveType::AdjLineStrip:
+        case PrimitiveType::RectList:
+        case PrimitiveType::LineLoop:
+            return true;
+        
+        default: return false;
+        }
+    }();
 
-    if (cfg.culling_poly_control.cull_front == 1)
-        cull_mode |= vk::CullModeFlagBits::eFront;
+    vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
+    if (!force_disable_culling) {
+        if (cfg.culling_poly_control.cull_back  == 1)   cull_mode |= vk::CullModeFlagBits::eBack;
+        if (cfg.culling_poly_control.cull_front == 1)   cull_mode |= vk::CullModeFlagBits::eFront;
+    }
 
     vk::PipelineRasterizationStateCreateInfo rasterizer = {
         .depthClampEnable = cfg.enable_depth_clamp,

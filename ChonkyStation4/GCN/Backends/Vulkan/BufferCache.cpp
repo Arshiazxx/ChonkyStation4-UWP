@@ -62,6 +62,7 @@ struct TrackedRegion {
     u64     page = 0;
     u64     page_end = 0;
     bool    dirty = false;
+    u64     count = 0;
     std::function<void(uptr)> callback;
 
     void protect() {
@@ -110,26 +111,35 @@ static LONG CALLBACK exceptionHandler(EXCEPTION_POINTERS* info) noexcept {
     void* addr = (void*)record->ExceptionInformation[1];
     const u64 page = (uptr)addr >> page_bits;
 
-    auto lk = std::unique_lock<std::mutex>(cache_mtx);
     bool handled = false;
+    TrackedRegion* region = nullptr;
 
-    if (cache.contains(page)) {
-        handled = true;
+    {
+        auto lk = std::unique_lock<std::mutex>(cache_mtx);
 
-        auto& buf = cache[page];
-        buf->dirty = true;
-        buf->dirty_pages[page - buf->page] = true;
-        cache[page]->unprotect(page - buf->page);
+        if (cache.contains(page)) {
+            handled = true;
 
-        //printf("addr %p base %p size %lld last used (all/base) %d/%d frames ago\n", addr, buf->base, buf->size, GCN::global_flip_counter - buf->last_used_frame, GCN::global_flip_counter - buf->last_base_used_frame);
-        //printf("page was bound %d frames ago\n", GCN::global_flip_counter - buf->last_used_page_frame[page - buf->page]);
+            auto& buf = cache[page];
+            buf->dirty = true;
+            buf->dirty_pages[page - buf->page] = true;
+            cache[page]->unprotect(page - buf->page);
+
+            //printf("addr %p base %p size %lld last used (all/base) %d/%d frames ago\n", addr, buf->base, buf->size, GCN::global_flip_counter - buf->last_used_frame, GCN::global_flip_counter - buf->last_base_used_frame);
+            //printf("page was bound %d frames ago\n", GCN::global_flip_counter - buf->last_used_page_frame[page - buf->page]);
+        }
+
+        if (tracked.contains(page)) {
+            handled = true;
+            region = tracked[page];
+            region->dirty = true;
+        }
     }
 
-    if (tracked.contains(page)) {
-        handled = true;
-        tracked[page]->dirty = true;
-        tracked[page]->callback((uptr)addr);
-        tracked[page]->unprotect();
+    // Avoid calling the callback function while holding a lock
+    if (region) {
+        region->callback((uptr)addr);
+        region->unprotect();
     }
 
     return handled ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_CONTINUE_SEARCH;
@@ -449,7 +459,7 @@ void track(void* base, size_t size, std::function<void(uptr)> callback) {
 
     auto lk = std::unique_lock<std::mutex>(cache_mtx);
 
-    // Check if we already tracked region
+    // Check if we already tracked this region
     if (tracked.contains(page)) {
         // Check if we need to re-track due to size changes
         auto* buf = tracked[page];
@@ -464,6 +474,7 @@ void track(void* base, size_t size, std::function<void(uptr)> callback) {
         }
 
         buf->protect();
+        buf->count++;
         return;
     }
 
@@ -478,13 +489,22 @@ void track(void* base, size_t size, std::function<void(uptr)> callback) {
     for (u64 i = 0; i < size_in_pages; i++)
         tracked[page + i] = buf;
     buf->protect();
+    buf->count++;
 }
 
 // Unprotects a page
 void unprotect(u64 page) {
+    auto lk = std::unique_lock<std::mutex>(cache_mtx);
+
     auto buf = tracked.find(page);
-    if (buf != tracked.end())
-        buf->second->unprotect();
+    if (buf != tracked.end()) {
+        buf->second->count--;
+        if (buf->second->count == 0) {
+            buf->second->unprotect();
+            delete buf->second;
+            tracked.erase(buf);
+        }
+    }
     //else printf("Cache::unprotect: page 0x%llx was not tracked\n", page);
 }
 
