@@ -2,13 +2,19 @@
 
 #include <Common.hpp>
 #include <pthread.h>
+#include <atomic>
 
 
 namespace PS4::OS::Libs::Kernel {
 
 struct cpu_set_t;
 
-s32 PS4_FUNC kernel_pthread_once(pthread_once_t* once_control, void(*init_routine)());
+struct kernel_pthread_once_t {
+    std::atomic<u32> status;
+    // pthread_mutex_t
+};
+
+s32 PS4_FUNC kernel_pthread_once(kernel_pthread_once_t* once_control, void(*init_routine)());
 void* PS4_FUNC kernel_pthread_self();
 const void* PS4_FUNC kernel_pthread_getspecific(s32 key);
 s32 PS4_FUNC kernel_pthread_setspecific(s32 key, const void* val);

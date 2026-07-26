@@ -195,6 +195,7 @@ struct PipelineConfig {
     float max_depth_bounds = 0.0f;
     float min_depth_bounds = 0.0f;
     bool enable_depth_clamp = false;
+    bool enable_depth_clip = false;
     StencilRefMask stencil_refmask_front;
     StencilRefMask stencil_refmask_back;
 

@@ -27,6 +27,20 @@ MAKE_LOG_FUNCTION(log, gcn_vulkan_renderer);
 
 constexpr bool enable_validation_layers = false;
 
+std::vector<const char*> required_device_exts = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+    VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+    VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+    VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME,
+    //VK_EXT_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_EXTENSION_NAME,
+    VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
+    VK_EXT_DEPTH_CLIP_CONTROL_EXTENSION_NAME
+    //VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+    //VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME
+};
+
 // Keep track of the pipelines we used this frame to cleanup state after flipping
 std::vector<Pipeline*> curr_frame_pipelines[FRAMES_IN_FLIGHT];
 std::vector<ComputePipeline*> curr_frame_compute_pipelines[FRAMES_IN_FLIGHT];

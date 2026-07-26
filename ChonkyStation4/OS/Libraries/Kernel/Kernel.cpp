@@ -175,6 +175,8 @@ void init(Module& module) {
     module.addSymbolExport("ezv-RSBNKqI", "pread", "libkernel", "libkernel", (void*)&kernel_pread);
     module.addSymbolExport("ezv-RSBNKqI", "pread", "libScePosix", "libkernel", (void*)&kernel_pread);
     module.addSymbolExport("+r3rMFwItV4", "sceKernelPread", "libkernel", "libkernel", (void*)&sceKernelPread);
+    module.addSymbolExport("+WRlkKjZvag", "_readv", "libkernel", "libkernel", (void*)&kernel_readv);
+    module.addSymbolExport("+WRlkKjZvag", "_readv", "libScePosix", "libkernel", (void*)&kernel_readv);
     module.addSymbolExport("FxVZqBAA7ks", "_write", "libkernel", "libkernel", (void*)&kernel_write);
     module.addSymbolExport("4wSze92BhLI", "sceKernelWrite", "libkernel", "libkernel", (void*)&sceKernelWrite);
     module.addSymbolExport("C2kJ-byS5rM", "pwrite", "libkernel", "libkernel", (void*)&kernel_pwrite);
@@ -974,7 +976,7 @@ s32 PS4_FUNC sceKernelCheckedReleaseDirectMemory(void* addr, size_t len) {
 }
 
 s32 PS4_FUNC sceKernelMunmap(void* addr, size_t len) {
-    //log("sceKernelMunmap(addr=%p, len=0x%llx)\n", addr, len);
+    log("sceKernelMunmap(addr=%p, len=0x%llx)\n", addr, len);
 
 #ifdef _WIN32
     auto lk = std::unique_lock<std::mutex>(allocator_mtx);

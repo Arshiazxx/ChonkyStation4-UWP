@@ -81,7 +81,7 @@ std::vector<vk::WriteDescriptorSet> ComputePipeline::uploadBuffersAndTextures(Pu
                 if ((u64)vsharp < 0x1000) continue; // Skip bad shaders until I fix them...
 
                 // Upload as SSBO
-                const auto buf_size = Helpers::alignUp<size_t>((vsharp->stride == 0 ? 1 : vsharp->stride) * (vsharp->num_records + 16), 16);
+                const auto buf_size = Helpers::alignUp<size_t>((vsharp->stride == 0 ? 1 : vsharp->stride) * vsharp->num_records, 16);
                 void* guest_buf_data = (void*)vsharp->base;
                 if ((u64)guest_buf_data < 0x10000) continue;
                 auto [cached_buf, offs, was_dirty] = Cache::getBuffer(guest_buf_data, buf_size);

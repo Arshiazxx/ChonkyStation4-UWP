@@ -120,6 +120,15 @@ s64 PS4_FUNC kernel_pread(s32 fd, u8* buf, u64 size, s64 offset) {
     return ret;
 }
 
+s64 PS4_FUNC kernel_readv(s32 fd, SceKernelIovec* iov, int iovcnt) {
+    log("kernel_readv(fd=%d, iov=*%p, iovcnt=%d)\n", fd, iov, iovcnt);
+
+    s32 total = 0;
+    for (int i = 0; i < iovcnt; i++)
+        total += kernel_read(fd, (u8*)iov[i].iov_base, iov[i].iov_len);
+    return total;
+}
+
 s64 PS4_FUNC sceKernelPread(s32 fd, u8* buf, u64 size, s64 offset) {
     const auto res = kernel_pread(fd, buf, size, offset);
     if (res < 0) return Error::posixToSce(*Kernel::kernel_error());

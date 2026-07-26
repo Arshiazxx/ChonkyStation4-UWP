@@ -98,7 +98,11 @@ Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, c
     cfg.stencil_refmask_back.raw    = regs[Reg::mmDB_STENCILREFMASK_BF];
 
     // Depth clamp
-    cfg.enable_depth_clamp = (regs[Reg::mmDB_RENDER_OVERRIDE] >> 16) != 1;   // DISABLE_VIEWPORT_CLAMP
+    cfg.enable_depth_clamp = ((regs[Reg::mmDB_RENDER_OVERRIDE] >> 16) & 1) != 1;   // DISABLE_VIEWPORT_CLAMP
+    
+    const bool zclip_near_disable = (regs[Reg::mmPA_CL_CLIP_CNTL] >> 26) & 1;
+    const bool zclip_far_disable  = (regs[Reg::mmPA_CL_CLIP_CNTL] >> 27) & 1;
+    cfg.enable_depth_clip = !zclip_near_disable && !zclip_far_disable;
 
     // Viewport
     cfg.viewport_control.raw = regs[Reg::mmPA_CL_VTE_CNTL];
@@ -133,6 +137,7 @@ Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, c
         XXH3_64bits_update(state, &cfg.min_depth_bounds, sizeof(cfg.min_depth_bounds));
     }
     if (cfg.depth_control.depth_enable)   XXH3_64bits_update(state, &cfg.enable_depth_clamp, sizeof(cfg.enable_depth_clamp));
+    if (cfg.depth_control.depth_enable)   XXH3_64bits_update(state, &cfg.enable_depth_clamp, sizeof(cfg.enable_depth_clip));
     if (cfg.depth_control.stencil_enable) {
         XXH3_64bits_update(state, &cfg.stencil_control, sizeof(cfg.stencil_control));
         XXH3_64bits_update(state, &cfg.stencil_refmask_front, sizeof(cfg.stencil_refmask_front));

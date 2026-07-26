@@ -52,9 +52,29 @@ bool threadExists(void* tid) {
     return curr_thread != nullptr;
 }
 
-s32 PS4_FUNC kernel_pthread_once(pthread_once_t* once_control, void(*init_routine)()) {
+s32 PS4_FUNC kernel_pthread_once(kernel_pthread_once_t* once_control, void(*init_routine)()) {
     log("pthread_once(once_control=*%p, init_routine=%p)\n", once_control, init_routine);
-    return pthread_once(once_control, init_routine);
+
+    if (once_control->status.load() == 2)
+        return 0;
+
+    // TODO: freebsd uses a fourth "wait" state
+    // 0 - not called
+    // 1 - done
+    // 2 - in progress
+    
+    u32 expected = 0;
+    if (once_control->status.compare_exchange_strong(expected, 2)) {
+        init_routine();
+        once_control->status.store(1);
+        once_control->status.notify_all();
+    }
+    else {
+        while (once_control->status.load() != 1)
+            once_control->status.wait(2);
+    }
+
+    return 0;
 }
 
 void* PS4_FUNC kernel_pthread_self() {

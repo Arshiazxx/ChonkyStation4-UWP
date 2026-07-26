@@ -42,19 +42,6 @@ private:
     u32 curr_frame = 0;
     u32 current_swapchain_image_idx = 0;
 
-    std::vector<const char*> required_device_exts = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
-        VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
-        VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-        VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME,
-        //VK_EXT_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_EXTENSION_NAME,
-        VK_EXT_DEPTH_CLIP_CONTROL_EXTENSION_NAME
-        //VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-        //VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME
-    };
-
     bool framebuffer_resized = false;
 
     void recreateSwapChain();

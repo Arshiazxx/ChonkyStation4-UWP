@@ -44,6 +44,7 @@ s64 PS4_FUNC sceKernelLseek(s32 fd, s64 offset, s32 whence);
 s64 PS4_FUNC kernel_read(s32 fd, u8* buf, u64 size);
 s64 PS4_FUNC sceKernelRead(s32 fd, u8* buf, u64 size);
 s64 PS4_FUNC kernel_pread(s32 fd, u8* buf, u64 size, s64 offset);
+s64 PS4_FUNC kernel_readv(s32 fd, SceKernelIovec* iov, int iovcnt);
 s64 PS4_FUNC sceKernelPread(s32 fd, u8* buf, u64 size, s64 offset);
 s64 PS4_FUNC kernel_write(s32 fd, u8* buf, u64 size);
 s64 PS4_FUNC sceKernelWrite(s32 fd, u8* buf, u64 size);

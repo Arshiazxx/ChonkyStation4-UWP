@@ -49,6 +49,7 @@ void linkSysmodules(::App& app) {
         "libSceJson2.sprx",
         "libSceHttp.sprx",
         "libSceHttp2.sprx",
+        "libSceRtc.sprx",
     };
 
     const std::string partial_lle_sysmodules_to_load[] = {

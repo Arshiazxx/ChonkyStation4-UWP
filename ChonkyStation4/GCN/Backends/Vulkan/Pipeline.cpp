@@ -156,6 +156,10 @@ Pipeline::Pipeline(ShaderCache::CachedShader* vert_shader, ShaderCache::CachedSh
         if (cfg.culling_poly_control.cull_front == 1)   cull_mode |= vk::CullModeFlagBits::eFront;
     }
 
+    vk::PipelineRasterizationDepthClipStateCreateInfoEXT depth_clip_state = {
+        .depthClipEnable = cfg.enable_depth_clip
+    };
+
     vk::PipelineRasterizationStateCreateInfo rasterizer = {
         .depthClampEnable = cfg.enable_depth_clamp,
         .rasterizerDiscardEnable = vk::False,
@@ -164,8 +168,10 @@ Pipeline::Pipeline(ShaderCache::CachedShader* vert_shader, ShaderCache::CachedSh
         .frontFace = (cfg.culling_poly_control.cw_front_face == 1) ? vk::FrontFace::eClockwise : vk::FrontFace::eCounterClockwise,
         .depthBiasEnable = vk::False,
         .depthBiasSlopeFactor = 1.0f,
-        .lineWidth = 1.0f
+        .lineWidth = 1.0f,
+        .pNext = &depth_clip_state
     };
+
     vk::PipelineMultisampleStateCreateInfo multisampling = { .rasterizationSamples = vk::SampleCountFlagBits::e1, .sampleShadingEnable = vk::False };
     
     
@@ -276,32 +282,43 @@ Pipeline::Pipeline(ShaderCache::CachedShader* vert_shader, ShaderCache::CachedSh
         }
     };
 
-    auto color_src_blend = blend_factor(cfg.blend_control[0].src_blend);
-    auto color_dst_blend = blend_factor(cfg.blend_control[0].dst_blend);
-    auto alpha_src_blend = cfg.blend_control[0].separate_alpha_blend ? blend_factor(cfg.blend_control[0].alpha_src_blend) : color_src_blend;
-    auto alpha_dst_blend = cfg.blend_control[0].separate_alpha_blend ? blend_factor(cfg.blend_control[0].alpha_dst_blend) : color_dst_blend;
-    
-    auto color_op = blend_op(cfg.blend_control[0].color_func);
-    auto alpha_op = cfg.blend_control[0].separate_alpha_blend ? blend_op(cfg.blend_control[0].alpha_func) : color_op;
+    // TODO: Don't always build all 8 attachments
+    std::array<vk::PipelineColorBlendAttachmentState, 8> color_blend_attachments;
 
-    vk::PipelineColorBlendAttachmentState color_blend_attachment = {
-        .blendEnable = cfg.blend_control[0].enable,
-        
-        .srcColorBlendFactor = color_src_blend,
-        .dstColorBlendFactor = color_dst_blend,
-        .colorBlendOp = color_op,
+    for (int i = 0; i < 8; i++) {
+        auto color_src_blend = blend_factor(cfg.blend_control[i].src_blend);
+        auto color_dst_blend = blend_factor(cfg.blend_control[i].dst_blend);
+        auto alpha_src_blend = cfg.blend_control[i].separate_alpha_blend ? blend_factor(cfg.blend_control[i].alpha_src_blend) : color_src_blend;
+        auto alpha_dst_blend = cfg.blend_control[i].separate_alpha_blend ? blend_factor(cfg.blend_control[i].alpha_dst_blend) : color_dst_blend;
 
-        .srcAlphaBlendFactor = alpha_src_blend,
-        .dstAlphaBlendFactor = alpha_dst_blend,
-        .alphaBlendOp = alpha_op,
+        auto color_op = blend_op(cfg.blend_control[i].color_func);
+        auto alpha_op = cfg.blend_control[i].separate_alpha_blend ? blend_op(cfg.blend_control[i].alpha_func) : color_op;
 
-        .colorWriteMask =
-            vk::ColorComponentFlagBits::eR |
-            vk::ColorComponentFlagBits::eG |
-            vk::ColorComponentFlagBits::eB |
-            vk::ColorComponentFlagBits::eA
+        color_blend_attachments[i] = {
+            .blendEnable = cfg.blend_control[i].enable,
+
+            .srcColorBlendFactor = color_src_blend,
+            .dstColorBlendFactor = color_dst_blend,
+            .colorBlendOp = color_op,
+
+            .srcAlphaBlendFactor = alpha_src_blend,
+            .dstAlphaBlendFactor = alpha_dst_blend,
+            .alphaBlendOp = alpha_op,
+
+            .colorWriteMask =
+                vk::ColorComponentFlagBits::eR |
+                vk::ColorComponentFlagBits::eG |
+                vk::ColorComponentFlagBits::eB |
+                vk::ColorComponentFlagBits::eA
+        };
+    }
+
+    vk::PipelineColorBlendStateCreateInfo color_blending = {
+        .logicOpEnable = vk::False,
+        .logicOp = vk::LogicOp::eCopy,
+        .attachmentCount = color_blend_attachments.size(),
+        .pAttachments = color_blend_attachments.data()
     };
-    vk::PipelineColorBlendStateCreateInfo color_blending = { .logicOpEnable = vk::False, .logicOp = vk::LogicOp::eCopy, .attachmentCount = 1, .pAttachments = &color_blend_attachment };
 
     std::vector dynamic_states = {
         vk::DynamicState::eViewport,
@@ -372,9 +389,14 @@ Pipeline::Pipeline(ShaderCache::CachedShader* vert_shader, ShaderCache::CachedSh
         gpci.pTessellationState = &tess;
     }
 
+    // TODO: Populate with correct formats
+    std::array<vk::Format, 8> color_formats;
+    for (int i = 0; i < 8; i++)
+        color_formats[i] = swapchain_surface_format.format;
+
     vk::PipelineRenderingCreateInfo rendering_info = {};
-    rendering_info.colorAttachmentCount = 1;
-    rendering_info.pColorAttachmentFormats = &swapchain_surface_format.format;
+    rendering_info.colorAttachmentCount = 8;
+    rendering_info.pColorAttachmentFormats = color_formats.data();
     rendering_info.depthAttachmentFormat = vk::Format::eD32SfloatS8Uint;
     rendering_info.stencilAttachmentFormat = vk::Format::eD32SfloatS8Uint;
 
@@ -455,7 +477,7 @@ std::vector<vk::WriteDescriptorSet> Pipeline::uploadBuffersAndTextures(PushConst
                 if (tsharp->data_format == 0) continue;
                 TrackedTexture* tex;
                 Vulkan::getVulkanImageInfoForTSharp(tsharp, &tex, true);
-                tex->was_bound = true;
+                //tex->was_bound = true;
 
                 if (tex == rt) {
                     *has_feedback_loop = true;

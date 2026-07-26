@@ -82,7 +82,7 @@ std::shared_ptr<Module> buildHLEModule() {
     PS4::OS::Libs::SceAudioOut::init(*module);
     PS4::OS::Libs::SceAudio3d::init(*module);
     PS4::OS::Libs::ScePlayGo::init(*module);
-    PS4::OS::Libs::SceRtc::init(*module);
+    //PS4::OS::Libs::SceRtc::init(*module);
     PS4::OS::Libs::SceNet::init(*module);
     PS4::OS::Libs::SceRandom::init(*module);
     PS4::OS::Libs::SceVideodec::init(*module);
