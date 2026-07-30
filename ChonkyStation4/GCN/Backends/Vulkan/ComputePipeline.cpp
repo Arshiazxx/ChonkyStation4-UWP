@@ -1,7 +1,6 @@
 #include "ComputePipeline.hpp"
 #include <Logger.hpp>
 #include <GCN/HostTessShaders.hpp>
-#include <GCN/Backends/Vulkan/VulkanCommon.hpp>
 #include <GCN/Backends/Vulkan/BufferCache.hpp>
 #include <GCN/Backends/Vulkan/TextureCache.hpp>
 #include <GCN/Backends/Vulkan/GLSLCompiler.hpp>
@@ -76,17 +75,46 @@ std::vector<vk::WriteDescriptorSet> ComputePipeline::uploadBuffersAndTextures(Pu
         for (auto& buf_info : data.buffers) {
             switch (buf_info.desc_info.type) {
             case Shader::DescriptorType::Vsharp: {
+                auto null_descriptor = [&]() {
+                    buffer_info[frame_idx].push_back({
+                        .buffer = VK_NULL_HANDLE,
+                        .offset = 0,
+                        .range = VK_WHOLE_SIZE,
+                    });
+                    
+                    descriptor_writes.push_back(vk::WriteDescriptorSet {
+                        .dstSet = nullptr,  // Not used for push descriptors
+                        .dstBinding = (u32)buf_info.binding,
+                        .dstArrayElement = 0,
+                        .descriptorCount = 1,
+                        .descriptorType = vk::DescriptorType::eStorageBuffer,
+                        .pBufferInfo = &buffer_info[frame_idx].back()
+                    });
+                };
+
                 // Get pointer to the V#
                 VSharp* vsharp = buf_info.desc_info.asPtr<VSharp>();
-                if ((u64)vsharp < 0x1000) continue; // Skip bad shaders until I fix them...
+                // Skip bad shaders until I fix them...
+                if ((u64)vsharp < 0x1000) {
+                    null_descriptor();
+                    continue;
+                }
 
                 // Upload as SSBO
                 const auto buf_size = Helpers::alignUp<size_t>((vsharp->stride == 0 ? 1 : vsharp->stride) * vsharp->num_records, 16);
                 void* guest_buf_data = (void*)vsharp->base;
-                if ((u64)guest_buf_data < 0x10000) continue;
+
+                if ((u64)guest_buf_data < 0x10000) {
+                    null_descriptor();
+                    continue;
+                }
+
+                //if (IsBadReadPtr((const void*)vsharp->base, buf_size))
+                //    Helpers::panic("Invalid vsharp->base %p for shader %llx\n", guest_buf_data, data.hash);
+
                 auto [cached_buf, offs, was_dirty] = Cache::getBuffer(guest_buf_data, buf_size);
 
-                buffer_info.push_back({
+                buffer_info[frame_idx].push_back({
                     .buffer = cached_buf,
                     .offset = offs,
                     .range = buf_size,
@@ -97,7 +125,7 @@ std::vector<vk::WriteDescriptorSet> ComputePipeline::uploadBuffersAndTextures(Pu
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = vk::DescriptorType::eStorageBuffer,
-                    .pBufferInfo = &buffer_info.back()
+                    .pBufferInfo = &buffer_info[frame_idx].back()
                 });
 
                 // Write push constants for this buffer
@@ -110,7 +138,26 @@ std::vector<vk::WriteDescriptorSet> ComputePipeline::uploadBuffersAndTextures(Pu
             }
 
             case Shader::DescriptorType::Tsharp: {
+                auto null_descriptor = [&]() {
+                    descriptor_writes.push_back(vk::WriteDescriptorSet {
+                        .dstSet = nullptr,  // Not used for push descriptors
+                        .dstBinding = (u32)buf_info.binding,
+                        .dstArrayElement = 0,
+                        .descriptorCount = 1,
+                        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                        .pImageInfo = &dummy_descriptor_image_info
+                    });
+                };
+
                 TSharp* tsharp = buf_info.desc_info.asPtr<TSharp>();
+                if (tsharp->data_format == 0) {
+                    null_descriptor();
+                    continue;
+                }
+
+                //if (IsBadReadPtr((const void*)(tsharp->base_address << 8), 1))
+                //    Helpers::panic("Invalid tsharp->base_address %p for shader %llx\n", tsharp->base_address << 8, data.hash);
+
                 TrackedTexture* tex;
                 Vulkan::getVulkanImageInfoForTSharp(tsharp, &tex, true);
                 tex->was_bound = true;
@@ -137,7 +184,7 @@ std::vector<vk::WriteDescriptorSet> ComputePipeline::uploadBuffersAndTextures(Pu
             }
             }
         }
-        };
+    };
 
     create_buffers(compute_shader->data);
 
@@ -146,7 +193,7 @@ std::vector<vk::WriteDescriptorSet> ComputePipeline::uploadBuffersAndTextures(Pu
 }
 
 void ComputePipeline::clearBuffers() {
-    buffer_info.clear();
+    buffer_info[frame_idx].clear();
 }
 
 }   // End namespace PS4::GCN::Vulkan

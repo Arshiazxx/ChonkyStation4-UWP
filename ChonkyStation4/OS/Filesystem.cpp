@@ -105,12 +105,14 @@ u64 open(fs::path path, u32& err, u32 flags) {
         dirent.d_fileno = fileno++;
         dirent.d_reclen = sizeof(SceKernelDirent);
         dirent.d_type   = SCE_KERNEL_DT_DIR >> 12;
+        dirent.d_namlen = 1;
         std::strcpy(dirent.d_name, ".");
         file_desc->dirents.push_back(dirent);
 
         dirent.d_fileno = fileno++;
         dirent.d_reclen = sizeof(SceKernelDirent);
         dirent.d_type = SCE_KERNEL_DT_DIR >> 12;
+        dirent.d_namlen = 2;
         std::strcpy(dirent.d_name, "..");
         file_desc->dirents.push_back(dirent);
 

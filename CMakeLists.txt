@@ -18,6 +18,7 @@ set(VERSION_STRING "alpha-1")
 
 option(ENABLE_USER_BUILD "Enable user build" OFF)
 option(ENABLE_RELEASE_BUILD "Create a release build (do not use this)" OFF)
+option(ENABLE_NVIDIA_AFTERMATH "Generate GPU crash dumps using Nvidia Nsight Aftermath SDK" OFF)
 
 if (ENABLE_USER_BUILD)
     target_compile_definitions(ChonkyStation4 PRIVATE CHONKYSTATION4_USER_BUILD)
@@ -27,6 +28,16 @@ if (ENABLE_RELEASE_BUILD)
     target_compile_definitions(ChonkyStation4 PRIVATE CHONKYSTATION4_VERSION="${VERSION_STRING}")
 else()
     target_compile_definitions(ChonkyStation4 PRIVATE CHONKYSTATION4_VERSION="dev")
+endif()
+
+if (ENABLE_NVIDIA_AFTERMATH)
+    target_compile_definitions(ChonkyStation4 PRIVATE CHONKYSTATION4_HAS_NVIDIA_AFTERMATH)
+    target_sources(ChonkyStation4 PRIVATE "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.cpp" "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.hpp")
+
+    set(NVIDIA_AFTERMATH_ROOT ${CMAKE_SOURCE_DIR}/Dependencies/nvidia_aftermath)
+    add_library(nvidia_aftermath STATIC IMPORTED)
+    set_target_properties(nvidia_aftermath PROPERTIES IMPORTED_LOCATION "${NVIDIA_AFTERMATH_ROOT}/lib/x64/GFSDK_Aftermath_Lib.x64.lib" INTERFACE_INCLUDE_DIRECTORIES "${NVIDIA_AFTERMATH_ROOT}/include")
+    target_link_libraries(ChonkyStation4 PRIVATE nvidia_aftermath)
 endif()
 
 target_sources(ChonkyStation4 PRIVATE
@@ -66,7 +77,7 @@ target_sources(ChonkyStation4 PRIVATE
  "ChonkyStation4/OS/Libraries/SceRandom/SceRandom.cpp" "ChonkyStation4/OS/Libraries/SceRandom/SceRandom.hpp"
  "ChonkyStation4/GCN/HostTessShaders.cpp" "ChonkyStation4/GCN/HostTessShaders.hpp"
  "ChonkyStation4/OS/Libraries/SceNpMatching/SceNpMatching.cpp" "ChonkyStation4/OS/Libraries/SceNpMatching/SceNpMatching.hpp"
- "ChonkyStation4/OS/Libraries/SceVideodec/SceVideodec.cpp" "ChonkyStation4/OS/Libraries/SceVideodec/SceVideodec.hpp" "ChonkyStation4/OS/Libraries/SceAjm/SceAjm.cpp" "ChonkyStation4/OS/Libraries/SceAjm/SceAjm.hpp" "ChonkyStation4/GCN/Backends/Vulkan/ComputePipeline.cpp" "ChonkyStation4/OS/Libraries/SceAppContent/SceAppContent.cpp"  "ChonkyStation4/OS/Libraries/SceZlib/SceZlib.cpp" "ChonkyStation4/OS/Libraries/SceNpScore/SceNpScore.cpp" "ChonkyStation4/PSN/Providers/ChonkyNet/ChonkyNet.cpp" "ChonkyStation4/OS/Libraries/SceNpWebApi/SceNpWebApi.cpp" "ChonkyStation4/OS/Libraries/SceAudio3d/SceAudio3d.cpp")
+ "ChonkyStation4/OS/Libraries/SceVideodec/SceVideodec.cpp" "ChonkyStation4/OS/Libraries/SceVideodec/SceVideodec.hpp" "ChonkyStation4/OS/Libraries/SceAjm/SceAjm.cpp" "ChonkyStation4/OS/Libraries/SceAjm/SceAjm.hpp" "ChonkyStation4/GCN/Backends/Vulkan/ComputePipeline.cpp" "ChonkyStation4/OS/Libraries/SceAppContent/SceAppContent.cpp"  "ChonkyStation4/OS/Libraries/SceZlib/SceZlib.cpp" "ChonkyStation4/OS/Libraries/SceNpScore/SceNpScore.cpp" "ChonkyStation4/PSN/Providers/ChonkyNet/ChonkyNet.cpp" "ChonkyStation4/OS/Libraries/SceNpWebApi/SceNpWebApi.cpp" "ChonkyStation4/OS/Libraries/SceAudio3d/SceAudio3d.cpp" "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.cpp")
 
 option(ZYDIS_BUILD_TOOLS "" OFF)
 option(ZYDIS_BUILD_EXAMPLES "" OFF)

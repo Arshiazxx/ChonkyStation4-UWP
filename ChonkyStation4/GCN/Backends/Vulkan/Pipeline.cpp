@@ -436,18 +436,73 @@ std::vector<vk::WriteDescriptorSet> Pipeline::uploadBuffersAndTextures(PushConst
 
     *has_feedback_loop = false;
 
+    // Clamp the size of a buffer to the mapped memory size
+    auto clamp_size = [&](uptr start, size_t size) -> size_t {
+        uptr curr = start;
+        uptr end = start + size;
+        while (curr < end) {
+            MEMORY_BASIC_INFORMATION mbi;
+            if (!VirtualQuery((void*)curr, &mbi, sizeof(mbi)))
+                break;
+
+            if (mbi.State != MEM_COMMIT)
+                break;
+
+            curr = (uptr)mbi.BaseAddress + mbi.RegionSize;
+        }
+        return std::min(curr, end) - start;
+    };
+
     auto create_buffers = [&](Shader::ShaderData& data) {
         for (auto& buf_info : data.buffers) {
             switch (buf_info.desc_info.type) {
             case Shader::DescriptorType::Vsharp: {
+                auto null_descriptor = [&]() {
+                    buffer_info[frame_idx].push_back({
+                        .buffer = VK_NULL_HANDLE,
+                        .offset = 0,
+                        .range = VK_WHOLE_SIZE,
+                    });
+                    
+                    descriptor_writes.push_back(vk::WriteDescriptorSet {
+                        .dstSet = nullptr,  // Not used for push descriptors
+                        .dstBinding = (u32)buf_info.binding,
+                        .dstArrayElement = 0,
+                        .descriptorCount = 1,
+                        .descriptorType = vk::DescriptorType::eStorageBuffer,
+                        .pBufferInfo = &buffer_info[frame_idx].back()
+                    });
+                };
+
                 // Get pointer to the V#
                 VSharp* vsharp = buf_info.desc_info.asPtr<VSharp>();
-                if ((u64)vsharp < 0x1000) continue; // Skip bad shaders until I fix them...
+                // Skip bad shaders until I fix them...
+                if ((u64)vsharp < 0x1000) {
+                    null_descriptor();
+                    continue;
+                }
 
                 // Upload as SSBO
-                const auto buf_size = Helpers::alignUp<size_t>((vsharp->stride == 0 ? 1 : vsharp->stride) * vsharp->num_records , 16);
+                auto buf_size = Helpers::alignUp<size_t>((vsharp->stride == 0 ? 1 : vsharp->stride) * vsharp->num_records , 16);
                 void* guest_buf_data = (void*)vsharp->base;
-                if ((u64)guest_buf_data < 0x10000) continue;
+
+                if ((u64)guest_buf_data < 0x10000) {
+                    null_descriptor();
+                    continue;
+                }
+
+                //if (IsBadReadPtr((const void*)vsharp->base, buf_size)) {
+                //    null_descriptor();
+                //    continue;
+                //    //buf_size = clamp_size((uptr)vsharp->base, buf_size);
+                //    //Helpers::panic("Invalid vsharp->base %p for shader %llx\n", guest_buf_data, data.hash);
+                //}
+
+                if (buf_size == 0) {
+                    null_descriptor();
+                    continue;
+                }
+                
                 auto [cached_buf, offs, was_dirty] = Cache::getBuffer(guest_buf_data, buf_size);
 
                 buffer_info[frame_idx].push_back({
@@ -473,11 +528,29 @@ std::vector<vk::WriteDescriptorSet> Pipeline::uploadBuffersAndTextures(PushConst
             }
 
             case Shader::DescriptorType::Tsharp: {
+                auto null_descriptor = [&]() {
+                    descriptor_writes.push_back(vk::WriteDescriptorSet {
+                        .dstSet = nullptr,  // Not used for push descriptors
+                        .dstBinding = (u32)buf_info.binding,
+                        .dstArrayElement = 0,
+                        .descriptorCount = 1,
+                        .descriptorType = !buf_info.is_image_store ? vk::DescriptorType::eCombinedImageSampler : vk::DescriptorType::eStorageImage,
+                        .pImageInfo = &dummy_descriptor_image_info
+                    });
+                };
+
                 TSharp* tsharp = buf_info.desc_info.asPtr<TSharp>();
-                if (tsharp->data_format == 0) continue;
+                if (tsharp->data_format == 0) {
+                    null_descriptor();
+                    continue;
+                }
+
+                //if (IsBadReadPtr((const void*)(tsharp->base_address << 8), 1))
+                //    Helpers::panic("Invalid tsharp->base_address %p for shader %llx\n", tsharp->base_address << 8, data.hash);
+
                 TrackedTexture* tex;
                 Vulkan::getVulkanImageInfoForTSharp(tsharp, &tex, true);
-                //tex->was_bound = true;
+                tex->was_bound = true;
 
                 if (tex == rt) {
                     *has_feedback_loop = true;
@@ -494,7 +567,7 @@ std::vector<vk::WriteDescriptorSet> Pipeline::uploadBuffersAndTextures(PushConst
                     .dstBinding = (u32)buf_info.binding,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                    .descriptorType = !buf_info.is_image_store ? vk::DescriptorType::eCombinedImageSampler : vk::DescriptorType::eStorageImage,
                     .pImageInfo = &tex->image_info
                 });
                 break;

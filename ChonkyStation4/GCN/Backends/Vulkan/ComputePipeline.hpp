@@ -3,6 +3,7 @@
 #include <Common.hpp>
 #include <BitField.hpp>
 #include <vulkan/vulkan_raii.hpp>
+#include <GCN/Backends/Vulkan/VulkanCommon.hpp>
 #include <GCN/FetchShader.hpp>
 #include <GCN/Shader/ShaderDecompiler.hpp>
 #include <GCN/Backends/Vulkan/ShaderCache.hpp>
@@ -48,7 +49,7 @@ private:
     vk::raii::Pipeline compute_pipeline = nullptr;
     vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
 
-    std::deque<vk::DescriptorBufferInfo> buffer_info;
+    std::deque<vk::DescriptorBufferInfo> buffer_info[FRAMES_IN_FLIGHT];
     PushConstants push_constants;
 };
 

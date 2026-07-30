@@ -65,11 +65,6 @@ void gcnThread() {
             break;
         }
 
-        //case CommandType::SubmitCompute: {
-        //    GCN::processCommands(cmd.dcb, cmd.dcb_size, nullptr, 0, cmd.queue);
-        //    break;
-        //}
-
         case CommandType::Flip: {
             auto port = PS4::OS::find<OS::Libs::SceVideoOut::SceVideoOutPort>(cmd.video_out_handle);
             if (!port) {

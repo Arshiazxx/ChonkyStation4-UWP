@@ -56,11 +56,11 @@ CachedShader* getShader(const u8* code, Shader::ShaderStage stage, FetchShader* 
     // Compile it
     log("Compiling new shader %016llx\n", hash);
     CachedShader* cached_shader = new CachedShader();
+    cached_shader->data.hash = hash;
     Shader::decompileShader((u32*)code, stage, cached_shader->data, fetch_shader, compute_job);
-    cached_shader->vk_shader = createShaderModule(GCN::compileGLSL(cached_shader->data.source, shader_stage(stage)));
+    cached_shader->vk_shader = createShaderModule(GCN::compileGLSL(cached_shader->data.source, shader_stage(stage), std::format("{:x}.glsl", hash)));
 
     // Cache it
-    cached_shader->data.hash = hash;
     shaders[hash] = cached_shader;
     return cached_shader;
 }

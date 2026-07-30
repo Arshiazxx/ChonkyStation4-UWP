@@ -257,6 +257,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::DispatchDirect: {
+            //if (compute_queue) return;
             ComputeJob job;
             job.dim_x = *args++;
             job.dim_y = *args++;
@@ -352,8 +353,8 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
                     GCN::processAsyncCompute();
                 else
                     co::active().get_parent().switch_to();
-
-
+            
+            
                 // TODO: Use poll_interval
                 std::this_thread::sleep_for(std::chrono::microseconds(1000));
             }

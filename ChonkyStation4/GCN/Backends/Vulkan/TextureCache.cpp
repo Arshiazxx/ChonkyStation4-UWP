@@ -244,7 +244,7 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
 
     vk::Flags<vk::ImageUsageFlagBits> attachment_bits = {};
     if (!is_compressed)
-        attachment_bits = (!is_depth_buffer ? vk::ImageUsageFlagBits::eColorAttachment : vk::ImageUsageFlagBits::eDepthStencilAttachment) | vk::ImageUsageFlagBits::eAttachmentFeedbackLoopEXT;
+        attachment_bits = (!is_depth_buffer ? vk::ImageUsageFlagBits::eColorAttachment : vk::ImageUsageFlagBits::eDepthStencilAttachment) | vk::ImageUsageFlagBits::eAttachmentFeedbackLoopEXT | vk::ImageUsageFlagBits::eStorage;
 
     vk::ImageCreateInfo img_info = {
         .imageType = !is_3d ? vk::ImageType::e2D : vk::ImageType::e3D,
@@ -254,12 +254,9 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
         .arrayLayers = 1,
         .samples = vk::SampleCountFlagBits::e1,
         .tiling = vk::ImageTiling::eOptimal,
-        .usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eAttachmentFeedbackLoopEXT | attachment_bits,
+        .usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | attachment_bits,
         .sharingMode = vk::SharingMode::eExclusive
     };
-
-    if (!is_depth_buffer)
-        img_info.usage |= vk::ImageUsageFlagBits::eStorage;
 
     img = vk::raii::Image(device, img_info);
     auto mem_requirements = img.getMemoryRequirements();

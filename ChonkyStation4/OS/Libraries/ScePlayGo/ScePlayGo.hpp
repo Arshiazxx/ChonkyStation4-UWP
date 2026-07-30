@@ -9,11 +9,13 @@ namespace PS4::OS::Libs::ScePlayGo {
 
 void init(Module& module);
 
+static constexpr s32 SCE_PLAYGO_ERROR_BAD_CHUNK_ID = 0x80B2000C;
 static constexpr s32 SCE_PLAYGO_ERROR_NOT_SUPPORT_PLAYGO = 0x80B2000E;
 
 using ScePlayGoHandle = u32;
 using ScePlayGoChunkId = u16;
 using ScePlayGoLocus = u8;
+using ScePlayGoEta = s64;
 using ScePlayGoLanguageMask = u64;
 static constexpr ScePlayGoHandle PLAYGO_HANDLE = 0x12345678;
 
@@ -42,9 +44,12 @@ enum class ScePlayGoLocusValue {
 
 s32 PS4_FUNC scePlayGoInitialize(const ScePlayGoInitParams* init_param);
 s32 PS4_FUNC scePlayGoOpen(ScePlayGoHandle* out_handle, const void* param);
+s32 PS4_FUNC scePlayGoGetChunkId(ScePlayGoHandle handle, ScePlayGoChunkId* out_chunk_id_list, u32 n_entries, u32* out_n_entries);
 s32 PS4_FUNC scePlayGoGetLocus(ScePlayGoHandle handle, const ScePlayGoChunkId* chunk_ids, u32 n_entries, ScePlayGoLocus* out_loci);
 s32 PS4_FUNC scePlayGoGetProgress(ScePlayGoHandle handle, const ScePlayGoChunkId* chunk_ids, u32 n_entries, ScePlayGoProgress* out_progress);
 s32 PS4_FUNC scePlayGoGetToDoList(ScePlayGoHandle handle, ScePlayGoToDo* out_todo_list, u32 n_entries, u32* n_out_entries);
+s32 PS4_FUNC scePlayGoSetToDoList(ScePlayGoHandle handle, const ScePlayGoToDo* todo_list, u32 n_entries);
+s32 PS4_FUNC scePlayGoGetEta(ScePlayGoHandle handle, const ScePlayGoChunkId* chunk_ids, u32 n_entries, ScePlayGoEta* out_eta);
 s32 PS4_FUNC scePlayGoGetLanguageMask(ScePlayGoHandle handle, ScePlayGoLanguageMask* out_mask);
 s32 PS4_FUNC scePlayGoSetLanguageMask(ScePlayGoHandle handle, ScePlayGoLanguageMask mask);
 

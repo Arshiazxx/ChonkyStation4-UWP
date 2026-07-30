@@ -18,6 +18,12 @@
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
+#ifdef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
+#include <GCN/Backends/Vulkan/NVIDIA/NsightAftermath.hpp>
+#endif
+
+//#define ENABLE_DEBUG_PRINTF
+
 
 extern App g_app;
 
@@ -36,9 +42,13 @@ std::vector<const char*> required_device_exts = {
     VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME,
     //VK_EXT_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_EXTENSION_NAME,
     VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
-    VK_EXT_DEPTH_CLIP_CONTROL_EXTENSION_NAME
+    VK_EXT_DEPTH_CLIP_CONTROL_EXTENSION_NAME,
+    VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
     //VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
     //VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME
+#ifdef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
+    VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
+#endif
 };
 
 // Keep track of the pipelines we used this frame to cleanup state after flipping
@@ -56,7 +66,11 @@ const std::vector<char const*> validation_layers = {
 
 static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
     if (severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError ||
-        severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning) {
+        severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+#ifdef ENABLE_DEBUG_PRINTF
+        || severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+#endif
+       ) {
         std::cerr << "validation layer: type " << to_string(type) << " msg: " << pCallbackData->pMessage << std::endl;
     }
 
@@ -170,15 +184,44 @@ void VulkanRenderer::init() {
     // Get the required layers
     vk::ValidationFeaturesEXT validation_features;
     std::array validation_enabled = {
+#ifdef ENABLE_DEBUG_PRINTF
+        vk::ValidationFeatureEnableEXT::eDebugPrintf,
+#else
         //vk::ValidationFeatureEnableEXT::eGpuAssisted,
         vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
         //vk::ValidationFeatureEnableEXT::eBestPractices
+#endif
     };
+
+#ifdef ENABLE_DEBUG_PRINTF
+    const u32 printf_buffer_size = 128_KB;
+    vk::LayerSettingEXT settings[] = {
+        {
+            .pLayerName = "VK_LAYER_KHRONOS_validation",
+            .pSettingName = "printf_buffer_size",
+            .type = vk::LayerSettingTypeEXT::eUint32,
+            .valueCount = 1,
+            .pValues = &printf_buffer_size,
+        }
+    };
+
+    vk::LayerSettingsCreateInfoEXT layer_settings {
+        .settingCount = std::size(settings),
+        .pSettings = settings,
+    };
+
+    std::array validation_disabled = {
+        vk::ValidationFeatureDisableEXT::eAll
+    };
+#endif
     
     std::vector<char const*> required_layers;
     if (enable_validation_layers) {
         required_layers.assign(validation_layers.begin(), validation_layers.end());
         validation_features.setEnabledValidationFeatures(validation_enabled);
+#ifdef ENABLE_DEBUG_PRINTF
+        validation_features.setDisabledValidationFeatures(validation_disabled);
+#endif
     }
 
     // Check if the required layers are supported by the Vulkan implementation
@@ -208,8 +251,16 @@ void VulkanRenderer::init() {
         }
     }
 
+#ifdef ENABLE_DEBUG_PRINTF
+    layer_settings.pNext = &validation_features;
+#endif
+
     vk::InstanceCreateInfo create_info = {
+#ifndef ENABLE_DEBUG_PRINTF
         .pNext                   = enable_validation_layers ? &validation_features : nullptr,
+#else
+        .pNext                   = enable_validation_layers ? &layer_settings : nullptr,
+#endif
         .pApplicationInfo        = &app_info,
         .enabledLayerCount       = static_cast<u32>(required_layers.size()),
         .ppEnabledLayerNames     = required_layers.data(),
@@ -221,6 +272,9 @@ void VulkanRenderer::init() {
     // Setup the debug messenger if validation layers are enabled
     if (enable_validation_layers) {
         vk::DebugUtilsMessageSeverityFlagsEXT severity_flags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
+#ifdef ENABLE_DEBUG_PRINTF
+        severity_flags |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo;
+#endif
         vk::DebugUtilsMessageTypeFlagsEXT     message_type_flags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
         vk::DebugUtilsMessengerCreateInfoEXT  debug_utils_messenger_create_info_ext = {
             .messageSeverity = severity_flags,
@@ -234,6 +288,10 @@ void VulkanRenderer::init() {
     VkSurfaceKHR _surface;
     SDL_Vulkan_CreateSurface(window, *instance, &_surface);
     surface = vk::raii::SurfaceKHR(instance, _surface);
+
+#ifdef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
+    NVIDIA::initAftermath();
+#endif
 
     // Choose a physical device
     std::vector<vk::raii::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
@@ -252,7 +310,7 @@ void VulkanRenderer::init() {
             return std::ranges::any_of(available_device_exts, [required_device_exts](auto const &availableDeviceExtension) { return strcmp(availableDeviceExtension.extensionName, required_device_exts) == 0; });
         });
 
-        auto features                       =  device.template getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT, vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT, vk::PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT>();
+        auto features                       =  device.template getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT, vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT, vk::PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT, vk::PhysicalDeviceRobustness2FeaturesEXT>();
         bool supports_all_required_features =  features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters
                                             && features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering
                                             && features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState
@@ -261,8 +319,9 @@ void VulkanRenderer::init() {
                                             && features.template get<vk::PhysicalDeviceFeatures2>().features.tessellationShader
                                             && features.template get<vk::PhysicalDeviceFeatures2>().features.fragmentStoresAndAtomics
                                             && features.template get<vk::PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT>().dynamicRenderingUnusedAttachments
-                                            && features.template get<vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT>().attachmentFeedbackLoopLayout;
+                                            && features.template get<vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT>().attachmentFeedbackLoopLayout
                                             //&& features.template get<vk::PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT>().attachmentFeedbackLoopDynamicState;
+                                            && features.template get<vk::PhysicalDeviceRobustness2FeaturesEXT>().nullDescriptor;
 
         if (supports_vulkan1_3 && supports_graphics && supports_all_required_exts && supports_all_required_features)
             supported_devices.push_back(std::move(device));
@@ -286,7 +345,7 @@ void VulkanRenderer::init() {
     if (queue_index == ~0) Helpers::panic("Could not find a queue family for graphics and presentation");
 
     // Query for required features (Vulkan 1.1 and 1.3)
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT, vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT> feature_chain = {
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT, vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT, vk::PhysicalDeviceRobustness2FeaturesEXT> feature_chain = {
         // vk::PhysicalDeviceFeatures2
         { .features = {
                 .depthClamp = true,
@@ -300,14 +359,25 @@ void VulkanRenderer::init() {
         { .extendedDynamicState = true                                                              },         // vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
         { .dynamicRenderingUnusedAttachments = true                                                 },         // vk::PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT
         { .attachmentFeedbackLoopLayout = true                                                      },         // vk::PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT
-        //{ .attachmentFeedbackLoopDynamicState = true                     }          // vk::PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT
+        //{ .attachmentFeedbackLoopDynamicState = true                                              }          // vk::PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT
+        { .nullDescriptor = true                                                                    },         // vk::PhysicalDeviceRobustness2FeaturesEXT
     };
+
+#ifdef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
+    vk::DeviceDiagnosticsConfigCreateInfoNV nvidia_config;
+    nvidia_config.pNext = &feature_chain.get<vk::PhysicalDeviceFeatures2>();
+    nvidia_config.setFlags(vk::DeviceDiagnosticsConfigFlagBitsNV::eEnableShaderDebugInfo | vk::DeviceDiagnosticsConfigFlagBitsNV::eEnableShaderErrorReporting);
+#endif
 
     // Create a (logical) Device
     float queue_prio = 0.0f;
     vk::DeviceQueueCreateInfo device_queue_crerate_info = { .queueFamilyIndex = queue_index, .queueCount = 1, .pQueuePriorities = &queue_prio };
     vk::DeviceCreateInfo device_create_info = {
+#ifndef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
         .pNext                   = &feature_chain.get<vk::PhysicalDeviceFeatures2>(),
+#else
+        .pNext                   = NVIDIA::isAftermathEnabled() ? &nvidia_config : nvidia_config.pNext,
+#endif
         .queueCreateInfoCount    = 1,
         .pQueueCreateInfos       = &device_queue_crerate_info,
         .enabledExtensionCount   = static_cast<u32>(required_device_exts.size()),
@@ -394,7 +464,9 @@ void VulkanRenderer::init() {
         .instance = *instance,
         .vulkanApiVersion = VK_API_VERSION_1_3,
     };
-    vmaCreateAllocator(&allocator_info, &allocator);
+    if (vmaCreateAllocator(&allocator_info, &allocator) < 0) {
+        Helpers::panic("Vulkan: vmaCreateAllocator failed\n");
+    }
 
     vk::BufferCreateInfo buf_create_info = {
         .size  = 4096,   // Doesn't matter, we just want the memory type bits
@@ -444,7 +516,7 @@ void VulkanRenderer::init() {
             .sharingMode = vk::SharingMode::eExclusive
     };
 
-    VmaAllocationCreateInfo alloc_create_info;
+    VmaAllocationCreateInfo alloc_create_info = {};
     alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     alloc_create_info.flags = 0;
     VkBuffer raw_buf;
@@ -452,7 +524,7 @@ void VulkanRenderer::init() {
     gds_buf = vk::Buffer(raw_buf);
 
     gds_buffer_info = vk::DescriptorBufferInfo { .buffer = gds_buf, .offset = 0, .range = GDS_SIZE };
-    gds_descriptor_set_write = vk::WriteDescriptorSet{
+    gds_descriptor_set_write = vk::WriteDescriptorSet {
         .dstSet = nullptr,  // Unused for push descriptors
         .dstBinding = 128,
         .dstArrayElement = 0,
@@ -464,6 +536,25 @@ void VulkanRenderer::init() {
     // Set debug name
     //if (device.getDispatcher()->vkSetDebugUtilsObjectNameEXT)
     //    device.setDebugUtilsObjectNameEXT(*gds_buf, "GDS buffer");
+
+    // Create a dummy sampler and a dummy descriptor image info (used for null textures)
+    vk::SamplerCreateInfo sampler_info {
+        .magFilter = vk::Filter::eNearest,
+        .minFilter = vk::Filter::eNearest,
+        .mipmapMode = vk::SamplerMipmapMode::eNearest,
+        .addressModeU = vk::SamplerAddressMode::eClampToEdge,
+        .addressModeV = vk::SamplerAddressMode::eClampToEdge,
+        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
+        .minLod = 0.0f,
+        .maxLod = 0.0f,
+    };
+    dummy_sampler = vk::raii::Sampler(device, sampler_info);
+
+    dummy_descriptor_image_info = vk::DescriptorImageInfo {
+        .sampler = *dummy_sampler,
+        .imageView = VK_NULL_HANDLE,
+        .imageLayout = vk::ImageLayout::eUndefined
+    };
 
     printf("Using device %s\n", physical_device.getProperties().deviceName);
     log("Vulkan initialized successfully\n");
@@ -483,7 +574,7 @@ vk::Extent2D last_extent = vk::Extent2D { 0xffffffff, 0xffffffff };
 std::vector<vk::RenderingAttachmentInfo> curr_attachments;
 bool has_feedback_loop = false;
 bool needs_new_render_pass = false;
-vk::Extent2D VulkanRenderer::setupRenderingAttachments(Pipeline* pipeline, bool& has_depth_stencil) {
+vk::Extent2D VulkanRenderer::setupRenderingAttachments(Pipeline* pipeline, bool& has_depth, bool& has_stencil) {
     // ---- Setup render targets ----
     // We need to do this BEFORE uploading textures below, because that function relies on
     // getVulkanAttachmentForColorTarget to set a flag to detect feedback loops.
@@ -500,7 +591,9 @@ vk::Extent2D VulkanRenderer::setupRenderingAttachments(Pipeline* pipeline, bool&
 
     const bool depth_enabled = pipeline->cfg.depth_control.depth_enable && new_depth_rt.z_info.format != (u32)DataFormat::FormatInvalid;
     const bool stencil_enabled = pipeline->cfg.depth_control.stencil_enable && new_depth_rt.stencil_info.format != (u32)DataFormat::FormatInvalid;
-    has_depth_stencil = depth_enabled || stencil_enabled;
+    const bool has_depth_stencil = depth_enabled || stencil_enabled;
+    has_depth = depth_enabled;
+    has_stencil = stencil_enabled;
 
     // Check if any color or depth target was changed
     vk::Extent2D extent = { 0xffffffff, 0xffffffff };
@@ -617,7 +710,8 @@ void VulkanRenderer::draw(const u64 cnt, const void* idx_buf_ptr, u32 idx_offs) 
 
     // Setup rendering attachments
     bool has_depth = false;
-    auto extent = setupRenderingAttachments(&pipeline, has_depth);
+    bool has_stencil = false;
+    auto extent = setupRenderingAttachments(&pipeline, has_depth, has_stencil);
     
     // Gather vertex data
     auto* vtx_bindings = pipeline.gatherVertices();
@@ -641,7 +735,7 @@ void VulkanRenderer::draw(const u64 cnt, const void* idx_buf_ptr, u32 idx_offs) 
             .colorAttachmentCount = (u32)curr_attachments.size(),
             .pColorAttachments = curr_attachments.size() ? curr_attachments.data() : nullptr,
             .pDepthAttachment = has_depth ? &depth_attachment.vk_attachment : nullptr,
-            .pStencilAttachment = (has_depth && !disable_stencil) ? &depth_attachment.stencil_vk_attachment : nullptr
+            .pStencilAttachment = (has_stencil && !disable_stencil) ? &depth_attachment.stencil_vk_attachment : nullptr
         };
 
         beginRendering(render_info);
@@ -744,7 +838,8 @@ void VulkanRenderer::drawIndirect(const u64 cnt, const bool is_indexed, void* dr
 
     // Setup rendering attachments
     bool has_depth = false;
-    auto extent = setupRenderingAttachments(&pipeline, has_depth);
+    bool has_stencil = false;
+    auto extent = setupRenderingAttachments(&pipeline, has_depth, has_stencil);
 
     // Gather vertex data
     auto* vtx_bindings = pipeline.gatherVertices();
@@ -766,7 +861,7 @@ void VulkanRenderer::drawIndirect(const u64 cnt, const bool is_indexed, void* dr
             .colorAttachmentCount = (u32)curr_attachments.size(),
             .pColorAttachments = curr_attachments.size() ? curr_attachments.data() : nullptr,
             .pDepthAttachment = has_depth ? &depth_attachment.vk_attachment : nullptr,
-            .pStencilAttachment = (has_depth && !disable_stencil) ? &depth_attachment.stencil_vk_attachment : nullptr
+            .pStencilAttachment = (has_stencil && !disable_stencil) ? &depth_attachment.stencil_vk_attachment : nullptr
         };
 
         beginRendering(render_info);
@@ -1025,9 +1120,20 @@ void VulkanRenderer::flip(OS::Libs::SceVideoOut::SceVideoOutBuffer* buf) {
 
     // Wait for rendering to be done
     {
-        //Profiler::Scope profiler("Wait for GPU");
-        while (vk::Result::eTimeout == device.waitForFences(*draw_fence[frame_idx], vk::True, UINT64_MAX));
-        device.resetFences(*draw_fence[frame_idx]);
+        try {
+            //Profiler::Scope profiler("Wait for GPU");
+            while (vk::Result::eTimeout == device.waitForFences(*draw_fence[frame_idx], vk::True, UINT64_MAX));
+            device.resetFences(*draw_fence[frame_idx]);
+        }
+        catch (const std::system_error& e) {
+            printf("device.waitForFences error\n");
+
+#ifdef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
+            NVIDIA::waitForCrashDump();
+            NVIDIA::endAftermath();
+#endif
+            Helpers::panic("device.waitForFences error: %s\n", e.what());
+        }
     }
 
     // Cleanup

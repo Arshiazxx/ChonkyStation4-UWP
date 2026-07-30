@@ -11,6 +11,8 @@
 #include <deque>
 #include <stack>
 
+//#define ENABLE_PRINT_SHADER_HASH
+
 
 namespace PS4::GCN::Shader {
 
@@ -269,7 +271,7 @@ std::string getVGPR(int n) {
     std::string reg = std::format("v{}", n);
     if (!vgpr_map.contains(n)) {
         vgpr_map[n] = true;
-        initialization += std::format("uint {} = 0;\n", reg);
+        shader += std::format("uint {} = 0;\n", reg);
     }
     return reg;
 }
@@ -280,7 +282,7 @@ std::string getSGPR(int n) {
     if (!sgpr_map.contains(n)) {
         sgpr_map[n] = true;
         //initialization += std::format("uint {} = 0;\n", reg);
-        initialization += std::format("uint {} = uint(-1);\n", reg);
+        shader += std::format("uint {} = uint(-1);\n", reg);
     }
     return reg;
 }
@@ -327,6 +329,19 @@ std::string getType(int n_lanes, u32 nfmt) {
     }
 }
 
+bool need_get_vgpr_helper = false;
+void addGetVGPRHelper() {
+    shader += "uint getVGPR(uint idx) {\n";
+    shader += "    switch (idx) {\n";
+    for (auto [vgpr, unused] : vgpr_map) {
+        shader += std::format("    case {}: return v{};\n", vgpr, vgpr);
+    }
+    shader += "    default: return 0;\n";
+    shader += "    }\n";
+    shader += "}\n";
+
+}
+
 enum class Type {
     Float,
     Uint,
@@ -362,7 +377,7 @@ std::string getSRC(const PS4::GCN::Shader::InstOperand& op) {
     case OperandField::ConstFloatPos_1_0:   src = "f2u(1.0f)";                                                          break;
     case OperandField::ConstFloatPos_2_0:   src = "f2u(2.0f)";                                                          break;
     case OperandField::ConstFloatPos_4_0:   src = "f2u(4.0f)";                                                          break;
-    case OperandField::M0:                  src = "0 /* TODO: M0 */";                                                   break;
+    case OperandField::M0:                  src = "m0";                                                                 break;
     case OperandField::ExecLo:              src = "exec";                                                               break;
     case OperandField::VccLo:               src = "vcc";                                                                break;
     case OperandField::VccHi:               src = "vcchi";                                                              break;
@@ -571,6 +586,7 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
 
         case Shader::Opcode::IMAGE_STORE:
         case Shader::Opcode::IMAGE_ATOMIC_ADD:
+        case Shader::Opcode::IMAGE_ATOMIC_CMPSWAP:
         case Shader::Opcode::IMAGE_ATOMIC_UMIN:
             is_img_store = true;
         case Shader::Opcode::IMAGE_GATHER4_LZ:
@@ -582,6 +598,7 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
         case Shader::Opcode::IMAGE_SAMPLE_LZ:
         case Shader::Opcode::IMAGE_SAMPLE_C:
         case Shader::Opcode::IMAGE_SAMPLE_O:
+        case Shader::Opcode::IMAGE_SAMPLE_B:
         case Shader::Opcode::IMAGE_SAMPLE_LZ_O:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ_O:
@@ -807,7 +824,8 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
 
         const auto is_vector = instr.category == InstCategory::VectorALU
             || instr.category == InstCategory::VectorMemory
-            || instr.category == InstCategory::VectorInterpolation;
+            || instr.category == InstCategory::VectorInterpolation
+            || instr.category == InstCategory::DataShare;
         //const auto is_vector = false;
 
         // Emit exec check for vector instructions (slow)
@@ -973,7 +991,8 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         }
 
         case Shader::Opcode::S_CMPK_GT_U32: {
-            code += "// TODO: S_CMPK_GT_U32\n";
+            const u16 imm16 = instr.control.sopk.simm;
+            code += std::format("scc = uint({} > {});\n", getSRC<Type::Int>(instr.dst[0]), imm16); 
             break;
         }
 
@@ -1265,6 +1284,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
 
         case Shader::Opcode::V_READFIRSTLANE_B32: {
             code += "// TODO: V_READFIRSTLANE_B32\n";
+            code += setDST<Type::Uint>(instr.dst[0], getSRC<Type::Uint>(instr.src[0]));
             break;
         }
 
@@ -1272,7 +1292,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             const u32 dest_sgpr = instr.dst[0].code;
             const u32 src_vgpr = instr.src[0].code; // TODO: Verify this is a vgpr?
             const u32 lane = std::stoi(getSRC<Type::Uint>(instr.src[1]));
-            code += "// TODO: V_READLANE_B32 ";
+            code += "// V_READLANE_B32 ";
             code += std::format("dest: {} src: {} lane: {}\n", dest_sgpr, src_vgpr, lane);
             code += std::format("{} = {};\n", getSGPR(dest_sgpr), getLane(src_vgpr, lane));
             break;
@@ -1282,7 +1302,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             const u32 dest_vgpr = instr.dst[0].code;
             const u32 src_sgpr = instr.src[0].code; // TODO: Verify this is an sgpr?
             const u32 lane = std::stoi(getSRC<Type::Uint>(instr.src[1]));
-            code += "// TODO: V_WRITELANE_B32 ";
+            code += "// V_WRITELANE_B32 ";
             code += std::format("dest: {} src: {} lane: {}\n", dest_vgpr, src_sgpr, lane);
             code += std::format("{} = {};\n", getLane(dest_vgpr, lane), getSGPR(src_sgpr));
             break;
@@ -1415,13 +1435,19 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         }
 
         case Shader::Opcode::V_ADD_I32: {
-            code += setDST<Type::Uint>(instr.dst[0], std::format("{} + {}", getSRC<Type::Int>(instr.src[0]), getSRC<Type::Int>(instr.src[1])));
+            code += setDST<Type::Int>(instr.dst[0], std::format("{} + {}", getSRC<Type::Int>(instr.src[0]), getSRC<Type::Int>(instr.src[1])));
             // TODO: Carry out
             break;
         }
 
         case Shader::Opcode::V_SUB_I32: {
-            code += setDST<Type::Uint>(instr.dst[0], std::format("{} - {}", getSRC<Type::Int>(instr.src[0]), getSRC<Type::Int>(instr.src[1])));
+            code += setDST<Type::Int>(instr.dst[0], std::format("{} - {}", getSRC<Type::Int>(instr.src[0]), getSRC<Type::Int>(instr.src[1])));
+            // TODO: Carry out
+            break;
+        }
+
+        case Shader::Opcode::V_ADDC_U32: {
+            code += setDST<Type::Uint>(instr.dst[0], std::format("{} + {}", getSRC<Type::Uint>(instr.src[0]), getSRC<Type::Uint>(instr.src[1])));
             // TODO: Carry out
             break;
         }
@@ -1595,6 +1621,12 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             break;
         }
 
+        case Shader::Opcode::V_MOVRELS_B32: {
+            need_get_vgpr_helper = true;
+            code += setDST<Type::Uint>(instr.dst[0], std::format("getVGPR({} + m0)", instr.src[0].code));
+            break;
+        }
+
         case Shader::Opcode::V_MAD_LEGACY_F32:
         case Shader::Opcode::V_MAD_F32: {
             code += setDST(instr.dst[0], std::format("{} * {} + {}", getSRC(instr.src[0]), getSRC(instr.src[1]), getSRC(instr.src[2])));
@@ -1676,11 +1708,29 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         }
 
         case Shader::Opcode::V_MED3_F32: {
-            const auto src0 = getSRC(instr.src[0]);
-            const auto src1 = getSRC(instr.src[1]);
-            const auto src2 = getSRC(instr.src[2]);
+            const auto src0 = getSRC<Type::Float>(instr.src[0]);
+            const auto src1 = getSRC<Type::Float>(instr.src[1]);
+            const auto src2 = getSRC<Type::Float>(instr.src[2]);
             // med3(a, b, c) = max(min(a, b), min(max(a, b), c))
-            code += setDST(instr.dst[0], std::format("max(min({}, {}), min(max({}, {}), {}))", src0, src1, src0, src1, src2));
+            code += setDST<Type::Float>(instr.dst[0], std::format("max(min({}, {}), min(max({}, {}), {}))", src0, src1, src0, src1, src2));
+            break;
+        }
+
+        case Shader::Opcode::V_MED3_I32: {
+            const auto src0 = getSRC<Type::Int>(instr.src[0]);
+            const auto src1 = getSRC<Type::Int>(instr.src[1]);
+            const auto src2 = getSRC<Type::Int>(instr.src[2]);
+            // med3(a, b, c) = max(min(a, b), min(max(a, b), c))
+            code += setDST<Type::Int>(instr.dst[0], std::format("max(min({}, {}), min(max({}, {}), {}))", src0, src1, src0, src1, src2));
+            break;
+        }
+
+        case Shader::Opcode::V_MED3_U32: {
+            const auto src0 = getSRC<Type::Uint>(instr.src[0]);
+            const auto src1 = getSRC<Type::Uint>(instr.src[1]);
+            const auto src2 = getSRC<Type::Uint>(instr.src[2]);
+            // med3(a, b, c) = max(min(a, b), min(max(a, b), c))
+            code += setDST<Type::Uint>(instr.dst[0], std::format("max(min({}, {}), min(max({}, {}), {}))", src0, src1, src0, src1, src2));
             break;
         }
 
@@ -1863,7 +1913,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
                 block.needs_barrier = true;
                 block.fallthrough = getOrCreateBlock(data, pc + instr.length, stage);
                 done = true;
-                continue;
+                break;
             }
             break;
         }
@@ -1893,7 +1943,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
                 block.needs_barrier = true;
                 block.fallthrough = getOrCreateBlock(data, pc + instr.length, stage);
                 done = true;
-                continue;
+                break;
             }
             break;
         }
@@ -1922,7 +1972,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
                 block.needs_barrier = true;
                 block.fallthrough = getOrCreateBlock(data, pc + instr.length, stage);
                 done = true;
-                continue;
+                break;
             }
             break;
         }
@@ -2177,6 +2227,17 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             break;
         }
 
+        case Shader::Opcode::IMAGE_ATOMIC_CMPSWAP: {
+            const auto buffer_mapping = pc;
+            Helpers::debugAssert(buffer_map.contains(buffer_mapping), "IMAGE_ATOMIC_CMPSWAP: no buffer_mapping");  // Unreachable if everything works as intended
+            auto* buf = buffer_map[buffer_mapping];
+
+            const auto image_name = std::format("tex{}", buf->binding);
+
+            code += "// TODO: IMAGE_ATOMIC_CMPSWAP " + image_name + "\n";
+            break;
+        }
+
         case Shader::Opcode::IMAGE_ATOMIC_ADD: {
             const auto buffer_mapping = pc;
             Helpers::debugAssert(buffer_map.contains(buffer_mapping), "IMAGE_ATOMIC_ADD: no buffer_mapping");  // Unreachable if everything works as intended
@@ -2203,6 +2264,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         case Shader::Opcode::IMAGE_SAMPLE_LZ:
         case Shader::Opcode::IMAGE_SAMPLE_C:
         case Shader::Opcode::IMAGE_SAMPLE_O:
+        case Shader::Opcode::IMAGE_SAMPLE_B:
         case Shader::Opcode::IMAGE_SAMPLE_LZ_O:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ_O:
@@ -2294,9 +2356,9 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             const int coord_reg_idx = instr.src[0].code;
             std::string texcoords;
             if (!is_3d)
-                texcoords = std::format("ivec2(u2f({}), u2f({}))", getVGPR(coord_reg_idx), getVGPR(coord_reg_idx + 1));
+                texcoords = std::format("ivec2({}, {})", getVGPR(coord_reg_idx), getVGPR(coord_reg_idx + 1));
             else
-                texcoords = std::format("ivec3(u2f({}), u2f({}), u2f({}))", getVGPR(coord_reg_idx), getVGPR(coord_reg_idx + 1), getVGPR(coord_reg_idx + 2));
+                texcoords = std::format("ivec3({}, {}, {})", getVGPR(coord_reg_idx), getVGPR(coord_reg_idx + 1), getVGPR(coord_reg_idx + 2));
 
             code += std::format("tmp = texelFetch({}, {}, 0);\n", sampler_name, texcoords);
             code += "tmp2 = float[](tmp.x, tmp.y, tmp.z, tmp.w);\n";
@@ -2435,8 +2497,8 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         }
 
         default: {
-            //printf("BasicBlock so far:\n%s\n", code.c_str());
-            //Helpers::panic("Unimplemented shader instruction %d\n", instr.opcode);
+            printf("BasicBlock so far:\n%s\n", code.c_str());
+            Helpers::panic("Unimplemented shader instruction %d\n", instr.opcode);
             code += "// TODO\n";
         }
         }
@@ -2518,7 +2580,7 @@ std::string emit(BasicBlock* from, BasicBlock* to, bool& needs_barrier, int leve
             }
 
             barrier_check();
-            code += emit(*from->loop_exits.begin(), to, needs_barrier, level, false);
+            code += loop_check_emit(*from->loop_exits.begin(), to, needs_barrier, level, false, is_in_loop, loop_header);
             return code;
         }
 
@@ -2624,11 +2686,21 @@ void decompileShader(u32* data, ShaderStage stage, ShaderData& out_data, FetchSh
     vgpr_map.clear();
     sgpr_map.clear();
     lane_map.clear();
+    need_get_vgpr_helper = false;
 
     shader += R"(
 #version 450
 #extension GL_ARB_shading_language_packing : require
 
+)";
+
+#ifdef ENABLE_PRINT_SHADER_HASH
+    shader += R"(
+#extension GL_EXT_debug_printf : enable
+)";
+#endif
+
+shader += R"(
 #define u2f(x) uintBitsToFloat(x)
 #define f2u(x) floatBitsToUint(x)
 #define EXEC if (exec != 0)
@@ -2655,6 +2727,7 @@ layout(push_constant, std430) uniform BufferInfo {
 } buf_info;
 
 uint getStrideForBinding(uint binding) {
+    if (binding >= 48) return 0;
     uint stride = buf_info.stride[binding >> 1u];
     if (binding % 2 == 1)
         stride >>= 16u;
@@ -2763,6 +2836,25 @@ bool v_cmp_class_f32(float x, uint mask) {
     }
 
     main += "\n";
+
+#ifdef ENABLE_PRINT_SHADER_HASH
+    const auto print_hash = std::format("debugPrintfEXT(\"{:x}\");\n", out_data.hash);
+
+    switch (stage) {
+    //case ShaderStage::Vertex: {
+    //    main += std::format("if (gl_VertexIndex == 0) {}\n", print_hash);
+    //    break;
+    //}
+    //case ShaderStage::Fragment: {
+    //    main += std::format("if (gl_FragCoord.x > 0.0 && gl_FragCoord.x < 0.1 && gl_FragCoord.y > 0.0 && gl_FragCoord.y < 0.1) {}\n", print_hash);
+    //    break;
+    //}
+    case ShaderStage::Compute: {
+        main += std::format("if (gl_GlobalInvocationID == uvec3(0)) {}\n", print_hash);
+        break;
+    }
+    }
+#endif
 
     // Discover basic block entry points
     discoverBasicBlockEntries(data, 0);
@@ -2994,6 +3086,9 @@ bool v_cmp_class_f32(float x, uint mask) {
     shader += const_tables;
     shader += "\n";
 
+    if (need_get_vgpr_helper)
+        addGetVGPRHelper();
+
     // Print immediate post-dominators
     for (auto& block : blocks) {
         shader += std::format("// immediate post dominator of {:08x}: {}\n", block->pc, block->immediate_post_dominator ? std::format("{:08x}", block->immediate_post_dominator->pc) : "nullptr");
@@ -3001,6 +3096,11 @@ bool v_cmp_class_f32(float x, uint mask) {
     shader += "\n";
 
     main = initialization + "\n" + main;
+
+#ifdef ENABLE_PRINT_SHADER_HASH
+    if (stage == ShaderStage::Compute)
+        main += std::format("\nif (gl_GlobalInvocationID == uvec3(0)) debugPrintfEXT(\"done {:x}\");", out_data.hash);
+#endif
 
     // Declare main function
     addFunc("void main", main);

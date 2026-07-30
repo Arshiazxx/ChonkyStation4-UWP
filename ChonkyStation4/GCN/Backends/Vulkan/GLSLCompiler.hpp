@@ -127,8 +127,9 @@ static const TBuiltInResource DefaultTBuiltInResource = {
 };
 
 #define SHADER_DEBUG
+//#define DUMP_SHADERS
 
-inline std::vector<u32> compileGLSL(const std::string& source, EShLanguage stage) {
+inline std::vector<u32> compileGLSL(const std::string& source, EShLanguage stage, std::string filename = "") {
     glslang::InitializeProcess();
 
     glslang::TShader shader(stage);
@@ -168,6 +169,7 @@ inline std::vector<u32> compileGLSL(const std::string& source, EShLanguage stage
     glslang::SpvOptions options;
 #ifdef SHADER_DEBUG
     shader.setDebugInfo(true);
+    shader.setSourceFile(filename.c_str());
     options.generateDebugInfo = true;
     options.stripDebugInfo = false;
     options.disableOptimizer = true;
@@ -176,6 +178,15 @@ inline std::vector<u32> compileGLSL(const std::string& source, EShLanguage stage
     options.optimizeSize = true;
     options.disableOptimizer = false;
     glslang::GlslangToSpv(*intermediate, spirv, &options);
+#endif
+
+#ifdef DUMP_SHADERS
+    if (!filename.empty()) {
+        const fs::path dump_path = "./Debug/shader_dumps";
+        fs::create_directories(dump_path);
+
+        std::ofstream(dump_path / filename) << source;
+    }
 #endif
 
     return spirv;

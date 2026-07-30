@@ -47,7 +47,7 @@ private:
     void recreateSwapChain();
     void advanceSwapchain();
 
-    vk::Extent2D setupRenderingAttachments(Pipeline* pipeline, bool& has_depth);
+    vk::Extent2D setupRenderingAttachments(Pipeline* pipeline, bool& has_depth, bool& has_stencil);
 };
 
 }   // End namespace PS4::GCN::Vulkan

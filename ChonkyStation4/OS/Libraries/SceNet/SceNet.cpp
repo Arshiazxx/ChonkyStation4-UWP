@@ -506,8 +506,8 @@ SceNetId /* doesn't actually return an id */ PS4_FUNC sceNetResolverGetError(Sce
 
 s32 PS4_FUNC sceNetCtlGetState(s32* state) {
     log("sceNetCtlGetState()\n");
-    *state = 0; // Disconnected
-    //*state = 3; // IP Obtained
+    //*state = 0; // Disconnected
+    *state = 3; // IP Obtained
     return SCE_OK;
 }
 
@@ -515,6 +515,12 @@ s32 PS4_FUNC sceNetCtlGetInfo(s32 code, SceNetCtlInfo* info) {
     log("sceNetCtlGetInfo(code=%d, info=*%p)\n", code, info);
 
     switch (code) {
+    case SCE_NET_CTL_INFO_ETHER_ADDR: {
+        constexpr std::array<u8, SCE_NET_ETHER_ADDR_LEN> ether_addr = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
+        std::memcpy(info->ether_addr.data, ether_addr.data(), SCE_NET_ETHER_ADDR_LEN);
+        break;
+    }
+
     case SCE_NET_CTL_INFO_HTTP_PROXY_CONFIG: {
         info->http_proxy_config = 0;
         break;

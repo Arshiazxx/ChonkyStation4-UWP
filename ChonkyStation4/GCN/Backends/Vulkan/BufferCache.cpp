@@ -269,7 +269,7 @@ void updateBuffer(CachedBuffer* buf, bool recreate_vk_buf, u64 starting_page = 0
         }
     }
     
-    VkBufferMemoryBarrier barrier{
+    VkBufferMemoryBarrier barrier {
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
         nullptr,
         VK_ACCESS_TRANSFER_WRITE_BIT,

@@ -26,6 +26,8 @@ inline VmaAllocator                         allocator;
 inline VmaPool                              vma_pool;
 inline VmaPool                              device_vma_pool;
 inline u64                                  host_memory_import_align = 0;
+inline vk::raii::Sampler                    dummy_sampler = nullptr;
+inline vk::DescriptorImageInfo              dummy_descriptor_image_info;
 
 vk::raii::CommandBuffer beginCommands();
 void endCommands(vk::raii::CommandBuffer& cmd_buffer);

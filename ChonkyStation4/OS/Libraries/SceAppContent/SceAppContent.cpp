@@ -8,17 +8,30 @@ namespace PS4::OS::Libs::SceAppContent {
 MAKE_LOG_FUNCTION(log, lib_sceAppContent);
 
 void init(Module& module) {
+    module.addSymbolExport("99b82IKXpH4", "sceAppContentAppParamGetInt", "libSceAppContent", "libSceAppContentUtil", (void*)&sceAppContentAppParamGetInt);
     module.addSymbolExport("7bOLX66Iz-U", "sceAppContentTemporaryDataMount", "libSceAppContent", "libSceAppContentUtil", (void*)&sceAppContentTemporaryDataMount);
     module.addSymbolExport("buYbeLOGWmA", "sceAppContentTemporaryDataMount2", "libSceAppContent", "libSceAppContentUtil", (void*)&sceAppContentTemporaryDataMount2);
     module.addSymbolExport("SaKib2Ug0yI", "sceAppContentTemporaryDataGetAvailableSpaceKb", "libSceAppContent", "libSceAppContentUtil", (void*)&sceAppContentTemporaryDataGetAvailableSpaceKb);
     module.addSymbolExport("xnd8BJzAxmk", "sceAppContentGetAddcontInfoList", "libSceAppContent", "libSceAppContentUtil", (void*)&sceAppContentGetAddcontInfoList);
     
     module.addSymbolStub("R9lA82OraNs", "sceAppContentInitialize", "libSceAppContent", "libSceAppContentUtil");
-    module.addSymbolStub("99b82IKXpH4", "sceAppContentAppParamGetInt", "libSceAppContent", "libSceAppContentUtil"); // TODO: Important
     //module.addSymbolStub("XTWR0UXvcgs", "sceAppContentGetEntitlementKey", "libSceAppContent", "libSceAppContentUtil", 0x80D90007 /* SCE_APP_CONTENT_ERROR_DRM_NO_ENTITLEMENT */); // TODO: Important...?
     module.addSymbolStub("XTWR0UXvcgs", "sceAppContentGetEntitlementKey", "libSceAppContent", "libSceAppContentUtil", 0); // TODO: Important...?
     module.addSymbolStub("a5N7lAG0y2Q", "sceAppContentTemporaryDataFormat", "libSceAppContent", "libSceAppContentUtil");
     //module.addSymbolStub("VANhIWcqYak", "sceAppContentAddcontMount", "libSceAppContent", "libSceAppContentUtil", 0x80D90005 /* SCE_APP_CONTENT_ERROR_NOT_FOUND */);
+}
+
+s32 PS4_FUNC sceAppContentAppParamGetInt(SceAppContentAppParamId param_id, s32* value) {
+    log("sceAppContentAppParamGetInt(param_id = %d, value=*%p)\n", param_id, value);
+    
+    s32 val = 0;
+    switch (param_id) {
+    case SCE_APP_CONTENT_APPPARAM_ID_SKU_FLAG:  val = 3;    break;  // Full
+    default:    Helpers::panic("sceAppContentAppParamGetInt: unhandled param_id %d\n", param_id);
+    }
+
+    *value = val;
+    return SCE_OK;
 }
 
 // TODO: I'm unsure if the function signature is the same as the 2 variant, but I think it is
