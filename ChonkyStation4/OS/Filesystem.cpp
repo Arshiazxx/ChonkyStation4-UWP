@@ -325,7 +325,7 @@ std::string deviceToString(Device device) {
     case Device::SAVEDATA0:     return "savedata0";
     case Device::DEV:           return "dev";
     case Device::TEMP0:         return "temp0";
-    case Device::SANDBOX:       return "sandbox";
+    case Device::SYSTEM:        return "system";
     }
 }
 
@@ -334,7 +334,7 @@ Device stringToDevice(std::string device) {
     else if (device == "savedata0")     return Device::SAVEDATA0;
     else if (device == "dev")           return Device::DEV;
     else if (device == "temp0")         return Device::TEMP0;
-    else if (device == "sandbox")       return Device::SANDBOX;
+    else if (device == "system")        return Device::SYSTEM;
     else return Device::INVALID;
 }
 

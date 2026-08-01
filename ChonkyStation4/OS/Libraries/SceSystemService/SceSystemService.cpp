@@ -19,6 +19,10 @@ void init(Module& module) {
     module.addSymbolStub("jA629PcMCKU", "sceSystemServiceGetRenderingMode", "libSceSystemService", "libSceSystemService");
     
     module.addSymbolStub("nT-7-iG55M8", "sceSystemServiceSetPowerSaveLevel", "libSceSystemServicePowerSaveLevel", "libSceSystemService");
+    
+    module.addSymbolStub("f-Q8Nd33FBc", "sceLncUtilInitialize", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("awS+eYVuXJA", "sceLncUtilRegisterShellUI", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("9plZCCRm9x4", "sceShellCoreUtilEnterPowerLockSection", "libSceShellCoreUtil", "libSceSystemService");
 }
 
 s32 PS4_FUNC sceSystemServiceParamGetInt(SceSystemServiceParamId param_id, s32* val) {

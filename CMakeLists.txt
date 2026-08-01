@@ -13,6 +13,8 @@ add_compile_definitions(SDL_MAIN_HANDLED)
 
 add_executable(ChonkyStation4)
 add_compile_definitions("_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
+add_compile_definitions("_POSIX_THREAD_ATTR_STACKADDR")
+add_compile_definitions("_POSIX_THREAD_ATTR_STACKSIZE")
 
 set(VERSION_STRING "alpha-1")
 
@@ -105,6 +107,7 @@ endif()
 target_include_directories(ChonkyStation4 PUBLIC Dependencies/Dolphin)
 target_include_directories(ChonkyStation4 PUBLIC ${SDL2_INCLUDE_DIR})
 target_include_directories(ChonkyStation4 PUBLIC Dependencies/xxHash)
+target_include_directories(ChonkyStation4 PUBLIC Dependencies/TinySHA1)
 
 if (WIN32)
     if (MSVC)

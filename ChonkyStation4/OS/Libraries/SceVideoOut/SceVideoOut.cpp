@@ -25,6 +25,9 @@ void init(Module& module) {
     module.addSymbolExport("1FZBKy8HeNU", "sceVideoOutGetVblankStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetVblankStatus);
     module.addSymbolExport("6kPnj51T62Y", "sceVideoOutGetResolutionStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetResolutionStatus);
     
+    module.addSymbolExport("Ek+VR4lcJQI", "sceVideoOutSysAddVblankEvent", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutAddVblankEvent);
+    module.addSymbolStub("X8FN-5Nk-yE", "sceVideoOutSysAddSetModeEvent", "libSceVideoOut", "libSceVideoOut");
+    
     module.addSymbolStub("zgXifHT9ErY", "sceVideoOutIsFlipPending", "libSceVideoOut", "libSceVideoOut", 0); // TODO: Important
     module.addSymbolStub("N5KDtkIjjJ4", "sceVideoOutUnregisterBuffers", "libSceVideoOut", "libSceVideoOut"); // TODO: Important
     module.addSymbolStub("DYhhWbJSeRg", "sceVideoOutColorSettingsSetGamma_", "libSceVideoOut", "libSceVideoOut");
@@ -130,7 +133,7 @@ s32 PS4_FUNC sceVideoOutAddFlipEvent(Kernel::SceKernelEqueue eq, s32 handle, voi
 }
 
 s32 PS4_FUNC sceVideoOutAddVblankEvent(Kernel::SceKernelEqueue eq, s32 handle, void* udata) {
-    log("sceVideoOutAddVblankEvent(eq=*%p, handle=%d, udata=*%p) TODO\n", eq, handle, udata);
+    log("sceVideoOutAddVblankEvent(eq=*%p, handle=%d, udata=*%p)\n", eq, handle, udata);
 
     auto port = PS4::OS::find<SceVideoOutPort>(handle);
     if (!port) {

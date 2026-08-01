@@ -34,3 +34,6 @@
 [submodule "Dependencies/cppco"]
 	path = Dependencies/cppco
 	url = https://github.com/CzB404/cppco.git
+[submodule "Dependencies/TinySHA1"]
+	path = Dependencies/TinySHA1
+	url = https://github.com/mohaps/TinySHA1.git

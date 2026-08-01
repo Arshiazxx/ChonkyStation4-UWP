@@ -89,6 +89,16 @@ void* threadStart(Thread* thread) {
     SetThreadDescription(GetCurrentThread(), (PCWSTR)converter.from_bytes(name.c_str()).c_str());
 #endif
 
+#ifdef _WIN32
+    // Get thread stack
+    uptr low_limit;
+    uptr high_limit;
+    GetCurrentThreadStackLimits(&low_limit, &high_limit);
+    pthread_attr_init(&thread->attr);
+    pthread_attr_setstackaddr(&thread->attr, (void*)low_limit);
+    pthread_attr_setstacksize(&thread->attr, high_limit - low_limit);
+#endif
+
     // Initialize TLS and TCB.
     // TODO: I currently do not initialize the TCB struct.
     // The static TLS is allocated before the TCB

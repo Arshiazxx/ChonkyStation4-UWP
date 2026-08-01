@@ -88,6 +88,7 @@ std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_ll
     }
     //const size_t total_size = max_vaddr - min_vaddr;
     const size_t total_size = max_vaddr;
+    module->size = total_size;
     log("* Total size of ELF: %d bytes (%f KB)\n", total_size, total_size / 1024.0f);
 
     // Allocate memory
@@ -113,6 +114,17 @@ std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_ll
     module->entry = (void*)((u8*)module->base_address + elf.get_entry());
     log("* Entry: 0x%016llx\n", (u64)module->entry);
 
+    auto register_segment = [&](ELFIO::segment& seg) {
+        if (module->n_segments == 4) {
+            Helpers::panic("ELFLoader: mapping more than 4 segments\n");
+        }
+
+        auto& seg_info = module->segments[module->n_segments++];
+        seg_info.addr = (void*)((uptr)module->base_address + seg.get_virtual_address());
+        seg_info.size = seg.get_memory_size();
+        seg_info.prot = seg.get_flags();
+    };
+
     for (int i = 0; i < elf.segments.size(); i++) {
         auto seg = elf.segments[i];
         
@@ -126,11 +138,13 @@ std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_ll
         switch (seg->get_type()) {
         case PT_LOAD:
         case PT_SCE_RELRO: {
+            register_segment(*seg);
             loadSegment(*seg, module);
             break;
         }
 
         case PT_DYNAMIC: {
+            register_segment(*seg);
             module->dynamic_tags.resize(seg->get_file_size());
             loadSegment(*seg, module, (u8*)module->dynamic_tags.data(), false, false);
             break;
@@ -159,6 +173,13 @@ std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_ll
             const auto align = seg->get_align();
             if (align)
                 module->tls_memsz = (module->tls_memsz + align - 1) & ~(align - 1);
+            break;
+        }
+
+        case PT_GNU_EH_FRAME: {
+            module->eh_frame_hdr_addr = (void*)(seg->get_virtual_address() + (uptr)module->base_address);
+            module->eh_frame_hdr_size = seg->get_memory_size();
+            // TODO: eh_frame_addr, eh_frame_size
             break;
         }
         }
@@ -246,7 +267,8 @@ std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_ll
         const std::string sym_name = module->dyn_str_table + sym->st_name;
 
         // Export STB_GLOBAL and STB_WEAK symbols (not local symbols) that have st_value != 0
-        if (bind == STB_LOCAL || sym->st_value == 0) {
+        // Special case for "environ" because we need it
+        if ((bind == STB_LOCAL || sym->st_value == 0) && !sym_name.contains("+2thxYZ4syk")) {
             log("* Skipped local symbol %s\n", sym_name.c_str());
             continue;
         }
@@ -314,10 +336,10 @@ std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_ll
             bool r = flags & PF_R;
             bool w = flags & PF_W;
             bool x = flags & PF_X;
-            if (r && !w && !x) return PAGE_READONLY;
-            else if (r && w && !x) return PAGE_READWRITE;
-            else if (r && !w && x) return PAGE_EXECUTE_READ;
-            else if (r && w && x) return PAGE_EXECUTE_READWRITE;
+            if (r && !w && !x)      return PAGE_READONLY;
+            else if (r && w && !x)  return PAGE_READWRITE;
+            else if (r && !w && x)  return PAGE_EXECUTE_READ;
+            else if (r && w && x)   return PAGE_EXECUTE_READWRITE;
             else Helpers::panic("ELFLoader: invalid flags 0x%08x\n", flags);
         };
 

@@ -3,6 +3,8 @@
 #include <ErrorCodes.hpp>
 #include <OS/Thread.hpp>
 #include <OS/SceObj.hpp>
+#include <config.h>
+#include <implement.h>
 #ifdef _WIN32
 #define NOMINMAX
 #include <codecvt>
@@ -117,12 +119,15 @@ s32 PS4_FUNC kernel_pthread_attr_init(pthread_attr_t* attr) {
 }
 
 s32 PS4_FUNC kernel_pthread_attr_get_np(void* pthread, pthread_attr_t* attr) {
-    log("pthread_attr_get_np(pthread=*%p, attr=*%p) TODO\n", pthread, attr);
+    log("pthread_attr_get_np(pthread=*%p, attr=*%p)\n", pthread, attr);
+
+    auto& thread = findThread(pthread);
 
     // Assassin's Creed III Remastered relies on this
-    if (!threadExists(pthread) || findThread(pthread).exited)
+    if (!threadExists(pthread) || thread.exited)
         return POSIX_ESRCH;
 
+    **attr = *thread.attr;
     return 0;
 }
 
@@ -139,6 +144,18 @@ s32 PS4_FUNC kernel_pthread_attr_getaffinity_np(const pthread_attr_t* attr, size
 s32 PS4_FUNC kernel_pthread_attr_getstack(pthread_attr_t* attr, void** stack_addr, size_t* stack_size) {
     log("pthread_attr_getstack(attr=*%p, stack_addr=*%p, stack_size=*%p)\n", stack_addr, stack_size);
     pthread_attr_getstackaddr(attr, stack_addr);
+    pthread_attr_getstacksize(attr, stack_size);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_getstackaddr(pthread_attr_t* attr, void** stack_addr) {
+    log("pthread_attr_getstackaddr(attr=*%p, stack_addr=*%p)\n", stack_addr);
+    pthread_attr_getstackaddr(attr, stack_addr);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_getstacksize(pthread_attr_t* attr, size_t* stack_size) {
+    log("pthread_attr_getstacksize(attr=*%p, stack_size=*%p)\n", stack_size);
     pthread_attr_getstacksize(attr, stack_size);
     return 0;
 }
@@ -181,6 +198,9 @@ s32 PS4_FUNC scePthreadCreate(void** tid, const pthread_attr_t* attr, void* (PS4
     log("scePthreadCreate(tid=*%p, attr=*%p, start=%p, arg=%p, name=\"%s\")\n", tid, attr, start, arg, name_str.c_str());
     
     auto& thread = PS4::OS::Thread::createThread(name_str, (PS4::OS::Thread::ThreadStartFunc)start, arg);
+    pthread_attr_init(&thread.attr);
+    if (attr)
+        *thread.attr = **attr;
     *tid = (void*)&thread.getPThread();
     return 0;
 }

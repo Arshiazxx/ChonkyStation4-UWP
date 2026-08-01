@@ -33,6 +33,7 @@ public:
     bool exited = false;
     void* ret_val = nullptr;
     size_t tls_size = 0;
+    pthread_attr_t attr;
 
     pthread_t& getPThread() { return thread; }
     s32        getTID()     { return tid;    }

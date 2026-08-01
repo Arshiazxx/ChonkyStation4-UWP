@@ -50,6 +50,15 @@ void linkSysmodules(::App& app) {
         "libSceHttp.sprx",
         "libSceHttp2.sprx",
         "libSceRtc.sprx",
+        "libScePsm.sprx",
+        "libScePsmUtil.sprx",
+        "libmono-btls-shared.sprx",
+        "libmonosgen-2.0.sprx",
+        "libSceIpmi.sprx",
+        "libSceMetadataReaderWriter.sprx",
+        "libSceAbstractStorage.sprx",
+        "libSceAbstractLocal.sprx",
+        "libSceAsyncStorageInternal.sprx"
     };
 
     const std::string partial_lle_sysmodules_to_load[] = {
@@ -66,7 +75,12 @@ void linkSysmodules(::App& app) {
             Helpers::panic("Required sysmodule %s does not exist\n", sysmodule.c_str());
         }
 
-        Loader::Linker::loadAndLinkLib(app, sysmodule_path, false, app.getHLEModule());
+        auto mod = Loader::Linker::loadAndLinkLib(app, sysmodule_path, false, app.getHLEModule());
+
+        if (sysmodule == "libSceLibcInternal.sprx") {
+            auto* sym = mod->findSymbolExport("z8GPiQwaAEY");       // _malloc_init
+            ((PS4_FUNC void(*)())(sym->ptr))();
+        }
     }
 
     for (auto& sysmodule : partial_lle_sysmodules_to_load) {

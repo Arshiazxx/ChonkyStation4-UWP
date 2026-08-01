@@ -16,6 +16,10 @@ s32 PS4_FUNC scePthreadRwlockInit(pthread_rwlock_t* lock, const pthread_rwlockat
 
 s32 PS4_FUNC kernel_pthread_rwlock_rdlock(pthread_rwlock_t* lock) {
     log("pthread_rwlock_rdlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
     s32 ret = pthread_rwlock_rdlock(lock);
     PTHREAD_CHECK_RESULT(ret);
     return ret;
@@ -23,6 +27,10 @@ s32 PS4_FUNC kernel_pthread_rwlock_rdlock(pthread_rwlock_t* lock) {
 
 s32 PS4_FUNC kernel_pthread_rwlock_wrlock(pthread_rwlock_t* lock) {
     log("pthread_rwlock_wrlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
     s32 ret = pthread_rwlock_wrlock(lock);
     PTHREAD_CHECK_RESULT(ret);
     return ret;

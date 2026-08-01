@@ -1,6 +1,7 @@
 #include "App.hpp"
 #include <PlayStation4.hpp>
 #include <OS/Thread.hpp>
+#include <OS/Libraries/SceVideoOut/SceVideoOut.hpp>
 
 
 void PS4_FUNC exitFunc() {
@@ -81,8 +82,20 @@ void App::run() {
 
     // Run app
     log("Running app\n");
+
+    // Initialize system VideoOut port (used by VSH)
+    // It looks like VSH expects this port to have handle 2.
+    // We can change it because the first 0x100 handles are reserved (see SceObj.cpp) so handle 2 will never be allocated.
+    using namespace PS4::OS::Libs::SceVideoOut;
+    if (title_id == "NPXS20001") {
+        auto handle = sceVideoOutOpen(0, 0, 0, nullptr);
+        auto* port = PS4::OS::find<SceVideoOutPort>(handle);
+        port->handle = 2;
+    }
+
     // Create main thread
-    auto main_thread = PS4::OS::Thread::createThread("main", (PS4::OS::Thread::ThreadStartFunc)initAndJumpToEntry, &modules);
+    auto& main_thread = PS4::OS::Thread::createThread("main", (PS4::OS::Thread::ThreadStartFunc)initAndJumpToEntry, &modules);
+
     void* val;
     PS4::OS::Thread::joinThread(main_thread, &val);
 }
@@ -113,4 +126,21 @@ std::shared_ptr<Module> App::findModule(s32 modid) {
             return m;
     }
     Helpers::panic("App::findModule: no module found with id %d\n", modid);
+}
+
+std::shared_ptr<Module> App::findModuleByAddress(void* addr) {
+    for (auto& m : modules) {
+        if (Helpers::inRangeSized<uptr>((uptr)addr, (uptr)m->base_address, (uptr)m->size))
+            return m;
+    }
+    Helpers::panic("App::findModule: no module found at address %p\n", addr);
+}
+
+// Return true from the callback when you need to stop
+void App::forEachModule(std::function<bool(std::shared_ptr<Module>)> func) {
+    for (auto& m : modules) {
+        bool stop = func(m);
+        if (stop)
+            break;
+    }
 }

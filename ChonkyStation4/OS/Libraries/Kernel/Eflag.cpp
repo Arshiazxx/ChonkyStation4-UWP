@@ -120,6 +120,14 @@ s32 PS4_FUNC sceKernelCreateEventFlag(SceKernelEventFlag* ef, const char* name, 
     return SCE_OK;
 }
 
+s32 PS4_FUNC sceKernelOpenEventFlag(SceKernelEventFlag* ef, const char* name) {
+    log("sceKernelOpenEventFlag(ef=*%p, name=\"%s\")\n", ef, name);
+    
+    *ef = new Eflag();
+    (*ef)->name = name;
+    return SCE_OK;
+}
+
 s32 PS4_FUNC sceKernelSetEventFlag(SceKernelEventFlag ef, u64 bitptn) {
     log("sceKernelSetEventFlag(ef=%p, bitptn=0x%016llx)\n", ef, bitptn);
 
@@ -136,6 +144,8 @@ s32 PS4_FUNC sceKernelClearEventFlag(SceKernelEventFlag ef, u64 bitptn) {
 
 s32 PS4_FUNC sceKernelWaitEventFlag(SceKernelEventFlag ef, u64 bitptn, u32 wait_mode, u64* result, u32* timeout) {
     log("sceKernelWaitEventFlag(ef=%p, bitptn=0x%016llx, wait_mode=0x%x, result=*%p, timeout=*%p)\n", ef, bitptn, wait_mode, result, timeout);
+
+    if (ef->name == "SceBootStatusFlags") return SCE_OK;
 
     // TODO: Error checks
     if (timeout && *timeout) {

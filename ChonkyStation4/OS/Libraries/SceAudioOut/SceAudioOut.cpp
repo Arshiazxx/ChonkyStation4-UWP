@@ -19,7 +19,9 @@ void init(Module& module) {
 
     module.addSymbolStub("s1--uE9mBFw", "sceAudioOutClose", "libSceAudioOut", "libSceAudioOut");
     module.addSymbolStub("b+uAV89IlxE", "sceAudioOutSetVolume", "libSceAudioOut", "libSceAudioOut");
+    module.addSymbolStub("rho9DH-0ehs", "sceAudioOutSetVolumeDown", "libSceAudioOut", "libSceAudioOut");
     module.addSymbolStub("wVwPU50pS1c", "sceAudioOutSetMixLevelPadSpk", "libSceAudioOut", "libSceAudioOut");
+    module.addSymbolStub("O3FM2WXIJaI", "sceAudioOutChangeAppModuleState", "libSceAudioOut", "libSceAudioOut");
 }
 
 SDL_AudioDeviceID dev;

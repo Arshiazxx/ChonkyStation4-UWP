@@ -58,6 +58,10 @@ s32 PS4_FUNC sceSslGetCaCerts(s32 ctx_id, SceSslCaCerts* certs) {
     return SCE_OK;
 }
 
+s32 PS4_FUNC sceMbusEventReceive() {
+    while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
 namespace PS4::OS::HLE {
 
 // Create a dummy HLE module that only contains the symbol exports for HLE functions
@@ -228,8 +232,9 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("j7DlalBzHh8", "sceShareUtilityInitializeEx2", "libSceShareUtility", "libSceShareUtility");
     
     // libSceAudioIn
-    module->addSymbolStub("5NE8Sjc7VC8", "sceAudioInOpen", "libSceAudioIn", "libSceAudioIn", 1);
     module->addSymbolExport("LozEOU8+anM", "sceAudioInInput", "libSceAudioIn", "libSceAudioIn", (void*)&sceAudioInInput);
+    module->addSymbolStub("5NE8Sjc7VC8", "sceAudioInOpen", "libSceAudioIn", "libSceAudioIn", 1);
+    module->addSymbolStub("IQtWgnrw6v8", "sceAudioInChangeAppModuleState", "libSceAudioIn", "libSceAudioIn");
     
     // libSceVoice
     module->addSymbolStub("9TrhuGzberQ", "sceVoiceInit", "libSceVoice", "libSceVoice");
@@ -354,6 +359,34 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("ZC17w3vB5Lo", "sceAvPlayerStop", "libSceAvPlayer", "libSceAvPlayer");
     module->addSymbolStub("hdTyRzCXQeQ", "sceAvPlayerStreamCount", "libSceAvPlayer", "libSceAvPlayer");
     module->addSymbolStub("yN7Jhuv8g24", "sceAvPlayerVprintf", "libSceAvPlayer", "libSceAvPlayer");
+    
+    // libSceAudiodec
+    module->addSymbolStub("VjhsmxpcezI", "sceAudiodecInitLibrary", "libSceAudiodec", "libSceAudiodec");
+    module->addSymbolStub("h5jSB2QIDV0", "sceAudiodecTermLibrary", "libSceAudiodec", "libSceAudiodec");
+    
+    // libSceVisionManager
+    module->addSymbolStub("DphIqi0q48w", "sceVisionManagerGetLibraryVersion", "libSceVisionManager", "libSceVisionManager");
+    
+    // libSceAsyncStorageInternal
+    module->addSymbolStub("AdTjrblPbkA", "libSceAsyncStorageInternalAux_AdTjrblPbkA", "libSceAsyncStorageInternalAux", "libSceAsyncStorageInternal");
+    
+    // libSceMbus
+    module->addSymbolStub("wRPXMGtkOq0", "sceMbusInit", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("c08SEHicDNU", "sceMbusEventCreate_", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("KRL-S9qBqXw", "sceMbusGetDeviceInfoByCondition_", "libSceMbus", "libSceMbus");
+    module->addSymbolExport("puHrnP8V-dY", "sceMbusEventReceive", "libSceMbus", "libSceMbus", (void*)&sceMbusEventReceive);
+    
+    // libSceIpmi
+    module->addSymbolStub("fjPNqzuUop8", "libSceIpmi_fjPNqzuUop8", "libSceIpmi", "libSceIpmi");
+    
+    // libSceUpdateService
+    module->addSymbolStub("IOC0zyNzTM0", "sceUpsrvInitialize", "libSceUpdateService", "libSceUpdateService");
+    
+    // libScePatchCheckerClient
+    module->addSymbolStub("m8oc1t4Rp28", "scePatchCheckerInitialize", "libScePatchCheckerClient", "libScePatchCheckerClient");
+    
+    // libScePatchCheckerClient
+    module->addSymbolStub("J7bWqy7TiBY", "sceRnpsAppMgrStartService", "libSceRnpsAppMgr", "libSceRnpsAppMgr");
 
     return module;
 }

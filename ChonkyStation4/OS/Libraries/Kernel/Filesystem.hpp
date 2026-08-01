@@ -3,6 +3,7 @@
 #include <Common.hpp>
 #include <deque>
 #include <OS/Libraries/Kernel/Kernel.hpp>   // For SceKernelTimespec
+#include <fstream>
 
 
 namespace PS4::OS::Libs::Kernel {
@@ -34,6 +35,8 @@ struct SceKernelIovec {
     size_t iov_len;
 };
 
+inline std::ofstream stdout_file;
+
 s32 PS4_FUNC kernel_open(const char* path, s32 flags, u16 mode);
 s32 PS4_FUNC sceKernelOpen(const char* path, s32 flags, u16 mode);
 s32 PS4_FUNC sceKernelCheckReachability(const char* path);
@@ -46,6 +49,7 @@ s64 PS4_FUNC sceKernelRead(s32 fd, u8* buf, u64 size);
 s64 PS4_FUNC kernel_pread(s32 fd, u8* buf, u64 size, s64 offset);
 s64 PS4_FUNC kernel_readv(s32 fd, SceKernelIovec* iov, int iovcnt);
 s64 PS4_FUNC sceKernelPread(s32 fd, u8* buf, u64 size, s64 offset);
+s64 PS4_FUNC kernel_readlink(const char* path, u8* buf, size_t size);
 s64 PS4_FUNC kernel_write(s32 fd, u8* buf, u64 size);
 s64 PS4_FUNC sceKernelWrite(s32 fd, u8* buf, u64 size);
 s64 PS4_FUNC kernel_pwrite(s32 fd, u8* buf, u64 size, s64 offset);
@@ -63,6 +67,7 @@ s32 PS4_FUNC kernel_getdirentries(s32 fd, char* buf, s32 n_bytes, s64* basep);
 s32 PS4_FUNC sceKernelGetdirentries(s32 fd, char* buf, s32 n_bytes, s64* basep);
 s32 PS4_FUNC kernel_close(s32 fd);
 s32 PS4_FUNC sceKernelClose(s32 fd);
+s32 PS4_FUNC kernel_chdir(const char* path);
 const char* PS4_FUNC sceKernelGetFsSandboxRandomWord();
 
 };  // End namespace PS4::OS::Libs::Kernel

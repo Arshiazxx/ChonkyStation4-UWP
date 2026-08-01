@@ -22,7 +22,7 @@ void init() {
 
     FS::mount(FS::Device::DEV, "./dev");    // TODO: Properly handle /dev
     FS::mount(FS::Device::TEMP0, "./temp0");
-    FS::mount(FS::Device::SANDBOX, "./sandbox");
+    FS::mount(FS::Device::SYSTEM, "./system");
     FS::init();
 
     // Wait for graphics initialization to complete

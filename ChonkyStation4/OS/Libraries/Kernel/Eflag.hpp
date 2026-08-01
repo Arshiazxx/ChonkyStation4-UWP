@@ -38,6 +38,7 @@ struct SceKernelEventFlagOptParam;
 using SceKernelEventFlag = Eflag*;
 
 s32 PS4_FUNC sceKernelCreateEventFlag(SceKernelEventFlag* ef, const char* name, u32 attr, u64 init_ptn, const SceKernelEventFlagOptParam* opt_param);
+s32 PS4_FUNC sceKernelOpenEventFlag(SceKernelEventFlag* ef, const char* name);
 s32 PS4_FUNC sceKernelSetEventFlag(SceKernelEventFlag ef, u64 bitptn);
 s32 PS4_FUNC sceKernelClearEventFlag(SceKernelEventFlag ef, u64 bitptn);
 s32 PS4_FUNC sceKernelWaitEventFlag(SceKernelEventFlag ef, u64 bitptn, u32 wait_mode, u64* result, u32* timeout);

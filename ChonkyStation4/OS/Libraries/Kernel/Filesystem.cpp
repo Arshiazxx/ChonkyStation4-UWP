@@ -135,6 +135,23 @@ s64 PS4_FUNC sceKernelPread(s32 fd, u8* buf, u64 size, s64 offset) {
     return res;
 }
 
+s64 PS4_FUNC kernel_readlink(const char* path, u8* buf, size_t size) {
+    log("readlink(path=\"%s\", buf=%p, size=%lld) @ %p\n", path, buf, size, RETURN_ADDRESS());
+    
+    //if (std::string(path) == "/app0/psm/Application/mscorlib.dll") {
+    //    std::strncpy((char*)buf, "/app0/psm/Application/mscorlib.dll.sprx", size);
+    //    return 0;
+    //}
+    //
+    //if (std::string(path) == "/app0/psm/Application") {
+    //    std::strncpy((char*)buf, "/app0/psm/Application/app.exe", size);
+    //    return 0;
+    //}
+
+    *Kernel::kernel_error() = POSIX_EINVAL; // Not a symbolic link
+    return -1;
+}
+
 s64 PS4_FUNC kernel_write(s32 fd, u8* buf, u64 size) {
     //log("_write(fd=%d, buf=%p, size=%d)\n", fd, buf, size);
 
@@ -142,6 +159,7 @@ s64 PS4_FUNC kernel_write(s32 fd, u8* buf, u64 size) {
         // Redirect stout/stdin/stderr
         for (char* ptr = (char*)buf; ptr < (char*)buf + size; ptr++)
             std::putc(*ptr, stdout);
+        stdout_file.write((char*)buf, size);
         return size;
     }
 
@@ -187,6 +205,7 @@ s64 PS4_FUNC kernel_writev(s32 fd, SceKernelIovec* iov, int iovcnt) {
         char* ptr = nullptr;
         for (ptr = (char*)iov[i].iov_base; ptr < (char*)iov[i].iov_base + iov[i].iov_len; ptr++)
             std::putc(*ptr, stdout);
+        stdout_file.write((char*)iov[i].iov_base, iov[i].iov_len);
 
         written += iov[i].iov_len;
     }
@@ -197,6 +216,11 @@ s64 PS4_FUNC kernel_writev(s32 fd, SceKernelIovec* iov, int iovcnt) {
 s32 PS4_FUNC kernel_ftruncate(s32 fd, s64 len) {
     log("ftruncate(fd=%d, len=0x%llx)\n", fd, len);
     
+    if (!FS::exists(fd)) {
+        *Kernel::kernel_error() = POSIX_ENOENT;
+        return -1;
+    }
+
     auto lock = FS::getFileLock(fd);
     auto& file = FS::getFileFromID(fd);
     fs::resize_file(file.path, len);
@@ -212,6 +236,18 @@ s32 PS4_FUNC sceKernelFtruncate(s32 fd, s64 len) {
 
 s32 PS4_FUNC kernel_stat(const char* path, SceKernelStat* stat) {
     log("stat(path=\"%s\", stat=*%p)\n", path, stat);
+
+    if (std::string(path) == "/") {
+        stat->st_mode = FS::SCE_KERNEL_S_IRWU;  // read-write
+        stat->st_mode |= FS::SCE_KERNEL_S_IFDIR;
+        stat->st_uid = 0;
+        stat->st_gid = 0;
+        // TODO: time
+        stat->st_size = 512;
+        stat->st_blksize = 512;    // TODO: ?
+        stat->st_blocks = (stat->st_size + stat->st_blksize - 1) / stat->st_blksize;
+        return SCE_OK;
+    }
 
     if (!FS::isDeviceMounted(path)) {
         log("WARNING: Device not mounted\n");
@@ -347,9 +383,14 @@ s32 PS4_FUNC sceKernelClose(s32 fd) {
     return res;
 }
 
+s32 PS4_FUNC kernel_chdir(const char* path) {
+    log("chdir(path=\"%s\")\n", path);
+    return SCE_OK;
+}
+
 const char* PS4_FUNC sceKernelGetFsSandboxRandomWord() {
     log("sceKernelGetFsSandboxRandomWord()\n");
-    return "sandbox";
+    return "system";
 }
 
 }   // End namespace PS4::OS::Libs::Kernel

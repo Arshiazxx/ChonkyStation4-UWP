@@ -30,6 +30,9 @@ static constexpr s32 SCE_KERNEL_CLOCK_EXT_RAW_NETWORK = 19;
 
 static constexpr s32 SCE_KERNEL_MAP_FIXED = 0x10;
 
+static constexpr s32 SCE_DBG_MAX_NAME_LENGTH = 256;
+static constexpr s32 SCE_DBG_MAX_SEGMENTS    = 4;
+
 struct TLSIndex {
     u64 modid;
     u64 offset;
@@ -79,6 +82,44 @@ struct SceKernelSwVersion {
     u32 hex;
 };
 
+struct SceKernelModuleSegmentInfo {
+    void* addr;
+    u32 size;
+    s32 prot;
+};
+
+struct SceKernelModuleInfoEx {
+    u64 st_size;
+    char name[SCE_DBG_MAX_NAME_LENGTH];
+    s32 id;
+    u32 tls_index;
+    void* tls_init_addr;
+    u32 tls_init_size;
+    u32 tls_size;
+    u32 tls_offset;
+    u32 tls_align;
+    void* init_proc_addr;
+    void* fini_proc_addr;
+    u64 reserved1;
+    u64 reserved2;
+    void* eh_frame_hdr_addr;
+    void* eh_frame_addr;
+    u32 eh_frame_hdr_size;
+    u32 eh_frame_size;
+    SceKernelModuleSegmentInfo segments[SCE_DBG_MAX_SEGMENTS];
+    u32 segment_count;
+};
+
+struct SceKernelModuleInfoForUnwind {
+    u64 st_size;
+    char name[256];
+    void* eh_frame_hdr_addr;
+    void* eh_frame_addr;
+    u64 eh_frame_size;
+    void* seg0_addr;
+    u64 seg0_size;
+};
+
 struct SceKernelLoadModuleOpt;
 using SceKernelModule = s32;
 
@@ -107,6 +148,9 @@ u64 PS4_FUNC sceKernelGetTscFrequency();
 s32 PS4_FUNC sceKernelGetAppInfo(s32 pid, SceKernelAppInfo* app_info);
 s32 PS4_FUNC sceKernelTitleWorkaroundIsEnabled(SceKernelTitleWorkaround* workaround, s32 bit, s32* result);
 s32 PS4_FUNC sceKernelGetSystemSwVersion(SceKernelSwVersion* ver);
+s32 PS4_FUNC sceKernelGetModuleInfoFromAddr(void* addr, s32 flags, SceKernelModuleInfoEx* info);
+s32 PS4_FUNC sceKernelGetModuleInfoForUnwind(void* addr, s32 flags, SceKernelModuleInfoForUnwind* info);
+s32 PS4_FUNC sceKernelDebugRaiseExceptionOnReleaseMode(u32 error);
 
 s32 PS4_FUNC kernel_getpid();
 s32 PS4_FUNC kernel_sched_get_priority_max();
@@ -116,6 +160,28 @@ void PS4_FUNC sceKernelDebugOutText(s64 unknown, char* text);
 
 s32 PS4_FUNC __sys_regmgr_call();
 
+// Signal
+struct Siginfo;
+struct Sigset {
+    u32 bits[4];
+};
+struct Sigaction {
+    union {
+        void PS4_FUNC (*sa_handler)(int);
+        void PS4_FUNC (*sa_sigaction)(int, Siginfo*, void*);
+    } __sigaction_handler;
+    s32 sa_flags;
+    Sigset sa_mask;
+};
+
+s32 PS4_FUNC kernel_sigaction(s32 sig, Sigaction* act, Sigaction* oact);
+
+// Shared memory
+s32 PS4_FUNC kernel_shm_open(const char* path, s32 flags, s32 /* mode_t */ mode);
+
+// ipmi
+s32 PS4_FUNC ipmimgr_call(s64 cmd, s64 unk2, u32* res, u8* args, size_t arg_size_bytes, u64 unk3);
+
 // Memory
 s32 PS4_FUNC sceKernelAllocateMainDirectMemory(size_t size, size_t align, s32 mem_type, void** out_addr);
 s32 PS4_FUNC sceKernelAllocateDirectMemory(void* search_start, void* search_end, size_t size, size_t align, s32 mem_type, void** out_addr);
@@ -123,6 +189,7 @@ s32 PS4_FUNC sceKernelMapDirectMemory(void** addr, size_t len, s32 prot, s32 fla
 s32 PS4_FUNC sceKernelMapNamedDirectMemory(void** addr, size_t len, s32 prot, s32 flags, void* dmem_start, size_t align, const char* name);
 s32 PS4_FUNC sceKernelMapFlexibleMemory(void** addr, size_t len, s32 prot, s32 flags);
 s32 PS4_FUNC sceKernelMapNamedFlexibleMemory(void** addr, size_t len, s32 prot, s32 flags, const char* name);
+s32 PS4_FUNC sceKernelMapNamedSystemFlexibleMemory(void** addr, size_t len, s32 prot, s32 flags, const char* name);
 s32 PS4_FUNC sceKernelReserveVirtualRange(void** addr, size_t len, s32 flags, size_t align);
 s32 PS4_FUNC sceKernelReleaseDirectMemory(void* addr, size_t len);
 s32 PS4_FUNC sceKernelCheckedReleaseDirectMemory(void* addr, size_t len);
@@ -135,6 +202,7 @@ void* PS4_FUNC kernel_mmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, 
 
 // Module
 SceKernelModule PS4_FUNC sceKernelLoadStartModule(const char* module_path, size_t args, const void* argp, u32 flags, const SceKernelLoadModuleOpt* opt, s32* res);
+SceKernelModule PS4_FUNC sceKernelLoadStartModuleInternalForMono(const char* module_path, size_t args, const void* argp, u32 flags, const SceKernelLoadModuleOpt* opt, s32* res);
 s32 PS4_FUNC sceKernelDlsym(SceKernelModule handle, const char* symbol, void** addr_ptr);
 
 // libc.prx HLE

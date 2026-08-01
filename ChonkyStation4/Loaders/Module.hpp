@@ -73,6 +73,7 @@ static s32 PS4_FUNC stubbedSymbol(const char* sym_name, s32* ret_val) {
 class Module {
 public:
     void* base_address = nullptr;  // Base address of the module in memory
+    size_t size = 0;
     void* entry = nullptr;
     std::string filename;
     s32 modid = 0;
@@ -106,13 +107,29 @@ public:
     std::deque<LibraryInfo> required_libs;
     std::deque<ModuleInfo>  exported_modules;
     std::deque<LibraryInfo> exported_libs;
-    std::vector<Symbol> exported_symbols;
-    std::vector<Symbol> partial_lle_symbols;
+    std::deque<Symbol> exported_symbols;
+    std::deque<Symbol> partial_lle_symbols;
+    std::unordered_map<std::string, std::vector<Symbol*>> exported_symbols_by_nid;
+
     u64 tls_vaddr = 0;
     u64 tls_filesz = 0;
     u64 tls_memsz = 0;
     u32 tls_modid = 0;
     u64 proc_param_ptr = 0;
+
+    struct SegmentInfo {
+        void* addr;
+        u32 size;
+        s32 prot;
+    };
+
+    SegmentInfo segments[4];
+    u32 n_segments = 0;
+
+    void* eh_frame_hdr_addr = nullptr;
+    size_t eh_frame_hdr_size = 0;
+    void* eh_frame_addr = nullptr;
+    size_t eh_frame_size = 0;
 
     ModuleInfo* findModule(const std::string& id) {
         for (auto& module : required_modules) {
@@ -139,19 +156,19 @@ public:
     }
 
     Symbol* findSymbolExport(const std::string& name, const std::string& lib, const std::string& module) {
-        for (auto& sym : exported_symbols) {
-            if ((sym.nid == name) && (sym.lib == lib) && (sym.module == module))
-                return &sym;
+        auto it = exported_symbols_by_nid.find(name);
+        if (it == exported_symbols_by_nid.end()) return nullptr;
+        for (auto* sym : it->second) {
+            if ((sym->nid == name) && (sym->lib == lib) && (sym->module == module))
+                return sym;
         }
         return nullptr;
     }
 
     Symbol* findSymbolExport(const std::string& name) {
-        for (auto& sym : exported_symbols) {
-            if (sym.nid == name)
-                return &sym;
-        }
-        return nullptr;
+        auto it = exported_symbols_by_nid.find(name);
+        if (it == exported_symbols_by_nid.end() || it->second.empty()) return nullptr;
+        return it->second.front();
     }
 
     bool isPartialLLESymbol(const std::string& name, const std::string& lib, const std::string& module) {
@@ -170,6 +187,7 @@ public:
         sym.module = module;
         sym.ptr = ptr;
         exported_symbols.push_back(sym);
+        exported_symbols_by_nid[nid].push_back(&exported_symbols.back());
     }
 
     void addSymbolStub(const std::string& nid, const std::string& name, const std::string& lib, const std::string& module, s32 ret_val = 0) {
