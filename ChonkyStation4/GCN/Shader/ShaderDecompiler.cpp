@@ -442,6 +442,13 @@ T* DescriptorLocation::asPtr() {
 
     if (is_ptr) {
         T* desc;
+
+        if (ptr_is_from_buf) {
+            VSharp* vsharp = buf->desc_info.asPtr<VSharp>();
+            desc = (T*)((u32*)vsharp->base + buf_offs);
+            return desc;
+        }
+
         std::memcpy(&desc, &GCN::renderer->regs[base + sgpr], sizeof(T*));
         desc = (T*)((u32*)desc + offs);  // The immediate is an offset in dwords
         return desc;
@@ -484,7 +491,7 @@ std::unordered_map<u32, DescriptorLocation> descs;
 // Sometimes the compiler will use these to backup SGPRS.
 std::unordered_map<u32, DescriptorLocation> backup_descs;  // The u32 should correspond to (VGPR << 16) | lane
 
-// Map a buffer load instruction index (buf_mapping_idx) to buffer ptr
+// Map a buffer load instruction address to buffer ptr
 std::unordered_map<int, Buffer*> buffer_map;
 
 void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnDecodeContext& decoder, Shader::GcnCodeSlice& code_slice) {
@@ -633,10 +640,10 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
         case Shader::Opcode::BUFFER_STORE_FORMAT_XY:
         case Shader::Opcode::BUFFER_STORE_FORMAT_XYZ:
         case Shader::Opcode::BUFFER_STORE_FORMAT_XYZW: {
-            auto get_buffer = [&](u32 sgpr, bool is_ptr, u32 offs, DescriptorType type, bool is_image_store = false) -> Buffer& {
+            auto get_buffer = [&](const DescriptorLocation& desc,  bool is_image_store = false) -> Buffer& {
                 // Check if the buffer already exists
                 for (auto& buf : out_data.buffers) {
-                    if (buf.desc_info.sgpr == sgpr && buf.desc_info.is_ptr == is_ptr && buf.desc_info.offs == offs && buf.desc_info.type == type && buf.is_image_store == is_image_store) {
+                    if (buf.desc_info.sgpr == desc.sgpr && buf.desc_info.is_ptr == desc.is_ptr && buf.desc_info.offs == desc.offs && buf.desc_info.type == desc.type && buf.is_image_store == is_image_store) {
                         // The buffer already exists
                         return buf;
                     }
@@ -663,9 +670,7 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
                 else buf.is_instr_typed = false;
 
                 buf.is_image_store = is_image_store;
-                buf.desc_info.sgpr = sgpr;
-                buf.desc_info.is_ptr = is_ptr;
-                buf.desc_info.offs = offs;
+                buf.desc_info = desc;
                 buf.desc_info.stage = stage;
                 switch (instr.inst_class) {
                 case InstClass::ScalarMemRd:
@@ -713,23 +718,51 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
                 }
 
                 return buf;
-                };
+            };
 
             bool is_img = instr.inst_class == InstClass::VectorMemImgSmp || instr.inst_class == InstClass::VectorMemImgNoSmp || instr.inst_class == InstClass::VectorMemImgUt;
             bool is_vector_mem = instr.inst_class == InstClass::VectorMemBufFmt || instr.inst_class == InstClass::VectorMemBufNoFmt || instr.inst_class == InstClass::VectorMemBufAtomic;
             const int idx = is_img || is_vector_mem ? 2 : 0;
             const int mult = is_img || is_vector_mem ? 4 : 2;
             const auto sgpr = instr.src[idx].code * mult;
+            const auto type = is_img ? DescriptorType::Tsharp : DescriptorType::Vsharp;
+            Buffer* bindless_buf = nullptr;
             if (!descs.contains(sgpr)) {
                 // We assume that the descriptor is being passed directly as user data.
-                auto& buf = get_buffer(sgpr, false, 0, is_img ? DescriptorType::Tsharp : DescriptorType::Vsharp, is_img_store);
+                auto& buf = get_buffer({ .sgpr = sgpr, .is_ptr = false, .offs = 0, .type = type }, is_img_store);
+                bindless_buf = &buf;
                 buffer_map[pc] = &buf;
                 //printf("Found V# in SGPR %d\n", buf.desc_info.sgpr);
             }
             else {
                 auto& desc = descs[sgpr];
-                auto& buf = get_buffer(desc.sgpr, desc.is_ptr, desc.offs, is_img ? DescriptorType::Tsharp : DescriptorType::Vsharp, is_img_store);
+                desc.type = type;
+                auto& buf = get_buffer(desc, is_img_store);
+                bindless_buf = &buf;
                 buffer_map[pc] = &buf;
+            }
+
+            auto s_buffer_load_dword_offset = [&](const PS4::GCN::Shader::GcnInst& instr) -> s32 {
+                if (instr.control.smrd.imm)
+                    return instr.control.smrd.offset;
+                else if (instr.control.smrd.offset == (u32)OperandField::LiteralConst)
+                    return instr.src[1].code;
+
+                // TODO: Offset is not literal. Don't silently return 0...
+                return 0;
+            };
+
+            // Note down that the destination has been written by this buffer (for bindless descriptors)
+            switch (instr.opcode) {
+            case Shader::Opcode::S_BUFFER_LOAD_DWORD:
+            case Shader::Opcode::S_BUFFER_LOAD_DWORDX2:
+            case Shader::Opcode::S_BUFFER_LOAD_DWORDX4:
+            case Shader::Opcode::S_BUFFER_LOAD_DWORDX8:
+            case Shader::Opcode::S_BUFFER_LOAD_DWORDX16: {
+                for (int i = 0; i < instr.control.smrd.count; i++)
+                    descs[instr.dst[0].code + i] = { .sgpr = 0, .offs = 0, .is_ptr = true, .ptr_is_from_buf = true, .buf = bindless_buf, .buf_offs = s_buffer_load_dword_offset(instr) + i };
+                break;
+            }
             }
             break;
         }
@@ -2497,8 +2530,8 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         }
 
         default: {
-            printf("BasicBlock so far:\n%s\n", code.c_str());
-            Helpers::panic("Unimplemented shader instruction %d\n", instr.opcode);
+            //printf("BasicBlock so far:\n%s\n", code.c_str());
+            //Helpers::panic("Unimplemented shader instruction %d\n", instr.opcode);
             code += "// TODO\n";
         }
         }
@@ -2653,10 +2686,11 @@ std::string emit(BasicBlock* from, BasicBlock* to, bool& needs_barrier, int leve
 void decompileShader(u32* data, ShaderStage stage, ShaderData& out_data, FetchShader* fetch_shader, ComputeJob* compute_job) {
     //std::ofstream out;
     //if (stage == ShaderStage::Vertex) {
-    //  out.open("shader.bin", std::ios::binary);
+    //  out.open(std::format("{:x}.bin", out_data.hash), std::ios::binary);
     //  out.write((char*)data, 8_KB);
     //  out.close();
     //}
+
     Shader::GcnDecodeContext decoder;
     Shader::GcnCodeSlice code_slice = Shader::GcnCodeSlice((u32*)data, data + std::numeric_limits<u32>::max());
 
@@ -2770,6 +2804,8 @@ bool v_cmp_class_f32(float x, uint mask) {
     std::string main;
     main.reserve(32_KB); // Avoid reallocations
     
+    main += std::format("// shader hash: {:x}\n", out_data.hash);
+
     main += "vcc   = 0;\n";
     main += "vcchi = 0;\n";
     main += "scc   = 0;\n";

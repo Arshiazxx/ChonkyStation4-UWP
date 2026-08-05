@@ -24,6 +24,7 @@ struct Equeue {
     std::vector<std::pair<bool, SceKernelEvent>> events;    // bool = event arrived or not
     std::condition_variable cv;
     std::mutex cv_m;
+    bool has_hr_timer_event = false;
 
     
     void registerEvent(SceKernelEvent ev) {
@@ -32,7 +33,7 @@ struct Equeue {
     }
 
     void trigger(u64 ident, u16 filter, u64 data);
-    std::pair<bool, std::vector<SceKernelEvent>> wait(u32 timeout); // bool = whether or not we timed out
+    std::pair<bool, std::vector<SceKernelEvent>> wait(bool has_timeout, u32 timeout); // bool = whether or not we timed out
 };
 
 struct EventSource {
@@ -51,6 +52,7 @@ using SceKernelEqueue = Equeue*;
 s32 PS4_FUNC sceKernelCreateEqueue(SceKernelEqueue* eq, const char* name);
 s32 PS4_FUNC sceKernelWaitEqueue(SceKernelEqueue eq, SceKernelEvent* ev, s32 n_evs, s32* n_out, u32* timeout);
 s32 PS4_FUNC sceKernelAddUserEvent(SceKernelEqueue eq, s32 id);
+s32 PS4_FUNC sceKernelAddHRTimerEvent(SceKernelEqueue eq, s32 id, SceKernelTimespec* timespec, void* udata);
 s32 PS4_FUNC sceKernelGetEventFilter(SceKernelEvent* ev);
 s32 PS4_FUNC kernel_kqueue();
 s32 PS4_FUNC kernel_kevent(s32 handle, SceKernelEvent* changelist, u64 n_changes, SceKernelEvent* eventlist, u64 n_events, SceKernelTimespec* timeout);

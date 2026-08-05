@@ -33,6 +33,24 @@ static constexpr s32 SCE_KERNEL_MAP_FIXED = 0x10;
 static constexpr s32 SCE_DBG_MAX_NAME_LENGTH = 256;
 static constexpr s32 SCE_DBG_MAX_SEGMENTS    = 4;
 
+static constexpr s32 KERNEL_RLIMIT_CPU      = 0;       /* maximum cpu time in seconds */
+static constexpr s32 KERNEL_RLIMIT_FSIZE    = 1;       /* maximum file size */
+static constexpr s32 KERNEL_RLIMIT_DATA     = 2;       /* data size */
+static constexpr s32 KERNEL_RLIMIT_STACK    = 3;       /* stack size */
+static constexpr s32 KERNEL_RLIMIT_CORE     = 4;       /* core file size */
+static constexpr s32 KERNEL_RLIMIT_RSS      = 5;       /* resident set size */
+static constexpr s32 KERNEL_RLIMIT_MEMLOCK  = 6;       /* locked-in-memory address space */
+static constexpr s32 KERNEL_RLIMIT_NPROC    = 7;       /* number of processes */
+static constexpr s32 KERNEL_RLIMIT_NOFILE   = 8;       /* number of open files */
+static constexpr s32 KERNEL_RLIMIT_SBSIZE   = 9;       /* maximum size of all socket buffers */
+static constexpr s32 KERNEL_RLIMIT_VMEM     = 10;      /* virtual process size (incl. mmap) */
+static constexpr s32 KERNEL_RLIMIT_NPTS     = 11;      /* pseudo-terminals */
+static constexpr s32 KERNEL_RLIMIT_SWAP     = 12;      /* swap used */
+static constexpr s32 KERNEL_RLIMIT_KQUEUES  = 13;      /* kqueues allocated */
+static constexpr s32 KERNEL_RLIMIT_UMTXP    = 14;      /* process-shared umtx */
+static constexpr s32 KERNEL_RLIMIT_PIPEBUF  = 15;      /* pipes/fifos buffers */
+static constexpr s32 KERNEL_RLIMIT_VMM      = 16;      /* virtual machines */
+
 struct TLSIndex {
     u64 modid;
     u64 offset;
@@ -123,6 +141,11 @@ struct SceKernelModuleInfoForUnwind {
 struct SceKernelLoadModuleOpt;
 using SceKernelModule = s32;
 
+struct kernel_rlimit {
+    u64 rlim_cur;
+    u64 rlim_max;
+};
+
 s32* PS4_FUNC kernel_error();
 s32 PS4_FUNC kernel_getpagesize();
 void* PS4_FUNC __tls_get_addr(TLSIndex* tls_idx);
@@ -132,6 +155,8 @@ s32 PS4_FUNC sceKernelUsleep(u32 us);
 s32 PS4_FUNC sceKernelSleep(u32 s);
 s32 PS4_FUNC kernel_clock_gettime(u32 clock_id, SceKernelTimespec* ts);
 s32 PS4_FUNC sceKernelClockGettime(u32 clock_id, SceKernelTimespec* ts);
+s32 PS4_FUNC sceKernelConvertUtcToLocaltime(time_t time, time_t* local_time, SceKernelTimesec* st, u64* dst_sec);
+s32 PS4_FUNC sceKernelConvertLocaltimeToUtc(time_t local_time, s64 unk1, time_t* time, SceKernelTimezone* timezone, u64* dst_sec);
 s32 PS4_FUNC kernel_gettimeofday(SceKernelTimeval* tv, SceKernelTimezone* tz);
 s32 PS4_FUNC sceKernelGettimeofday(SceKernelTimeval* tv);
 s32 PS4_FUNC sceKernelGettimezone(SceKernelTimezone* tz);
@@ -151,6 +176,12 @@ s32 PS4_FUNC sceKernelGetSystemSwVersion(SceKernelSwVersion* ver);
 s32 PS4_FUNC sceKernelGetModuleInfoFromAddr(void* addr, s32 flags, SceKernelModuleInfoEx* info);
 s32 PS4_FUNC sceKernelGetModuleInfoForUnwind(void* addr, s32 flags, SceKernelModuleInfoForUnwind* info);
 s32 PS4_FUNC sceKernelDebugRaiseExceptionOnReleaseMode(u32 error);
+s32 PS4_FUNC kernel_getrlimit(s32 resource, kernel_rlimit* rlim);
+s64 PS4_FUNC sceLibcMspaceCreateForMonoMutex(s64 unk1, s32 unk2, s32 unk3, s64 unk4);
+s32 PS4_FUNC sceKernelGetCompiledSdkVersion(s32* ver);
+s32 PS4_FUNC sceKernelGetProcessName(s64 pid, char* name);
+s32 PS4_FUNC sceKernelGetDataTransferMode(s32* mode);
+s32 PS4_FUNC sceKernelGetBackupRestoreMode(s32* mode);
 
 s32 PS4_FUNC kernel_getpid();
 s32 PS4_FUNC kernel_sched_get_priority_max();
@@ -199,6 +230,7 @@ size_t PS4_FUNC sceKernelGetDirectMemorySize();
 s32 PS4_FUNC sceKernelVirtualQuery(const void* addr, s32 flags, SceKernelVirtualQueryInfo* info, size_t info_size);
 s32 PS4_FUNC sceKernelQueryMemoryProtection(void* addr, void** start, void** end, s32* prot);
 void* PS4_FUNC kernel_mmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, s64 offs);
+s32 PS4_FUNC sceKernelMmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, s64 offs, void** res);
 
 // Module
 SceKernelModule PS4_FUNC sceKernelLoadStartModule(const char* module_path, size_t args, const void* argp, u32 flags, const SceKernelLoadModuleOpt* opt, s32* res);

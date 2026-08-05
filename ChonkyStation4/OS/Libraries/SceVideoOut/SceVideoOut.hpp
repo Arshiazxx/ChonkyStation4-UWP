@@ -19,6 +19,7 @@ static constexpr s32 SCE_USER_SERVICE_USER_ID_SYSTEM = 255;
 static constexpr s32 SCE_VIDEO_OUT_BUS_TYPE_MAIN = 0;
 
 static constexpr s32 SCE_VIDEO_OUT_FLIP_EVENT_ID = 0x6;
+static constexpr s32 SCE_VIDEO_OUT_VBLANK_EVENT_ID = 0x7;
 
 static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A8R8G8B8_SRGB           = 0x80000000;
 static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB           = 0x80002200;
@@ -92,6 +93,8 @@ struct SceVideoOutPort : SceObj {
 
     void signalFlip(u64 flip_arg);
 };
+
+inline void* sce_composite_color_target_addr = nullptr;
 
 s32 PS4_FUNC sceVideoOutOpen(s32 uid, s32 bus_type, s32 idx, const void* param);
 s32 PS4_FUNC sceVideoOutClose(s32 handle);

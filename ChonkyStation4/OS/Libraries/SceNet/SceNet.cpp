@@ -48,6 +48,7 @@ void init(Module& module) {
     module.addSymbolExport("Nd91WaWmG2w", "sceNetResolverStartNtoa", "libSceNet", "libSceNet", (void*)&sceNetResolverStartNtoa);
     
     module.addSymbolStub("Nlev7Lg8k3A", "sceNetInit", "libSceNet", "libSceNet", 0);
+    module.addSymbolStub("6MojQ8uFHEI", "sceNetInitParam", "libSceNet", "libSceNet", 0);
     module.addSymbolStub("dgJBaeJnGpo", "sceNetPoolCreate", "libSceNet", "libSceNet", 1);
     module.addSymbolStub("kJlYH5uMAWI", "sceNetResolverDestroy", "libSceNet", "libSceNet");
     module.addSymbolStub("K7RlrTkI-mw", "sceNetPoolDestroy", "libSceNet", "libSceNet");
@@ -62,6 +63,8 @@ void init(Module& module) {
     module.addSymbolStub("45ggEzakPJQ", "sceNetSocketClose", "libSceNet", "libSceNet");
     module.addSymbolStub("6Oc0bLsIYe0", "sceNetGetMacAddress", "libSceNet", "libSceNet");
     module.addSymbolStub("Inp1lfL+Jdw", "sceNetEpollDestroy", "libSceNet", "libSceNet");
+    module.addSymbolStub("P4zZXE7bpsA", "sceNetBandwidthControlSetDefaultParam", "libSceNet", "libSceNet");
+    module.addSymbolStub("7Z1hhsEmkQU", "sceNetBandwidthControlSetPolicy", "libSceNet", "libSceNet");
     module.addSymbolStub("cTGkc6-TBlI", "sceNetTerm", "libSceNet", "libSceNet");
 
     // libSceNetCtl
@@ -167,7 +170,7 @@ s32 PS4_FUNC sceNetEpollWait(SceNetId eid, SceNetEpollEvent* events, s32 max_eve
     }
 
     // Wait for events
-    auto [timed_out, recv_events] = epoll->equeue.wait(timeout);
+    auto [timed_out, recv_events] = epoll->equeue.wait(true, timeout);
     if (timed_out) {
         return 0;
     }

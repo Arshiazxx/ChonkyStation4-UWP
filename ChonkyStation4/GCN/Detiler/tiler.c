@@ -202,6 +202,7 @@ GpaError gpaTileSurfaceRegion(
 
 					if (srcoff + elembytesize > inlen ||
 					    dstoff + elembytesize > outlen) {
+                        //printf("err 6\n");
 						return GPA_ERR_OVERFLOW;
 					}
 
@@ -261,6 +262,9 @@ GpaError gpaTileTextureIndexed(
 
 	if (srcsurfoff + srcsurflen > inlen ||
 	    dstsurfoff + dstsurflen > outlen) {
+        //printf("err 7\n");
+        //printf("%d %d\n", srcsurfoff + srcsurflen, inlen);
+        //printf("%d %d\n", dstsurfoff + dstsurflen, outlen);
 		return GPA_ERR_OVERFLOW;
 	}
 

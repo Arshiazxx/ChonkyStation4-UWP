@@ -24,6 +24,7 @@ void init(Module& module) {
     module.addSymbolStub("vDLMoJLde8I", "scePadSetTiltCorrectionState", "libScePad", "libScePad");
     module.addSymbolStub("r44mAxdSG+U", "scePadSetAngularVelocityDeadbandState", "libScePad", "libScePad");
     module.addSymbolStub("DmBx8K+jDWw", "scePadSetProcessPrivilege", "libScePad", "libScePad");
+    module.addSymbolStub("kiA9bZhbnAg", "scePadGetIdleCount", "libScePad", "libScePad");
 }
 
 ScePadData pad_state;

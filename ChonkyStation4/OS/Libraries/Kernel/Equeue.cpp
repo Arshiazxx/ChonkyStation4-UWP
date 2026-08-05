@@ -32,7 +32,7 @@ void Equeue::trigger(u64 ident, u16 filter, u64 data) {
     cv.notify_one();
 }
 
-std::pair<bool, std::vector<SceKernelEvent>> Equeue::wait(u32 timeout) {
+std::pair<bool, std::vector<SceKernelEvent>> Equeue::wait(bool has_timeout, u32 timeout) {
     auto poll_events = [&]() -> std::vector<SceKernelEvent> {
         std::vector<SceKernelEvent> evs;
         for (auto& ev : events) {
@@ -51,8 +51,14 @@ std::pair<bool, std::vector<SceKernelEvent>> Equeue::wait(u32 timeout) {
     evs = poll_events();
     if (!evs.empty()) return { false, evs };    // false means we did not timeout
 
+    // If we have a timeout, and the timeout is 0, only poll once.
+    // (This polls the events already present at the time of the wait and returns)
+    if (has_timeout && timeout == 0) {
+        return { evs.empty(), evs };
+    }
+
     // Waiting for events is implemented via a condition variable
-    if (!timeout) {
+    if (!has_timeout) {
         // Wait for events without timeout 
         std::unique_lock lk(cv_m);
         cv.wait(lk);
@@ -106,7 +112,19 @@ s32 PS4_FUNC sceKernelCreateEqueue(SceKernelEqueue* eq, const char* name) {
 s32 PS4_FUNC sceKernelWaitEqueue(SceKernelEqueue eq, SceKernelEvent* ev, s32 n_evs, s32* n_out, u32* timeout) {
     log("sceKernelWaitEqueue(eq=*%p, ev=*%p, n_evs=%d, n_out=*%p, timeout=*%p)\n", eq, ev, n_evs, n_out, timeout);
 
-    auto [timed_out, events] = eq->wait(timeout ? *timeout : 0);
+    if (eq->name == "ScePsmSetModeEvent") {
+        *n_out = 1;
+        return SCE_OK;
+    }
+
+    // TODO
+    if (eq->has_hr_timer_event) {
+        eq->has_hr_timer_event = false;
+        *n_out = 1;
+        return SCE_OK;
+    }
+
+    auto [timed_out, events] = eq->wait(timeout != nullptr, timeout ? *timeout : 0);
     if (timed_out) return SCE_KERNEL_ERROR_ETIMEDOUT;
 
     // Return events
@@ -133,6 +151,14 @@ s32 PS4_FUNC sceKernelAddUserEvent(SceKernelEqueue eq, s32 id) {
         .data = 0,
         .udata = 0,
     });
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelAddHRTimerEvent(SceKernelEqueue eq, s32 id, SceKernelTimespec* timespec, void* udata) {
+    log("sceKernelAddHRTimerEvent(eq=%p, id=%d, timespec=*%p, udata=%p)\n", eq, id, timespec, udata);
+    
+    // TODO
+    eq->has_hr_timer_event = true;
     return SCE_OK;
 }
 

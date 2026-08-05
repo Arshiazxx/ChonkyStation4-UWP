@@ -34,7 +34,7 @@ endif()
 
 if (ENABLE_NVIDIA_AFTERMATH)
     target_compile_definitions(ChonkyStation4 PRIVATE CHONKYSTATION4_HAS_NVIDIA_AFTERMATH)
-    target_sources(ChonkyStation4 PRIVATE "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.cpp" "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.hpp")
+    target_sources(ChonkyStation4 PRIVATE "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.cpp" "ChonkyStation4/GCN/Backends/Vulkan/NVIDIA/NsightAftermath.hpp" "ChonkyStation4/OS/Libraries/SceRegMgr/SceRegMgr.cpp" "ChonkyStation4/OS/Libraries/SceComposite/SceComposite.cpp")
 
     set(NVIDIA_AFTERMATH_ROOT ${CMAKE_SOURCE_DIR}/Dependencies/nvidia_aftermath)
     add_library(nvidia_aftermath STATIC IMPORTED)

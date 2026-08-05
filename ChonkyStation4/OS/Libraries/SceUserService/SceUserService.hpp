@@ -37,5 +37,7 @@ s32 PS4_FUNC sceUserServiceGetEvent(SceUserServiceEvent* event);
 s32 PS4_FUNC sceUserServiceGetInitialUser(SceUserServiceUserId* user_id);
 s32 PS4_FUNC sceUserServiceGetLoginUserIdList(SceUserServiceLoginUserIdList* user_id_list);
 s32 PS4_FUNC sceUserServiceGetUserName(const SceUserServiceUserId user_id, char* username, const size_t size);
+s32 PS4_FUNC sceUserServiceGetHomeDirectory(const SceUserServiceUserId user_id, char* out_dir);
+s32 PS4_FUNC sceUserServiceGetThemeEntitlementId(const SceUserServiceUserId user_id, char* out_id, const size_t size);
 
 }   // End namespace PS4::OS::Libs::SceUserService

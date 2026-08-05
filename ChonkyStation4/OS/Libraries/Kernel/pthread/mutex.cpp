@@ -1,6 +1,12 @@
 #include "mutex.hpp"
 #include <Logger.hpp>
 #include <ErrorCodes.hpp>
+#ifdef _WIN32
+#include <intrin.h>
+#define RETURN_ADDRESS() _ReturnAddress()
+#else
+#define RETURN_ADDRESS() _builtin_return_address(0)
+#endif
 
 
 namespace PS4::OS::Libs::Kernel {
@@ -13,6 +19,7 @@ s32 PS4_FUNC kernel_pthread_mutex_lock(pthread_mutex_t* mutex) {
     if (!mutex) {
         printf("pthread_mutex_lock: mutex was nullptr\n");
         return 0;
+        return POSIX_EINVAL;
     }
 
     if (*mutex == (pthread_mutex_t)0 || *mutex == (pthread_mutex_t)1) {
@@ -40,6 +47,10 @@ s32 PS4_FUNC kernel_pthread_mutex_trylock(pthread_mutex_t* mutex) {
     return ret;
 }
 
+s32 PS4_FUNC scePthreadMutexTrylock(pthread_mutex_t* mutex) {
+    return Error::posixToSce(kernel_pthread_mutex_trylock(mutex));
+}
+
 s32 PS4_FUNC scePthreadMutexTimedlock(pthread_mutex_t* mutex, u64 us) {
     log("scePthreadMutexTimedlock(mutex=%p, us=%lld)\n", mutex, us);
 
@@ -56,7 +67,7 @@ s32 PS4_FUNC scePthreadMutexTimedlock(pthread_mutex_t* mutex, u64 us) {
     if (ret == ETIMEDOUT)
         return SCE_KERNEL_ERROR_ETIMEDOUT;
 
-    //PTHREAD_CHECK_RESULT(ret);
+    PTHREAD_CHECK_RESULT(ret);
     return SCE_OK;
 }
 
@@ -66,6 +77,7 @@ s32 PS4_FUNC kernel_pthread_mutex_unlock(pthread_mutex_t* mutex) {
     if (!mutex) {
         printf("pthread_mutex_unlock: mutex was nullptr\n");
         return 0;
+        return POSIX_EINVAL;
     }
 
     return pthread_mutex_unlock(mutex);

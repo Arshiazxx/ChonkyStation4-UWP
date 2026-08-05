@@ -38,6 +38,7 @@ enum class Device {
     DEV,
     TEMP0,
     SYSTEM,
+    SYSTEM_EX,
     INVALID
 };
 

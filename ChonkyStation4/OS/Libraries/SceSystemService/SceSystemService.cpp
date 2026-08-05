@@ -22,7 +22,32 @@ void init(Module& module) {
     
     module.addSymbolStub("f-Q8Nd33FBc", "sceLncUtilInitialize", "libSceLncUtil", "libSceSystemService");
     module.addSymbolStub("awS+eYVuXJA", "sceLncUtilRegisterShellUI", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("DxRki7T2E44", "sceLncUtilGetAppStatus", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("cyO5ShJxdnE", "sceLncUtilGetAppStatusListForShellUIReboot", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("v7DYuX0G5TQ", "sceLncUtilSetAppFocus", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("X8gYbyLG1wk", "sceLncUtilSetControllerFocus", "libSceLncUtil", "libSceSystemService");
+    module.addSymbolStub("ZucoOmNsb7w", "sceLncUtilGetEventForShellUI", "libSceLncUtil", "libSceSystemService", -1);
+
     module.addSymbolStub("9plZCCRm9x4", "sceShellCoreUtilEnterPowerLockSection", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("nENvUAsAKdY", "sceShellCoreUtilLeavePowerLockSection", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("WISL-JH-6Ic", "sceShellCoreUtilGetAppData", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("xKSgaSVX1io", "sceShellCoreUtilSetAppData", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("l96YlUEtMPk", "sceShellCoreUtilSetDeviceIndexBehavior", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("TJp3kdSGsIw", "sceShellCoreUtilSetImposeStatusFlag", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("plK52OfeEIc", "sceShellCoreUtilGetUserIdOfMorpheusUser", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("fORZmlh1TQo", "sceShellCoreUtilGetUIStatus", "libSceShellCoreUtil", "libSceSystemService", -1);
+    module.addSymbolStub("atiUTsTFJ3k", "sceShellCoreUtilSetUIStatus", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("CKTyfq2tb7k", "sceShellCoreUtilGetPlatformPrivacySetting", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("K33+EwitWlo", "sceShellCoreUtilSetGameLiveStreamingStatus", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("bC8vo608P2E", "sceShellCoreUtilSetGameLiveStreamingOnAirFlag", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("3JNHzrEDnrk", "sceShellCoreUtilIsPowerSaveAlertRequested", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("vzWoetyaUuA", "sceShellCoreUtilIsTemperatureDanger", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("GEZ9sIz3wuM", "sceShellCoreUtilIsShowCrashReport", "libSceShellCoreUtil", "libSceSystemService");
+    
+    module.addSymbolStub("ze0ky5Q1yE8", "sceSystemStateMgrGetCurrentState", "libSceSystemStateMgr", "libSceSystemService");
+    module.addSymbolStub("wlxvESTUplk", "sceSystemStateMgrGetTriggerCode", "libSceSystemStateMgr", "libSceSystemService");
+
+    module.addSymbolStub("ZVRXXqj1n80", "sceAppMessagingTryReceiveMsg", "libSceAppMessaging", "libSceSystemService", -1 /* don't know the correct error for "no message" */);
 }
 
 s32 PS4_FUNC sceSystemServiceParamGetInt(SceSystemServiceParamId param_id, s32* val) {

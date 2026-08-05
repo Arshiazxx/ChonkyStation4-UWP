@@ -2,6 +2,7 @@
 #include <Logger.hpp>
 #include <GCN/PM4.hpp>
 #include <GCN/ComputeJob.hpp>
+#include <OS/Libraries/SceVideoOut/SceVideoOut.hpp>
 #include <BitField.hpp>
 #include <co.hpp>
 #include <thread>
@@ -179,7 +180,10 @@ void processCcb(u32* ccb, size_t ccb_size) {
 void* index_base = nullptr;
 s32   n_indices = 0;
 void* indirect_args_base = nullptr;
-u64 occlusion_pixel_counter = 0;
+u64   occlusion_pixel_counter = 0;
+bool  composite_requested_patch_color_target = false;
+bool  composite_requested_patch_depth_target = false;
+bool  composite_has_xf_render = false;
 
 void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::Libs::SceGnmDriver::ComputeQueue* compute_queue, bool is_indirect) {
     if (ccb) {
@@ -227,6 +231,21 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
                 u32* ptr = (u32*)(addr_lo | ((u64)addr_hi << 32));
                 *ptr = data;
                 break;
+            }
+
+            case 0x68750001: {
+                // libSceComposite command/label
+                // A "PatchRenderTarget" seems to always be inserted before VSH sets the render target via SetContext commands, so we can intercept this.
+                const auto composite_cmd = std::string((char*)args);    // Should be safe because they're always null terminated
+                if (composite_cmd == "PatchRenderTarget" && composite_has_xf_render) {
+                    composite_requested_patch_color_target = true;
+                    composite_has_xf_render = false;
+                }
+                else if (composite_cmd == "PatchDepthRenderTarget")
+                    composite_requested_patch_depth_target = true;
+                else if (composite_cmd == "Xf::Render") {
+                    composite_has_xf_render = true;
+                }
             }
             }
 
@@ -519,7 +538,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::SetConfigReg: {
-            const u32 reg_offset = 0x2000 + *args++;    // 0x2000 is the offset for ConfigReg
+            const u32 reg_offset = 0x2000 + (*args++ & 0xffff);    // 0x2000 is the offset for ConfigReg
             log("Set context register 0x%x\n", reg_offset);
             if (reg_offset < 0xd000)
                 std::memcpy(&renderer->regs[reg_offset], args, pkt->count * sizeof(u32));
@@ -528,7 +547,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::SetContextReg: {
-            const u32 reg_offset = 0xa000 + *args++;    // 0xa000 is the offset for ContextReg
+            const u32 reg_offset = 0xa000 + (*args++ & 0xffff);    // 0xa000 is the offset for ContextReg
             log("Set context register 0x%x\n", reg_offset);
             if (reg_offset < 0xd000)
                 std::memcpy(&renderer->regs[reg_offset], args, pkt->count * sizeof(u32));
@@ -550,6 +569,11 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
                 const auto rt_id = (reg_offset - Reg::mmCB_COLOR0_BASE) / (Reg::mmCB_COLOR1_BASE - Reg::mmCB_COLOR0_BASE);
                 Helpers::debugAssert(rt_id < 8, "SetContextReg: invalid rt_id\n");
                 
+                if (composite_requested_patch_color_target && OS::Libs::SceVideoOut::bufs[0].base == OS::Libs::SceVideoOut::sce_composite_color_target_addr) {
+                    composite_requested_patch_color_target = false;
+                    OS::Libs::SceVideoOut::bufs[0].base = (void*)(renderer->regs[reg_offset] << 8);
+                }
+
                 const auto nop_offs = pkt->count;
                 if (nop_offs == 0xe || nop_offs == 0xd || nop_offs == 0xb) {
                     Helpers::debugAssert(args[nop_offs] == 0xc0001000, "CB hint is missing\n");
@@ -595,7 +619,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::SetShReg: {
-            const u32 reg_offset = 0x2c00 + *args++;    // 0x2c00 is the offset for ShReg
+            const u32 reg_offset = 0x2c00 + (*args++ & 0xffff);    // 0x2c00 is the offset for ShReg
             log("Set shader register 0x%x\n", reg_offset);
             if (reg_offset < 0xd000)
                 std::memcpy(&renderer->regs[reg_offset], args, pkt->count * sizeof(u32));
@@ -604,7 +628,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::SetUconfigReg: {
-            const u32 reg_offset = 0xc000 + *args++;    // 0xc000 is the offset for UconfigReg
+            const u32 reg_offset = 0xc000 + (*args++ & 0xffff);    // 0xc000 is the offset for UconfigReg
             log("Set Uconfig register 0x%x\n", reg_offset);
             if (reg_offset < 0xd000)
                 std::memcpy(&renderer->regs[reg_offset], args, pkt->count * sizeof(u32));

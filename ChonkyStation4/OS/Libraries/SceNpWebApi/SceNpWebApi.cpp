@@ -9,6 +9,13 @@ namespace PS4::OS::Libs::SceNpWebApi {
 
 MAKE_LOG_FUNCTION(log, lib_sceNpWebApi);
 
+s32 int_ctx_id = 1;
+s32 PS4_FUNC sceNpWebApiIntInitialize() {
+    log("sceNpWebApiIntInitialize()\n");
+
+    return int_ctx_id++;
+}
+
 void init(Module& module) {
     module.addSymbolExport("rdgs5Z1MyFw", "sceNpWebApiCreateRequest", "libSceNpWebApi", "libSceNpWebApi", (void*)&sceNpWebApiCreateRequest);
     module.addSymbolExport("KjNeZ-29ysQ", "sceNpWebApiSendRequest2", "libSceNpWebApi", "libSceNpWebApi", (void*)&sceNpWebApiSendRequest2);
@@ -25,10 +32,28 @@ void init(Module& module) {
     module.addSymbolStub("PfSTDCgNMgc", "sceNpWebApiRegisterPushEventCallback", "libSceNpWebApi", "libSceNpWebApi");
     module.addSymbolStub("jhXKGQJ4egI", "sceNpWebApiRegisterExtdPushEventCallbackA", "libSceNpWebApi", "libSceNpWebApi", 1);
     module.addSymbolStub("PqCY25FMzPs", "sceNpWebApiUnregisterExtdPushEventCallback", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("sIFx734+xys", "sceNpWebApiCreateServicePushEventFilter", "libSceNpWebApi", "libSceNpWebApi", 1);
     module.addSymbolStub("pfaJtb7SQ80", "sceNpWebApiDeleteExtdPushEventFilter", "libSceNpWebApi", "libSceNpWebApi");
     module.addSymbolStub("noQgleu+KLE", "sceNpWebApiDeleteRequest", "libSceNpWebApi", "libSceNpWebApi");
     module.addSymbolStub("5Mn7TYwpl30", "sceNpWebApiDeleteHandle", "libSceNpWebApi", "libSceNpWebApi");
     module.addSymbolStub("XUjdsSTTZ3U", "sceNpWebApiDeleteContext", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("asz3TtIqGF8", "sceNpWebApiTerminate", "libSceNpWebApi", "libSceNpWebApi");
+
+    module.addSymbolStub("6g6q-g1i4XU", "sceNpWebApiSetHandleTimeout", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("gRiilVCvfAI", "sceNpWebApiSetMaxConnection", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("i0dr6grIZyc", "sceNpWebApiSetMultipartContentType", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("qWcbJkBj1Lg", "sceNpWebApiSetRequestTimeout", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("c1pKoztonB8", "sceNpWebApiIntCreateCtxIndExtdPushEventFilter", "libSceNpWebApi", "libSceNpWebApi", 1);
+    module.addSymbolStub("N2Jbx4tIaQ4", "sceNpWebApiIntCreateRequest", "libSceNpWebApi", "libSceNpWebApi", 1);
+    module.addSymbolStub("TZSep4xB4EY", "sceNpWebApiIntCreateServicePushEventFilter", "libSceNpWebApi", "libSceNpWebApi", 1);
+    module.addSymbolExport("8Vjplhyyc44", "sceNpWebApiIntInitialize", "libSceNpWebApi", "libSceNpWebApi", (void*)&sceNpWebApiIntInitialize);
+    module.addSymbolStub("VjVukb2EWPc", "sceNpWebApiIntRegisterServicePushEventCallback", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("sfq23ZVHVEw", "sceNpWebApiIntRegisterServicePushEventCallbackA", "libSceNpWebApi", "libSceNpWebApi");
+    module.addSymbolStub("qmINYLuqzaA", "sceNpWebApi2IntCreateRequest", "libSceNpWebApi2", "libSceNpWebApi2");
+    module.addSymbolStub("zXaFo7euxsQ", "sceNpWebApi2IntInitialize", "libSceNpWebApi2", "libSceNpWebApi2");
+    module.addSymbolStub("9KSGFMRnp3k", "sceNpWebApi2IntInitialize2", "libSceNpWebApi2", "libSceNpWebApi2");
+    module.addSymbolStub("2hlBNB96saE", "sceNpWebApi2IntPushEventCreateCtxIndFilter", "libSceNpWebApi2", "libSceNpWebApi2");
+    module.addSymbolStub("81DkaQt6J30", "sceNpWebApi2IntPushEventCreateDestPs4CtxIndFilter", "libSceNpWebApi2", "libSceNpWebApi2");
 }
 
 struct SceNpWebApiRequest : SceObj {

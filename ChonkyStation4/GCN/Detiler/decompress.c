@@ -137,10 +137,12 @@ static GpaError gettile(
 	);
 
 	if (srcoffset + (numelemsh - 1) * bytesperrow + byteselemsw > inlen) {
+        //printf("err 1\n");
 		return GPA_ERR_OVERFLOW;
 	}
 	if ((numelemsh - 1) * tilepitchbytes + byteselemsw >
 	    sizeof(TextureTile)) {
+        //printf("err 2\n");
 		return GPA_ERR_OVERFLOW;
 	}
 
@@ -191,10 +193,12 @@ static GpaError puttile(
 
 	if ((numelemsh - 1) * tilepitchbytes + byteselemsw >
 	    sizeof(TextureTile)) {
+        //printf("err 3\n");
 		return GPA_ERR_OVERFLOW;
 	}
 	if (dstoffset + (numelemsh - 1) * outbytesperrow + byteselemsw >
 	    outlen) {
+        //printf("err 4\n");
 		return GPA_ERR_OVERFLOW;
 	}
 

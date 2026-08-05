@@ -33,10 +33,14 @@ struct BufferDescriptorInfo {
 };
 
 // TODO: Duplicated from FetchShader.hpp
+struct Buffer;
 struct DescriptorLocation {
-    u32 sgpr = 0;   // SGPR pair that contains the pointer to the descriptor or the descriptor itself
-    u32 offs = 0;   // Offset in DWORDs from the pointer above
-    bool is_ptr = false;    // Whether or not the user data is a pointer to it or is the descriptor itself
+    u32 sgpr = 0;                   // SGPR pair that contains the pointer to the descriptor or the descriptor itself
+    u32 offs = 0;                   // Offset in DWORDs from the pointer above
+    bool is_ptr = false;            // Whether or not the user data is a pointer to it or is the descriptor itself
+    bool ptr_is_from_buf = false;   // Whether or not to load the descriptor from the buffer below (bindless descriptor) or the user data
+    Buffer* buf = nullptr;          // For bindless buffers, this is the buffer the descriptor is loaded from
+    s32 buf_offs = 0;               // For bindless buffers, this is the offset (in DWORDs) into the buffer the descriptor is loaded from
     DescriptorType type;
     ShaderStage stage;
 

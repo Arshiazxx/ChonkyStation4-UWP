@@ -1,4 +1,5 @@
 #include "PlayStation4.hpp"
+#include <Configuration.hpp>
 #include <Loaders/App.hpp>
 #include <Loaders/App/AppLoader.hpp>
 #include <Loaders/ELF/CodePatcher.hpp>
@@ -22,7 +23,8 @@ void init() {
 
     FS::mount(FS::Device::DEV, "./dev");    // TODO: Properly handle /dev
     FS::mount(FS::Device::TEMP0, "./temp0");
-    FS::mount(FS::Device::SYSTEM, "./system");
+    FS::mount(FS::Device::SYSTEM, Configuration::system_dir_path);
+    FS::mount(FS::Device::SYSTEM_EX, Configuration::system_ex_dir_path);
     FS::init();
 
     // Wait for graphics initialization to complete

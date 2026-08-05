@@ -114,10 +114,12 @@ void doRelocations(App& app) {
                         }
                     }
 
-                    // If we couldn't resolve the symbol, make it point to the unresolved symbol handler
+                    // If we couldn't resolve the symbol, make it point to the unresolved symbol handler. Unless it's an object
                     if (!ptr) {
                         log("* Could not resolve symbol %s (%s)\n", sym_name.c_str(), lib->name.c_str());
-                        ptr = generateTrampolineForUnresolvedSymbol(app, sym_name, lib->name.c_str(), mod->name.c_str());
+                        if (ELF_ST_TYPE(sym->st_info) != STT_OBJECT)
+                            ptr = generateTrampolineForUnresolvedSymbol(app, sym_name, lib->name.c_str(), mod->name.c_str());
+                        else ptr = nullptr;
                     }
                 } else {
                     // Symbol is not a nid

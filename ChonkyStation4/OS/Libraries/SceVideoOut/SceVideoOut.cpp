@@ -24,8 +24,10 @@ void init(Module& module) {
     module.addSymbolExport("SbU3dwp80lQ", "sceVideoOutGetFlipStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetFlipStatus);
     module.addSymbolExport("1FZBKy8HeNU", "sceVideoOutGetVblankStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetVblankStatus);
     module.addSymbolExport("6kPnj51T62Y", "sceVideoOutGetResolutionStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetResolutionStatus);
+    module.addSymbolExport("8XGijEoThE0", "sceVideoOutSysGetResolutionStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetResolutionStatus);
     
     module.addSymbolExport("Ek+VR4lcJQI", "sceVideoOutSysAddVblankEvent", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutAddVblankEvent);
+    module.addSymbolExport("d1AjT2uZJn0", "sceVideoOutSysGetVblankStatus", "libSceVideoOut", "libSceVideoOut", (void*)&sceVideoOutGetVblankStatus);
     module.addSymbolStub("X8FN-5Nk-yE", "sceVideoOutSysAddSetModeEvent", "libSceVideoOut", "libSceVideoOut");
     
     module.addSymbolStub("zgXifHT9ErY", "sceVideoOutIsFlipPending", "libSceVideoOut", "libSceVideoOut", 0); // TODO: Important
@@ -35,6 +37,7 @@ void init(Module& module) {
     module.addSymbolStub("pjkDsgxli6c", "sceVideoOutModeSetAny_", "libSceVideoOut", "libSceVideoOut");
     module.addSymbolStub("N1bEoJ4SRw4", "sceVideoOutConfigureOutputMode_", "libSceVideoOut", "libSceVideoOut");
     module.addSymbolStub("kGVLc3htQE8", "sceVideoOutGetDeviceCapabilityInfo_", "libSceVideoOut", "libSceVideoOut");
+    module.addSymbolStub("UazrNFzZPRU", "sceVideoOutGetVideoOutModeByBusSpecifier_", "libSceVideoOut", "libSceVideoOut");
 }
 
 void SceVideoOutPort::signalFlip(u64 flip_arg) {
@@ -60,8 +63,9 @@ s32 PS4_FUNC sceVideoOutOpen(s32 uid, s32 bus_type, s32 idx, const void* param) 
 
     auto* port = PS4::OS::make<SceVideoOutPort>();
 
-    // Initialize event source
-    port->flip_ev_source.init(SCE_VIDEO_OUT_FLIP_EVENT_ID, 0);  // TODO: Properly set filter
+    // Initialize event sources
+    port->flip_ev_source.init(SCE_VIDEO_OUT_FLIP_EVENT_ID, -13);
+    port->vblank_ev_source.init(SCE_VIDEO_OUT_VBLANK_EVENT_ID, -13);
 
     std::memset(&port->flip_status, 0, sizeof(SceVideoOutFlipStatus));
     std::memset(&port->vblank_status, 0, sizeof(SceVideoOutVblankStatus));

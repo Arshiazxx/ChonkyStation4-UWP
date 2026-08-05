@@ -1,5 +1,6 @@
 ﻿#include <Common.hpp>
 #include <PlayStation4.hpp>
+#include <Configuration.hpp>
 #include <OS/UserManagement.hpp>
 
 #ifdef _WIN32
@@ -21,6 +22,9 @@ int main(int argc, char** argv) {
     
     std::string file;
     int uid = 1;
+    std::string system_path = "./system";
+    std::string system_ex_path = "./system_ex";
+    std::string sysmodules_path = "";
 
     CLI::App cli_app = CLI::App();
     cli_app.add_option("game", file);   // For compatibility
@@ -28,6 +32,9 @@ int main(int argc, char** argv) {
     auto* run_cmd = cli_app.add_subcommand("run", "Run a game or executable");
     run_cmd->add_option("game", file, "Path to .elf, .self or game folder")->required();
     run_cmd->add_option("-u, --user", uid, "ID of the user to run the game with");
+    run_cmd->add_option("--system-path", system_path, "Path of the /system directory");
+    run_cmd->add_option("--system-ex-path", system_ex_path, "Path of the /system_ex directory");
+    run_cmd->add_option("--sysmodules-path", sysmodules_path, "Path of the system modules");
 
     auto* get_appdata_path_cmd = cli_app.add_subcommand("get_appdata_path", "Print the path to the emulator's app data folder");
 
@@ -67,6 +74,10 @@ int main(int argc, char** argv) {
     if (!PS4::OS::User::login(uid))
         Helpers::panic("Failed to login. User ID %d does not exist\n", uid);
     
+    PS4::Configuration::system_dir_path = system_path;
+    PS4::Configuration::system_ex_dir_path = system_ex_path;
+    PS4::Configuration::sysmodules_path = sysmodules_path;
+
     fs::path file_path = file;
     PS4::loadAndRun(file);
     return 0;

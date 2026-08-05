@@ -1,4 +1,5 @@
 #include "GCN.hpp"
+#include <Configuration.hpp>
 #include <GCN/CommandProcessor.hpp>
 #include <OS/Libraries/SceVideoOut/SceVideoOut.hpp>
 #include <OS/Libraries/SceGnmDriver/SceGnmDriver.hpp>
@@ -82,6 +83,9 @@ void gcnThread() {
             buf_label[cmd.buf_idx] = 1;
             renderer->flip(&OS::Libs::SceVideoOut::bufs[cmd.buf_idx]);
             global_flip_counter++;
+
+            if (Configuration::is_vsh)
+                OS::Libs::SceVideoOut::bufs[cmd.buf_idx].base = OS::Libs::SceVideoOut::sce_composite_color_target_addr;
 
             // Signal SceVideoOut port event queues
             port->signalFlip(cmd.flip_arg);

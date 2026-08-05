@@ -1,4 +1,5 @@
 #include "AppLoader.hpp"
+#include <Configuration.hpp>
 #include <Loaders/SFO/SFOLoader.hpp>
 #include <Loaders/Linker/Linker.hpp>
 #include <OS/Filesystem.hpp>
@@ -44,56 +45,75 @@ void linkSysmodules(::App& app) {
         "libSceFont.sprx",
         "libSceFontFt.sprx",
         "libSceFreeTypeOt.sprx",
+        "libSceFreeTypeHinter.sprx",
+        "libSceFreeTypeOl.sprx",
+        "libSceFreeTypeOptOl.sprx",
+        "libSceFreeTypeSubFunc.sprx",
         "libSceCesCs.sprx",
         "libSceFiber.sprx",
         "libSceJson2.sprx",
         "libSceHttp.sprx",
         "libSceHttp2.sprx",
         "libSceRtc.sprx",
-        "libScePsm.sprx",
-        "libScePsmUtil.sprx",
-        "libmono-btls-shared.sprx",
-        "libmonosgen-2.0.sprx",
-        "libSceIpmi.sprx",
-        "libSceMetadataReaderWriter.sprx",
-        "libSceAbstractStorage.sprx",
-        "libSceAbstractLocal.sprx",
-        "libSceAsyncStorageInternal.sprx"
+        "libSceNpCommon.sprx",
+        "libSceSsl.sprx",
+        "libSceSsl2.sprx",
     };
 
     const std::string partial_lle_sysmodules_to_load[] = {
         "libSceGnmDriver.sprx"
     };
 
-    const fs::path sysmodules_path = fs::path(SDL_GetPrefPath("ChonkyStation", "ChonkyStation4")) / "sysmodules";
+    const fs::path sysmodules_path = Configuration::sysmodules_path.empty() ? fs::path(SDL_GetPrefPath("ChonkyStation", "ChonkyStation4")) / "sysmodules" : Configuration::sysmodules_path;
     fs::create_directories(sysmodules_path);    // Ensure directory exists
 
     // Load system modules. For now it's a hardcoded path
     for (auto& sysmodule : sysmodules_to_load) {
         const auto sysmodule_path = sysmodules_path / sysmodule;
         if (!fs::exists(sysmodule_path)) {
-            Helpers::panic("Required sysmodule %s does not exist\n", sysmodule.c_str());
+            Helpers::panic("Required sysmodule \"%s\" does not exist\n", sysmodule.c_str());
         }
 
         auto mod = Loader::Linker::loadAndLinkLib(app, sysmodule_path, false, app.getHLEModule());
-
-        if (sysmodule == "libSceLibcInternal.sprx") {
-            auto* sym = mod->findSymbolExport("z8GPiQwaAEY");       // _malloc_init
-            ((PS4_FUNC void(*)())(sym->ptr))();
-        }
     }
 
     for (auto& sysmodule : partial_lle_sysmodules_to_load) {
         const auto sysmodule_path = sysmodules_path / sysmodule;
         if (!fs::exists(sysmodule_path)) {
-            Helpers::panic("Required sysmodule %s does not exist\n", sysmodule.c_str());
+            Helpers::panic("Required sysmodule \"%s\" does not exist\n", sysmodule.c_str());
         }
 
         Loader::Linker::loadAndLinkLib(app, sysmodule_path, true, app.getHLEModule());
     }
+
+    // Load some extra modules used by VSH
+    if (app.title_id == "NPXS20001") {
+        const std::string vsh_sysmodules_to_load[] = {
+            "libScePsm.sprx",
+            "libScePsmUtil.sprx",
+            "libmono-btls-shared.sprx",
+            "libmonosgen-2.0.sprx",
+            "libSceIpmi.sprx",
+            "libSceMetadataReaderWriter.sprx",
+            "libSceAbstractStorage.sprx",
+            "libSceAbstractLocal.sprx",
+            "libSceAsyncStorageInternal.sprx",
+        };
+
+        for (auto& sysmodule : vsh_sysmodules_to_load) {
+            const auto sysmodule_path = sysmodules_path / sysmodule;
+            if (!fs::exists(sysmodule_path)) {
+                Helpers::panic("Required sysmodule for VSH \"%s\" does not exist\n", sysmodule.c_str());
+            }
+
+            auto mod = Loader::Linker::loadAndLinkLib(app, sysmodule_path, false, app.getHLEModule());
+        }
+    }
 }
 
 bool getApp(const AppInfo& info, ::App& app) {
+    Configuration::is_vsh = info.title_id == "NPXS20001";
+
     fs::path tmp_path = info.executable_path;
     app = std::move(Loader::Linker::loadAndLink(tmp_path));
 

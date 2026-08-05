@@ -23,6 +23,9 @@
 #include <OS/Libraries/SceAjm/SceAjm.hpp>
 #include <OS/Libraries/SceAppContent/SceAppContent.hpp>
 #include <OS/Libraries/SceZlib/SceZlib.hpp>
+#include <OS/Libraries/SceRegMgr/SceRegMgr.hpp>
+#include <OS/Libraries/SceComposite/SceComposite.hpp>
+#include <GCN/GCN.hpp>
 
 
 // Stub until we implement audio input
@@ -59,7 +62,26 @@ s32 PS4_FUNC sceSslGetCaCerts(s32 ctx_id, SceSslCaCerts* certs) {
 }
 
 s32 PS4_FUNC sceMbusEventReceive() {
+    return 0;
     while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
+s32 PS4_FUNC sceMbusGetDeviceInfoByCondition_() {
+    return 0;
+}
+
+s32 PS4_FUNC sceKeyboardPadEmulateOpen() {
+    //while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
+    return 0;
+}
+
+s32 PS4_FUNC sceVisionManagerGetWorkingMemorySize(u32* size1, u32* size2, u32* size3) {
+    printf("sceVisionManagerGetWorkingMemorySize(size1=*%p, size2=*%p, size3=*%p)\n", size1, size2, size3);
+
+    *size1 = 32_MB;
+    *size2 = 32_MB;
+    *size3 = 32_MB;
+    return SCE_OK;
 }
 
 namespace PS4::OS::HLE {
@@ -93,6 +115,8 @@ std::shared_ptr<Module> buildHLEModule() {
     PS4::OS::Libs::SceAjm::init(*module);
     PS4::OS::Libs::SceAppContent::init(*module);
     PS4::OS::Libs::SceZlib::init(*module);
+    PS4::OS::Libs::SceRegMgr::init(*module);
+    PS4::OS::Libs::SceComposite::init(*module);
 
     // libSceScreenShot
     module->addSymbolStub("2xxUtuC-RzE", "sceScreenShotEnable", "libSceScreenShot", "libSceScreenShot");
@@ -154,6 +178,8 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("9+g9iOq+7kg", "sceInvitationDialogUpdateStatus", "libSceInvitationDialog", "libSceInvitationDialog", 0);
     
     // libSceImeDialog
+    module->addSymbolStub("NUeBrN7hzf0", "sceImeDialogInit", "libSceImeDialog", "libSceImeDialog", 0);
+    module->addSymbolStub("x01jxu+vxlc", "sceImeDialogGetResult", "libSceImeDialog", "libSceImeDialog", 0);
     module->addSymbolStub("IADmD4tScBY", "sceImeDialogGetStatus", "libSceImeDialog", "libSceImeDialog", 0);
     
     // libSceWebBrowserDialog
@@ -188,15 +214,15 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("u5oqtlIP+Fw", "sceNetCtlCheckCallbackForNpToolkit", "libSceNetCtlForNpToolkit", "libSceNetCtl");
 
     // libSceSsl
-    module->addSymbolExport("TDfQqO-gMbY", "sceSslGetCaCerts", "libSceSsl", "libSceSsl", (void*)&sceSslGetCaCerts);
-    module->addSymbolStub("hdpVEUDFW3s", "sceSslInit", "libSceSsl", "libSceSsl", 1);
-    module->addSymbolStub("P14ATpXc4J8", "sceSslCreateSslConnection", "libSceSsl", "libSceSsl");
-    module->addSymbolStub("w1+L-27nYas", "sceSslDisableOptionInternalInsecure", "libSceSsl", "libSceSsl");
-    module->addSymbolStub("g-zCwUKstEQ", "sceSslEnableOptionInternal", "libSceSsl", "libSceSsl");
-    module->addSymbolStub("qIvLs0gYxi0", "sceSslFreeCaCerts", "libSceSsl", "libSceSsl");
-    module->addSymbolStub("zXvd6iNyfgc", "sceSslConnect", "libSceSsl", "libSceSsl");
-    module->addSymbolStub("p5bM5PPufFY", "sceSslSend", "libSceSsl", "libSceSsl");
-    module->addSymbolStub("0K1yQ6Lv-Yc", "sceSslTerm", "libSceSsl", "libSceSsl");
+    //module->addSymbolExport("TDfQqO-gMbY", "sceSslGetCaCerts", "libSceSsl", "libSceSsl", (void*)&sceSslGetCaCerts);
+    //module->addSymbolStub("hdpVEUDFW3s", "sceSslInit", "libSceSsl", "libSceSsl", 1);
+    //module->addSymbolStub("P14ATpXc4J8", "sceSslCreateSslConnection", "libSceSsl", "libSceSsl");
+    //module->addSymbolStub("w1+L-27nYas", "sceSslDisableOptionInternalInsecure", "libSceSsl", "libSceSsl");
+    //module->addSymbolStub("g-zCwUKstEQ", "sceSslEnableOptionInternal", "libSceSsl", "libSceSsl");
+    //module->addSymbolStub("qIvLs0gYxi0", "sceSslFreeCaCerts", "libSceSsl", "libSceSsl");
+    //module->addSymbolStub("zXvd6iNyfgc", "sceSslConnect", "libSceSsl", "libSceSsl");
+    //module->addSymbolStub("p5bM5PPufFY", "sceSslSend", "libSceSsl", "libSceSsl");
+    //module->addSymbolStub("0K1yQ6Lv-Yc", "sceSslTerm", "libSceSsl", "libSceSsl");
     
     // libSceHttp
     //module->addSymbolStub("A9cVMUtEp4Y", "sceHttpInit", "libSceHttp", "libSceHttp", 1);
@@ -226,10 +252,111 @@ std::shared_ptr<Module> buildHLEModule() {
     //module->addSymbolStub("Ik-KpLTlf7Q", "sceHttpTerm", "libSceHttp", "libSceHttp");
     
     // libSceNpCommon
-    module->addSymbolStub("i8UmXTSq7N4", "sceNpCmpNpId", "libSceNpCommon", "libSceNpCommon");
-    
+    //module->addSymbolStub("i8UmXTSq7N4", "sceNpCmpNpId", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("gMlY6eewr-c", "sceNpAllocateKernelMemoryWithAlignment", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("zNb6IxegrCE", "sceNpLwCondDestroy", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("++eqYdzB8Go", "sceNpLwCondInit", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("Xkn6VoN-wuQ", "sceNpLwCondSignal", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("FJ4DCt8VzVE", "sceNpLwCondSignalAll", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("Bwi+EP8VQ+g", "sceNpLwCondSignalTo", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("ExeLuE3EQCQ", "sceNpLwCondWait", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("4zxevggtYrQ", "sceNpLwMutexDestroy", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("1CiXI-MyEKs", "sceNpLwMutexInit", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("18j+qk6dRwk", "sceNpLwMutexLock", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("hp0kVgu5Fxw", "sceNpLwMutexTryLock", "libSceNpCommon", "libSceNpCommon");
+    //module->addSymbolForPartialLLE("CQG2oyx1-nM", "sceNpLwMutexUnlock", "libSceNpCommon", "libSceNpCommon");
+
+    // libSceNpUtility
+    module->addSymbolStub("eYz4v5Uek9U", "sceNpLookupAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("JA4+sS39GMs", "sceNpLookupCreateAsyncRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("iQr9UxPHUFs", "sceNpLookupCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("8533Q+LU7EQ", "sceNpLookupCreateTitleCtx", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("vT9xhqPO6+0", "sceNpLookupCreateTitleCtxA", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("wLaxchvEEnk", "sceNpLookupDeleteRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("mtqDK9zkoIE", "sceNpLookupDeleteTitleCtx", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("1O96muPzhgU", "sceNpLookupNetAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("N0iF180VjGk", "sceNpLookupNetCensorComment", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("UI5t6Rx6s5I", "sceNpLookupNetConvertJidToNpId", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("ieROYX4vspk", "sceNpLookupNetConvertNpIdToJid", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("KUIRsku7EPk", "sceNpLookupNetCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("8DPEdJh9RkE", "sceNpLookupNetCreateTitleCtx", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("HL-venrRcnQ", "sceNpLookupNetDeleteRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("dxpUx7z9StY", "sceNpLookupNetDeleteTitleCtx", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("zVZE+fAhgFY", "sceNpLookupNetInit", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("DiUk6-mq--0", "sceNpLookupNetInitWithFunctionPointer", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("cpnwZeVIq8E", "sceNpLookupNetInitWithMemoryPool", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("ZXlTj9RRCFo", "sceNpLookupNetIsInit", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("2nEVmFiV6OI", "sceNpLookupNetNpId", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("jJH2P7KA4XU", "sceNpLookupNetSanitizeComment", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("NWtf77WCXJs", "sceNpLookupNetSetTimeout", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("Dbd5BY0QjG0", "sceNpLookupNetTerm", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("T6tnM1Uti4g", "sceNpLookupNpId", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("V4EVrruHuy8", "sceNpLookupPollAsync", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("0MV72WO7V34", "sceNpLookupSetTimeout", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("YX9dAus6baE", "sceNpLookupWaitAsync", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("Kq+ftR9LHlE", "sceNpServiceChecker2IntAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("si-TLaBGtdw", "sceNpServiceChecker2IntCheckServiceFlagArray", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("IG1Kd+k6U3s", "sceNpServiceChecker2IntCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("hBsBswrAiGM", "sceNpServiceChecker2IntDestroyRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("cvZrmlSlwn8", "sceNpServiceChecker2IntFinalize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("aUgLCb3pSOo", "sceNpServiceChecker2IntGetServiceAvailability", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("Yp2yK5YXb78", "sceNpServiceChecker2IntGetServiceAvailabilityA", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("05cqQH+ZKTk", "sceNpServiceChecker2IntGetServiceFlagArray", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("-Afi-JoRZ-U", "sceNpServiceChecker2IntInitialize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("ukBq62OPAYA", "sceNpServiceChecker2IntIsSetServiceType", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("waeEzwwYfZY", "sceNpServiceCheckerIntAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("YLXt-vGw4Kg", "sceNpServiceCheckerIntCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("85ZWdzWYgas", "sceNpServiceCheckerIntDestroyRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("LSQ3xApEoxY", "sceNpServiceCheckerIntFinalize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("wIX00Brskoc", "sceNpServiceCheckerIntGetAvailability", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("MjOFdwXYRKY", "sceNpServiceCheckerIntGetAvailabilityList", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("rT9Yk55JGho", "sceNpServiceCheckerIntInitialize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("az7fl9snOqw", "sceNpServiceCheckerIntIsCached", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("JHOtNtQ-jmw", "sceNpServiceClientInit", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("Hhmu86aYI1E", "sceNpServiceClientTerm", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("Y797Sw9-jqY", "sceNpAppInfoIntAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("UUhI+IUMrcE", "sceNpAppInfoIntCheckAvailability", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("ASonnwltwEk", "sceNpAppInfoIntCheckAvailabilityA", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("jXx0+2Wd1q8", "sceNpAppInfoIntCheckAvailabilityAll", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("f1OwQ7jdqn0", "sceNpAppInfoIntCheckAvailabilityAllA", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("1mfDBl40Dms", "sceNpAppInfoIntCheckServiceAvailability", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("XAmDowAQhFs", "sceNpAppInfoIntCheckServiceAvailabilityA", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("BaihFa8LBw0", "sceNpAppInfoIntCheckServiceAvailabilityAll", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("JcqdKidhuK0", "sceNpAppInfoIntCheckServiceAvailabilityAllA", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("cXpyESo49ko", "sceNpAppInfoIntCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("pRgpBtHx8P4", "sceNpAppInfoIntDestroyRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("s9+zoKE8cBA", "sceNpAppInfoIntFinalize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("l6Dl+2zlua0", "sceNpAppInfoIntInitialize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("od0pFsDoez0", "sceNpAppLauncherInitialize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("GbayQ7DO8jA", "sceNpAppLauncherLaunchApp", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("sy3PioM8TPE", "sceNpAppLauncherTerminate", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("OHCO6MMFvdQ", "sceNpAppLaunchLink2IntAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("B6IXdHGBL-g", "sceNpAppLaunchLink2IntCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("0H0JBpVp03o", "sceNpAppLaunchLink2IntDestroyRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("FWonlDV6d5k", "sceNpAppLaunchLink2IntFinalize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("PdYx470F6B8", "sceNpAppLaunchLink2IntGetCompatibleTitleIdList", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("tesM6ViaX6M", "sceNpAppLaunchLink2IntGetCompatibleTitleIdNum", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("DK6xpBP1gxw", "sceNpAppLaunchLink2IntInitialize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("AQV4A8YFx44", "sceNpAppLaunchLinkIntAbortRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("9YhwG4DhwtU", "sceNpAppLaunchLinkIntCreateRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("-8Wn4YKZLMM", "sceNpAppLaunchLinkIntDestroyRequest", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("TnQqJsyek5o", "sceNpAppLaunchLinkIntFinalize", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("GB7Fhk5SUaA", "sceNpAppLaunchLinkIntGetCompatibleTitleIdList", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("X4elOoiAtB4", "sceNpAppLaunchLinkIntGetCompatibleTitleIdNum", "libSceNpUtility", "libSceNpUtility");
+    module->addSymbolStub("1F4yweQoqgg", "sceNpAppLaunchLinkIntInitialize", "libSceNpUtility", "libSceNpUtility");
+
     // libSceNpCommon
     module->addSymbolStub("j7DlalBzHh8", "sceShareUtilityInitializeEx2", "libSceShareUtility", "libSceShareUtility");
+
+    // libSceNpGameIntent
+    module->addSymbolStub("rPl0INNc-M8", "sceNpGameIntentGetPropertyValueString", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("KNggmcdqc2Q", "sceNpGameIntentGetUdsNpComId", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("m87BHxt-H60", "sceNpGameIntentInitialize", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("DAR+Nuv4E7M", "sceNpGameIntentLaunchApp", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("d-YDTQrxDJA", "sceNpGameIntentLaunchApp2", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("opFs796vTHg", "sceNpGameIntentNotifyAppLaunched", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("jEIXUAr9XE8", "sceNpGameIntentReceiveIntent", "libSceNpGameIntent", "libSceNpGameIntent");
+    module->addSymbolStub("0HBYxYAjmf0", "sceNpGameIntentTerminate", "libSceNpGameIntent", "libSceNpGameIntent");
     
     // libSceAudioIn
     module->addSymbolExport("LozEOU8+anM", "sceAudioInInput", "libSceAudioIn", "libSceAudioIn", (void*)&sceAudioInInput);
@@ -296,6 +423,7 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("g3PNjYKWqnQ", "sceRemoteplayGetConnectionStatus", "libSceRemoteplay", "libSceRemoteplay");
     
     // libSceIme
+    module->addSymbolStub("uTW+63goeJs", "InitializeImeModule", "libSceIme", "libSceIme");
     module->addSymbolStub("eaFXjfJv3xs", "sceImeKeyboardOpen", "libSceIme", "libSceIme");
     module->addSymbolStub("-4GCfYdNF1s", "sceImeUpdate", "libSceIme", "libSceIme");
     module->addSymbolStub("VkqLPArfFdc", "sceImeKeyboardGetInfo", "libSceIme", "libSceIme");
@@ -365,7 +493,11 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("h5jSB2QIDV0", "sceAudiodecTermLibrary", "libSceAudiodec", "libSceAudiodec");
     
     // libSceVisionManager
+    module->addSymbolExport("UezlBvGQZUI", "sceVisionManagerGetWorkingMemorySize", "libSceVisionManager", "libSceVisionManager", (void*)&sceVisionManagerGetWorkingMemorySize);
     module->addSymbolStub("DphIqi0q48w", "sceVisionManagerGetLibraryVersion", "libSceVisionManager", "libSceVisionManager");
+    module->addSymbolStub("6vmrNgzv924", "sceVisionManagerGetRegisterUserDataSize", "libSceVisionManager", "libSceVisionManager");
+    module->addSymbolStub("3OLHl6cAPjQ", "sceVisionManagerGetRegisterUserDataVersion", "libSceVisionManager", "libSceVisionManager");
+    module->addSymbolStub("9I4TdP3A9-g", "sceVisionManagerInitialize", "libSceVisionManager", "libSceVisionManager");
     
     // libSceAsyncStorageInternal
     module->addSymbolStub("AdTjrblPbkA", "libSceAsyncStorageInternalAux_AdTjrblPbkA", "libSceAsyncStorageInternalAux", "libSceAsyncStorageInternal");
@@ -373,8 +505,11 @@ std::shared_ptr<Module> buildHLEModule() {
     // libSceMbus
     module->addSymbolStub("wRPXMGtkOq0", "sceMbusInit", "libSceMbus", "libSceMbus");
     module->addSymbolStub("c08SEHicDNU", "sceMbusEventCreate_", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("KRL-S9qBqXw", "sceMbusGetDeviceInfoByCondition_", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("HgPSJ1kcnHM", "sceMbusEventCallbackFuncsInit_", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("0LkfqnKtPQg", "sceMbusEventCreate", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("edYHYROxzx4", "libSceMbus_edYHYROxzx4", "libSceMbus", "libSceMbus");
     module->addSymbolExport("puHrnP8V-dY", "sceMbusEventReceive", "libSceMbus", "libSceMbus", (void*)&sceMbusEventReceive);
+    module->addSymbolExport("KRL-S9qBqXw", "sceMbusGetDeviceInfoByCondition_", "libSceMbus", "libSceMbus", (void*)&sceMbusGetDeviceInfoByCondition_);
     
     // libSceIpmi
     module->addSymbolStub("fjPNqzuUop8", "libSceIpmi_fjPNqzuUop8", "libSceIpmi", "libSceIpmi");
@@ -385,8 +520,292 @@ std::shared_ptr<Module> buildHLEModule() {
     // libScePatchCheckerClient
     module->addSymbolStub("m8oc1t4Rp28", "scePatchCheckerInitialize", "libScePatchCheckerClient", "libScePatchCheckerClient");
     
-    // libScePatchCheckerClient
+    // libSceRnpsAppMgr
     module->addSymbolStub("J7bWqy7TiBY", "sceRnpsAppMgrStartService", "libSceRnpsAppMgr", "libSceRnpsAppMgr");
+    
+    // libSceBgft
+    module->addSymbolStub("BZ0olR8Da0g", "sceBgftServiceIntInit", "libSceBgft", "libSceBgft");
+    module->addSymbolStub("vJhYrkgTYWY", "sceBgftServiceIntGetNotificationEvent", "libSceBgft", "libSceBgft", 0x80020055 /* no event? */);
+    
+    // libSceBgft
+    module->addSymbolStub("33zrWSbHxcI", "libSceCdlgUtilServer_33zrWSbHxcI", "libSceCdlgUtilServer", "libSceCdlgUtilServer");
+    
+    // libSceKbEmulate
+    module->addSymbolExport("mFR2QN8HNVU", "sceKeyboardPadEmulateOpen", "libSceKbEmulate", "libSceKbEmulate", (void*)&sceKeyboardPadEmulateOpen);
+
+    // libSceHmd
+    module->addSymbolStub("gEokC+OGI8g", "sceHmdDistortionGet2dVrCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ER2ar8yUmbk", "sceHmdDistortionGetCompoundEyeCorrectionCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("HT8qWOTOGmo", "sceHmdDistortionGetCorrectionCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Vkkhy8RFIuk", "sceHmdDistortionGetWideNearCorrectionCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("1cS7W5J-v3k", "sceHmdDistortionGetWorkMemoryAlign", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("36xDKk+Hw7o", "sceHmdDistortionGetWorkMemorySize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ao8NZ+FRYJE", "sceHmdDistortionInitialize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("8A4T5ahi790", "sceHmdDistortionSetOutputMinColor", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("bjYjvRCluuw", "sceHmdFillDistortionBuffer", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("liKOlmonGMo", "sceHmdGet2dDistortionMap", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("BWY-qKM5hxE", "sceHmdGet2DEyeOffset", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("za4xJfzCBcM", "sceHmdGet2dVrCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Yx+CuF11D3Q", "sceHmdGetAssyError", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("thDt9upZlp8", "sceHmdGetDeviceInformation", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("1pxQfif1rkE", "sceHmdGetDeviceInformationByHandle", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("grCYks4m8Jw", "sceHmdGetDistortionCorrectionCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("jWKiCTjC-us", "sceHmdGetDistortionCorrectionCommand2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("WyPdBHkHO7o", "sceHmdGetDistortionCorrectionCommandApprox", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Uu4VU1bY2Eo", "sceHmdGetDistortionMap", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("mP2ZcYmDg-o", "sceHmdGetDistortionParams", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("8Ick-e6cDVY", "sceHmdGetDistortionWorkMemoryAlign", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("SLvuzd81niM", "sceHmdGetDistortionWorkMemoryAlignFor2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("D5JfdpJKvXk", "sceHmdGetDistortionWorkMemorySize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("LJGdHRE3ui0", "sceHmdGetDistortionWorkMemorySizeFor2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("PyDpx1eHD8Y", "sceHmdGetEyeStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NPQwYFqi0bs", "sceHmdGetFieldOfView", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Wj4zVVejNOE", "sceHmdGetFieldOfView2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("g42bgpVPZXw", "sceHmdGetFieldOfViewApprox", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("rU3HK9Q0r8o", "sceHmdGetInertialSensorData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("6vWY0aegNnk", "sceHmdGetViewStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("goi5ASvH-V8", "sceHmdGetWideNearDistortionCorrectionCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("K4KnH0QkT2c", "sceHmdInitialize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("s-J66ar9g50", "sceHmdInitialize315", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("riPQfAdebHk", "sceHmdInternal3dAudioClose", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("wHnZU1qtiqw", "sceHmdInternal3dAudioOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NuEjeN8WCBA", "sceHmdInternal3dAudioSendData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("QasPTUPWVZE", "sceHmdInternalAnotherScreenClose", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Wr5KVtyVDG0", "sceHmdInternalAnotherScreenGetAudioStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("whRxl6Hhrzg", "sceHmdInternalAnotherScreenGetFadeState", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("w8BEUsIYn8w", "sceHmdInternalAnotherScreenGetVideoStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("0cQDAbkOt2A", "sceHmdInternalAnotherScreenOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Asczi8gw1NM", "sceHmdInternalAnotherScreenSendAudio", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("6+v7m1vwE+0", "sceHmdInternalAnotherScreenSendVideo", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("E0BLvy57IiQ", "sceHmdInternalAnotherScreenSetFadeAndSwitch", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("UTqrWB+1+SU", "sceHmdInternalBindDeviceWithUserId", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ego1YdqNGpI", "sceHmdInternalCheckDeviceModelMk3", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("WR7XsLdjcqQ", "sceHmdInternalCheckS3dPassModeAvailable", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("eMI1Hq+NEwY", "sceHmdInternalCrashReportCancel", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("dI3StPLQlMM", "sceHmdInternalCrashReportClose", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("lqPT-Bf1s4I", "sceHmdInternalCrashReportOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("QxhJs6zHUmU", "sceHmdInternalCrashReportReadData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("A2jWOLPzHHE", "sceHmdInternalCrashReportReadDataSize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("E9scVxt0DNg", "sceHmdInternalCreateSharedMemory", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("6RclvsKxr3I", "sceHmdInternalDfuCheckAfterPvt", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("cE99PJR6b8w", "sceHmdInternalDfuCheckPartialUpdateAvailable", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("SuE90Qscg0s", "sceHmdInternalDfuClose", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("5f-6lp7L5cY", "sceHmdInternalDfuGetStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("dv2RqD7ZBd4", "sceHmdInternalDfuOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("pN0HjRU86Jo", "sceHmdInternalDfuReset", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("mdc++HCXSsQ", "sceHmdInternalDfuSend", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("gjyqnphjGZE", "sceHmdInternalDfuSendSize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("bl4MkWNLxKs", "sceHmdInternalDfuSetMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("a1LmvXhZ6TM", "sceHmdInternalDfuStart", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("+UzzSnc0z9A", "sceHmdInternalEventInitialize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("uQc9P8Hrr6U", "sceHmdInternalGetBrightness", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("nK1g+MwMV10", "sceHmdInternalGetCrashDumpInfo", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("L5WZgOTw41Y", "sceHmdInternalGetDebugMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("3w8SkMfCHY0", "sceHmdInternalGetDebugSocialScreenMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("1Xmb76MHXug", "sceHmdInternalGetDebugTextMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("S0ITgPRkfUg", "sceHmdInternalGetDefaultLedData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("mxjolbeBa78", "sceHmdInternalGetDemoMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("RFIi20Wp9j0", "sceHmdInternalGetDeviceInformation", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("P04LQJQZ43Y", "sceHmdInternalGetDeviceInformationByHandle", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("PPCqsD8B5uM", "sceHmdInternalGetDeviceStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("-u82z1UhOq4", "sceHmdInternalGetEyeStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("iINSFzCIaB8", "sceHmdInternalGetHmuOpticalParam", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Csuvq2MMXHU", "sceHmdInternalGetHmuPowerStatusForDebug", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("UhFPniZvm8U", "sceHmdInternalGetHmuSerialNumber", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("9exeDpk7JU8", "sceHmdInternalGetIPD", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("yNtYRsxZ6-A", "sceHmdInternalGetIpdSettingEnableForSystemService", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("EKn+IFVsz0M", "sceHmdInternalGetPuBuildNumber", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("AxQ6HtktYfQ", "sceHmdInternalGetPuPositionParam", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ynKv9QCSbto", "sceHmdInternalGetPuRevision", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("3jcyx7XOm7A", "sceHmdInternalGetPUSerialNumber", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("+PDyXnclP5w", "sceHmdInternalGetPUVersion", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("67q17ERGBuw", "sceHmdInternalGetRequiredPUPVersion", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("aQDrTFzGkg8", "sceHmdInternalGetSensorCalibrationData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("uGyN1CkvwYU", "sceHmdInternalGetStatusReport", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("p9lSvZujLuo", "sceHmdInternalGetTv4kCapability", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("-Z+-9u98m9o", "sceHmdInternalGetVirtualDisplayDepth", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("df+b0FQnnVQ", "sceHmdInternalGetVirtualDisplayHeight", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("i6yROd9ygJs", "sceHmdInternalGetVirtualDisplaySize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Aajiktl6JXU", "sceHmdInternalGetVr2dData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("GwFVF2KkIT4", "sceHmdInternalIsCommonDlgMiniAppVr2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("LWQpWHOSUvk", "sceHmdInternalIsCommonDlgVr2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("YiIVBPLxmfE", "sceHmdInternalIsGameVr2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("LMlWs+oKHTg", "sceHmdInternalIsMiniAppVr2d", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("nBv4CKUGX0Y", "sceHmdInternalMapSharedMemory", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("4hTD8I3CyAk", "sceHmdInternalMirroringModeSetAspect", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("EJwPtSSZykY", "sceHmdInternalMirroringModeSetAspectDebug", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("r7f7M5q3snU", "sceHmdInternalMmapGetCount", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("gCjTEtEsOOw", "sceHmdInternalMmapGetModeId", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("HAr740Mt9Hs", "sceHmdInternalMmapGetSensorCalibrationData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("1PNiQR-7L6k", "sceHmdInternalMmapIsConnect", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("9-jaAXUNG-A", "sceHmdInternalPushVr2dData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("1gkbLH5+kxU", "sceHmdInternalRegisterEventCallback", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("6kHBllapJas", "sceHmdInternalResetInertialSensor", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("k1W6RPkd0mc", "sceHmdInternalResetLedForVrTracker", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("dp1wu22jSGc", "sceHmdInternalResetLedForVsh", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("d2TeoKeqM5U", "sceHmdInternalSeparateModeClose", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("WxsnAsjPF7Q", "sceHmdInternalSeparateModeGetAudioStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("eOOeG9SpEuc", "sceHmdInternalSeparateModeGetVideoStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("gA4Xnn+NSGk", "sceHmdInternalSeparateModeOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("stQ7AsondmE", "sceHmdInternalSeparateModeSendAudio", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("jfnS-OoDayM", "sceHmdInternalSeparateModeSendVideo", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("roHN4ml+tB8", "sceHmdInternalSetBrightness", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("0z2qLqedQH0", "sceHmdInternalSetCrashReportCommand", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("xhx5rVZEpnw", "sceHmdInternalSetDebugGpo", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("e7laRxRGCHc", "sceHmdInternalSetDebugMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("CRyJ7Q-ap3g", "sceHmdInternalSetDebugSocialScreenMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("dG4XPW4juU4", "sceHmdInternalSetDebugTextMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("rAXmGoO-VmE", "sceHmdInternalSetDefaultLedData", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("lu9I7jnUvWQ", "sceHmdInternalSetDemoMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("hyATMTuQSoQ", "sceHmdInternalSetDeviceConnection", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("c4mSi64bXUw", "sceHmdInternalSetForcedCrash", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("U9kPT4g1mFE", "sceHmdInternalSetHmuPowerControl", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("dX-MVpXIPwQ", "sceHmdInternalSetHmuPowerControlForDebug", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("4KIjvAf8PCA", "sceHmdInternalSetIPD", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NbxTfUKO184", "sceHmdInternalSetIpdSettingEnableForSystemService", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("HzrIn-Voa5o", "sceHmdInternalSetIPDSettingEnableForSystemService", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NnRKjf+hxW4", "sceHmdInternalSetLedOn", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("4AP0X9qGhqw", "sceHmdInternalSetM2LedBrightness", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Mzzz2HPWM+8", "sceHmdInternalSetM2LedOn", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("LkBkse9Pit0", "sceHmdInternalSetPortConnection", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("v243mvYg0Y0", "sceHmdInternalSetPortStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("EwXvkZpo9Go", "sceHmdInternalSetS3dPassMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("g3DKNOy1tYw", "sceHmdInternalSetSidetone", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("mjMsl838XM8", "sceHmdInternalSetUserType", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("8IS0KLkDNQY", "sceHmdInternalSetVirtualDisplayDepth", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("afhK5KcJOJY", "sceHmdInternalSetVirtualDisplayHeight", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("+zPvzIiB+BU", "sceHmdInternalSetVirtualDisplaySize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("9z8Lc64NF1c", "sceHmdInternalSetVRMode", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("s5EqYh5kbwM", "sceHmdInternalSocialScreenGetFadeState", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("a1LMFZtK9b0", "sceHmdInternalSocialScreenSetFadeAndSwitch", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("-6FjKlMA+Yc", "sceHmdInternalSocialScreenSetOutput", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("d2g5Ij7EUzo", "sceHmdOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NTIbBpSH9ik", "sceHmdReprojectionAddDisplayBuffer", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("94+Ggm38KCg", "sceHmdReprojectionClearUserEventEnd", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("mdyFbaJj66M", "sceHmdReprojectionClearUserEventStart", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("MdV0akauNow", "sceHmdReprojectionDebugGetLastInfo", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ymiwVjPB5+k", "sceHmdReprojectionDebugGetLastInfoMultilayer", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ZrV5YIqD09I", "sceHmdReprojectionFinalize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("utHD2Ab-Ixo", "sceHmdReprojectionFinalizeCapture", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("OuygGEWkins", "sceHmdReprojectionInitialize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("BTrQnC6fcAk", "sceHmdReprojectionInitializeCapture", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("TkcANcGM0s8", "sceHmdReprojectionQueryGarlicBuffAlign", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("z0KtN1vqF2E", "sceHmdReprojectionQueryGarlicBuffSize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("IWybWbR-xvA", "sceHmdReprojectionQueryOnionBuffAlign", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("kLUAkN6a1e8", "sceHmdReprojectionQueryOnionBuffSize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("6CRWGc-evO4", "sceHmdReprojectionSetCallback", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("E+dPfjeQLHI", "sceHmdReprojectionSetDisplayBuffers", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("LjdLRysHU6Y", "sceHmdReprojectionSetOutputMinColor", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("knyIhlkpLgE", "sceHmdReprojectionSetUserEventEnd", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("7as0CjXW1B8", "sceHmdReprojectionSetUserEventStart", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("3iONR2EXyKA", "sceHmdReprojectionSetUserEventToFinish", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("ro1JFV7JR+E", "sceHmdReprojectionSetUserEventToStart", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("dntZTJ7meIU", "sceHmdReprojectionStart", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("q3e8+nEguyE", "sceHmdReprojectionStart2dVr", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("RrvyU1pjb9A", "sceHmdReprojectionStartCapture", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("wbYAWZcJiNo", "sceHmdReprojectionStartCompoundEye", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("XZ5QUzb4ae0", "sceHmdReprojectionStartLiveCapture", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("8gH1aLgty5I", "sceHmdReprojectionStartMultilayer", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("gqAG7JYeE7A", "sceHmdReprojectionStartMultilayer2", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("3JyuejcNhC0", "sceHmdReprojectionStartWideNear", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("mKa8scOc4-k", "sceHmdReprojectionStartWideNearWithOverlay", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("kcldQ7zLYQQ", "sceHmdReprojectionStartWithOverlay", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("vzMEkwBQciM", "sceHmdReprojectionStop", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("F7Sndm5teWw", "sceHmdReprojectionStopCapture", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("PAa6cUL5bR4", "sceHmdReprojectionStopLiveCapture", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("0wnZViigP9o", "sceHmdReprojectionUnsetCallback", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("iGNNpDDjcwo", "sceHmdReprojectionUnsetDisplayBuffers", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("nmHzU4Gh0xs", "sceHmdSetupDialogClose", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("6lVRHMV5LY0", "sceHmdSetupDialogGetResult", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("J9eBpW1udl4", "sceHmdSetupDialogGetStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NB1Y2kA2jCY", "sceHmdSetupDialogInitialize", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("NNgiV4T+akU", "sceHmdSetupDialogOpen", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("+z4OJmFreZc", "sceHmdSetupDialogTerminate", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("Ud7j3+RDIBg", "sceHmdSetupDialogUpdateStatus", "libSceHmd", "libSceHmd");
+    module->addSymbolStub("sWZSZB-mnw4", "libSceHmd_sWZSZB-mnw4", "libSceHmd", "libSceHmd");
+
+    // libSceAvSetting
+    module->addSymbolStub("t+O8mxM6oSg", "sceAvSettingAddCallbacks", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("us4sbukgU+w", "sceAvSettingAddCallbacksForLnc", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("x14XFcPNLJU", "sceAvSettingAddCallbacksForSocialScreen", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("PoeH5eI+ozw", "sceAvSettingCallbackFuncsInit", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("pSh4a1XK8eA", "sceAvSettingCallbackFuncsInit_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("DeucnsfJpqo", "sceAvSettingCallbackFuncsInitForLnc", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("aP6KEe871Ow", "sceAvSettingCallbackFuncsInitForLnc_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Ow348nbrI1I", "sceAvSettingChangeOutputMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("w7ICzzcAJCU", "sceAvSettingChangeOutputMode2", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("ZfMHgVDYzzY", "sceAvSettingChangeOutputMode3", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("gE40jgJgPsk", "sceAvSettingChangeOutputModeForDiag", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("EejsJSul9nA", "sceAvSettingChangeProcessAttribute", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("aKw9uBmZjpw", "sceAvSettingCheckCallback", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("85v1KZeMTgU", "sceAvSettingCloseLoopbackBuffers", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("5yga+o4TVqk", "sceAvSettingControlHdcpEncryption", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("oE4a8uIaXxI", "sceAvSettingDebugAddCallbacks", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("1DXOQcuiH8o", "sceAvSettingDebugClearDiagCommand", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("KfRNHvUILRQ", "sceAvSettingDebugGetDetailedHdcpStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("ME0ImfgjmL0", "sceAvSettingDebugSetDiagState", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("2X0ruzkCtrA", "sceAvSettingDebugSetHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("++DO8Y1JaYU", "sceAvSettingDebugSetProcessAttribute", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("dm0L3LVgQ+M", "sceAvSettingDriverChangeConnectionStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("XEGAcOsiVfQ", "sceAvSettingDriverUpdateStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("cejlyvC7+N8", "sceAvSettingEnterAudioMuteForShutdown", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("qnI61-kCm1E", "sceAvSettingGetCurrentDeviceInfo_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("1-O9j5vS8QU", "sceAvSettingGetCurrentHdmiDeviceId", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("PagHtqiYnQg", "sceAvSettingGetCurrentOutputMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("ZmPBwBD2tIY", "sceAvSettingGetCurrentOutputMode_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("j-b-RFZ3gjw", "sceAvSettingGetCurrentOutputMode2_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("vfzFZDaFuKU", "sceAvSettingGetDetailedHdcpStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("vh3aQ+JUpSU", "sceAvSettingGetDeviceInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("AoBZzDiZwng", "sceAvSettingGetHdcpStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("lxo162czs6I", "sceAvSettingGetHdmiConnectDisconnectNum", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("5ICXeCXAnDQ", "sceAvSettingGetHdmiKsvList", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("-Mui67TZd4s", "sceAvSettingGetHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("fgHOZo7gPyA", "sceAvSettingGetHdmiRawEdid", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("rjICp0cpHJM", "sceAvSettingGetLoopbackBuffer", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("6i0wQ7VpTSg", "sceAvSettingGetMorpheusPuStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("b40XbKKKDhQ", "sceAvSettingGetNativeHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("kJ0Nhf2At8Y", "sceAvSettingGetRawHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("EIZdWTT7Zdw", "sceAvSettingInit", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("l3dw8imUbLM", "sceAvSettingIsSupportedAudioOutModeByHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("WQVNCJkcmXc", "sceAvSettingIsSupportedHdcpVersionByHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Ej9YiEmOWVE", "sceAvSettingIsSupportedVideoOutModeByHdmiMonitorInfo", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("twiNZBeuppA", "sceAvSettingIsSuspendedProcessOutputModeAvailable", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("GUna2W6TBG4", "sceAvSettingIsSuspendedProcessOutputModeAvailable2", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Pjwx-8rnLT8", "sceAvSettingIsVrSupportedByHdmiMonitorInfo2", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("hdISXjL-bwY", "sceAvSettingNotifyAudioOutMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("0WVJD1NnpIU", "sceAvSettingNotifyDeviceEvent", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("RtwM77LoIrc", "sceAvSettingNotifyProcessPostResume", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Ft5agD1+fA0", "sceAvSettingNotifyProcessPostSuspend", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("T6LrBljciS0", "sceAvSettingNotifyProcessResume", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Ko8fB-6YDp8", "sceAvSettingNotifyProcessSuspend", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("02ozaKssy98", "sceAvSettingNotifyResponseForSocialScreen", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Fyw2Fkasc+4", "sceAvSettingNotifyUmdEvent", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("2cJVU9KC3zY", "sceAvSettingNotifyVideoOutMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Pxx1uH51g-E", "sceAvSettingOpenLoopbackBuffers", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("dnM9JfgxHbk", "sceAvSettingRemoveCallbacks", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("I37rBumJ9X4", "sceAvSettingRemoveProcessOutputMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("OEsO-6FT+04", "sceAvSettingSet2dVrMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("o7btxEpLl-0", "sceAvSettingSetAudioOutModeAny", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("r1f9mCImJCk", "sceAvSettingSetAudioOutModeAny_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("0hVwNAR5hz8", "sceAvSettingSetAudioOutModeInvalid", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("l1PGm+V7-TU", "sceAvSettingSetAudioOutModeInvalid_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("fscoS+Gh3Sw", "sceAvSettingSetAvOutputMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("YdgAk0w9rGY", "sceAvSettingSetDispclk", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("A-BYlKx72vw", "sceAvSettingSetDisplayBlackLevel", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("QGL+VQEX8lo", "sceAvSettingSetHdcpMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("+1rqC1b3Jw0", "sceAvSettingSetHdcpStatus", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("RFaqh8vAtb8", "sceAvSettingSetHdmiGamutMetadata_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("6s-tDu1w580", "sceAvSettingSetProcessAttribute", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("geoQ77m8Trc", "sceAvSettingSetVideoOutModeAny", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("t-BDxreA7sU", "sceAvSettingSetVideoOutModeAny_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("FSjfP0-ST3I", "sceAvSettingSetVideoOutModeInvalid", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("8RTK3rcM5aU", "sceAvSettingSetVideoOutModeInvalid_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("a4sYJjuBVbg", "sceAvSettingSetVideoOutputColorEffect", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("x-U4mJWRcNI", "sceAvSettingSetVideoOutSource", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("o0+89h9H3xA", "sceAvSettingSetVrMode", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("SKq7NiL8fA8", "sceAvSettingSimulateProcessOutputModeArbitration_", "libSceAvSetting", "libSceAvSetting");
+    module->addSymbolStub("Xb2ez5SqR38", "sceAvSettingTerm", "libSceAvSetting", "libSceAvSetting");
+
 
     return module;
 }

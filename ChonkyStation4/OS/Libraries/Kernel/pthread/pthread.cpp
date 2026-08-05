@@ -10,8 +10,8 @@
 #include <codecvt>
 #include <windows.h>
 #include <WinBase.h>
+#define RETURN_ADDRESS() _ReturnAddress()
 #endif
-
 
 namespace PS4::OS::Libs::Kernel {
 
@@ -172,6 +172,7 @@ s32 PS4_FUNC kernel_pthread_attr_setdetachstate(pthread_attr_t* attr, int detach
 
 s32 PS4_FUNC kernel_pthread_attr_destroy(pthread_attr_t* attr) {
     log("pthread_attr_destroy(attr=*%p) TODO\n", attr);
+    if ((uptr)*attr < 0x1000) return SCE_OK;
     return pthread_attr_destroy(attr);
 }
 
@@ -199,14 +200,18 @@ s32 PS4_FUNC scePthreadCreate(void** tid, const pthread_attr_t* attr, void* (PS4
     
     auto& thread = PS4::OS::Thread::createThread(name_str, (PS4::OS::Thread::ThreadStartFunc)start, arg);
     pthread_attr_init(&thread.attr);
-    if (attr)
+    if (attr && *attr)
         *thread.attr = **attr;
     *tid = (void*)&thread.getPThread();
     return 0;
 }
 
+// TODO: Make the mutex per-thread
+std::mutex thread_name_mtx;
 s32 PS4_FUNC scePthreadRename(void* pthread, const char* name) {
     log("scePthreadRename(pthread=%p, name=\"%s\")\n", pthread, name);
+
+    const std::unique_lock<std::mutex> lock(thread_name_mtx);
 
     auto& thread = findThread(pthread);
 #ifdef _WIN32
@@ -222,8 +227,10 @@ s32 PS4_FUNC scePthreadRename(void* pthread, const char* name) {
 s32 PS4_FUNC scePthreadGetname(void* pthread, char* name) {
     log("scePthreadGetname(pthread=%p, name=*%p)\n", pthread, name);
 
+    const std::unique_lock<std::mutex> lock(thread_name_mtx);
+
     auto& thread = findThread(pthread);
-    std::strcpy(name, thread.name.c_str());
+    std::strncpy(name, thread.name.c_str(), 32);
     return SCE_OK;
 }
 

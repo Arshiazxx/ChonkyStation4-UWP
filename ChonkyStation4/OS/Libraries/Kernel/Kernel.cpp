@@ -22,6 +22,8 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
 #pragma intrinsic(__rdtsc)
 
 #include <intrin.h>
@@ -43,6 +45,7 @@ MAKE_LOG_FUNCTION(unimpl, unimplemented);
 static u64 stack_chk_guard = 0x4452474B43415453;    // "STACKGRD"
 static u64 proc_counter_start = 0;
 static char* environment[64];
+static char** kernel_environ;
 
 void init(Module& module) {
     module.addSymbolExport("wtkt-teR1so", "pthread_attr_init", "libkernel", "libkernel", (void*)&kernel_pthread_attr_init);
@@ -80,7 +83,7 @@ void init(Module& module) {
     module.addSymbolExport("9UK1vLZQft4", "scePthreadMutexLock", "libkernel", "libkernel", (void*)&kernel_pthread_mutex_lock);
     module.addSymbolExport("K-jXhbt2gn4", "pthread_mutex_trylock", "libkernel", "libkernel", (void*)&kernel_pthread_mutex_trylock);
     module.addSymbolExport("K-jXhbt2gn4", "pthread_mutex_trylock", "libScePosix", "libkernel", (void*)&kernel_pthread_mutex_trylock);
-    module.addSymbolExport("upoVrzMHFeE", "scePthreadMutexTrylock", "libkernel", "libkernel", (void*)&kernel_pthread_mutex_trylock);
+    module.addSymbolExport("upoVrzMHFeE", "scePthreadMutexTrylock", "libkernel", "libkernel", (void*)&scePthreadMutexTrylock);
     module.addSymbolExport("IafI2PxcPnQ", "scePthreadMutexTimedlock", "libkernel", "libkernel", (void*)&scePthreadMutexTimedlock);
     module.addSymbolExport("2Z+PpY6CaJg", "pthread_mutex_unlock", "libkernel", "libkernel", (void*)&kernel_pthread_mutex_unlock);
     module.addSymbolExport("2Z+PpY6CaJg", "pthread_mutex_unlock", "libScePosix", "libkernel", (void*)&kernel_pthread_mutex_unlock);
@@ -113,6 +116,8 @@ void init(Module& module) {
     module.addSymbolExport("27bAgiJmOh0", "pthread_cond_timedwait", "libkernel", "libkernel", (void*)&kernel_pthread_cond_timedwait);
     module.addSymbolExport("27bAgiJmOh0", "pthread_cond_timedwait", "libScePosix", "libkernel", (void*)&kernel_pthread_cond_timedwait);
     module.addSymbolExport("BmMjYxmew1w", "scePthreadCondTimedwait", "libkernel", "libkernel", (void*)&scePthreadCondTimedwait);
+    module.addSymbolExport("K953PF5u6Pc", "pthread_cond_reltimedwait_np", "libkernel", "libkernel", (void*)&kernel_pthread_cond_reltimedwait_np);
+    module.addSymbolExport("K953PF5u6Pc", "pthread_cond_reltimedwait_np", "libScePosix", "libkernel", (void*)&kernel_pthread_cond_reltimedwait_np);
     module.addSymbolExport("2MOy+rUfuhQ", "pthread_cond_signal", "libkernel", "libkernel", (void*)&kernel_pthread_cond_signal);
     module.addSymbolExport("2MOy+rUfuhQ", "pthread_cond_signal", "libScePosix", "libkernel", (void*)&kernel_pthread_cond_signal);
     module.addSymbolExport("kDh-NfxgMtE", "scePthreadCondSignal", "libkernel", "libkernel", (void*)&kernel_pthread_cond_signal);
@@ -154,6 +159,8 @@ void init(Module& module) {
     module.addSymbolExport("B5GmVDKwpn0", "pthread_yield", "libkernel", "libkernel", (void*)&kernel_pthread_yield);
     module.addSymbolExport("B5GmVDKwpn0", "pthread_yield", "libScePosix", "libkernel", (void*)&kernel_pthread_yield);
     module.addSymbolExport("T72hz6ffq08", "scePthreadYield", "libkernel", "libkernel", (void*)&kernel_pthread_yield);
+    module.addSymbolExport("FJrT5LuUBAU", "pthread_exit", "libkernel", "libkernel", (void*)&kernel_pthread_exit);
+    module.addSymbolExport("FJrT5LuUBAU", "pthread_exit", "libScePosix", "libkernel", (void*)&kernel_pthread_exit);
     module.addSymbolExport("3kg7rT0NQIs", "scePthreadExit", "libkernel", "libkernel", (void*)&kernel_pthread_exit);
     module.addSymbolExport("3eqs37G74-s", "pthread_getthreadid_np", "libkernel", "libkernel", (void*)&kernel_pthread_getthreadid_np);
     module.addSymbolExport("EI-5-jlq2dE", "scePthreadGetthreadid", "libkernel", "libkernel", (void*)&kernel_pthread_getthreadid_np);
@@ -163,7 +170,7 @@ void init(Module& module) {
     module.addSymbolExport("k+AXqu2-eBc", "getpagesize", "libScePosix", "libkernel", (void*)&kernel_getpagesize);
     module.addSymbolExport("f7uOxY9mM1U", "__stack_chk_guard", "libkernel", "libkernel", (void*)&stack_chk_guard);
     module.addSymbolExport("vNe1w4diLCs", "__tls_get_addr", "libkernel", "libkernel", (void*)&__tls_get_addr);
-    module.addSymbolExport("+2thxYZ4syk", "environ", "libkernel", "libkernel", (void*)&environment);
+    module.addSymbolExport("+2thxYZ4syk", "environ", "libkernel", "libkernel", (void*)&kernel_environ);
 
     module.addSymbolExport("6c3rCVE-fTU", "_open", "libkernel", "libkernel", (void*)&kernel_open);
     module.addSymbolExport("wuCroIGjt2g", "open", "libkernel", "libkernel", (void*)&kernel_open);   // ???
@@ -200,6 +207,7 @@ void init(Module& module) {
     module.addSymbolExport("E6ao34wPw+U", "stat", "libkernel", "libkernel", (void*)&kernel_stat);
     module.addSymbolExport("E6ao34wPw+U", "stat", "libScePosix", "libkernel", (void*)&kernel_stat);
     module.addSymbolExport("eV9wAD2riIA", "sceKernelStat", "libkernel", "libkernel", (void*)&sceKernelStat);
+    module.addSymbolExport("DRGXpDDh8Ng", "lstat", "libkernel", "libkernel", (void*)&kernel_stat);  // TODO: symlinks
     module.addSymbolExport("mqQMh1zPPT8", "fstat", "libkernel", "libkernel", (void*)&kernel_fstat);
     module.addSymbolExport("mqQMh1zPPT8", "fstat", "libScePosix", "libkernel", (void*)&kernel_fstat);
     module.addSymbolExport("kBwCPsYX-m4", "sceKernelFstat", "libkernel", "libkernel", (void*)&sceKernelFstat);
@@ -242,6 +250,8 @@ void init(Module& module) {
     module.addSymbolExport("n88vx3C5nW8", "gettimeofday", "libScePosix", "libkernel", (void*)&kernel_gettimeofday);
     module.addSymbolExport("ejekcaNQNq0", "sceKernelGettimeofday", "libkernel", "libkernel", (void*)&sceKernelGettimeofday);
     module.addSymbolExport("kOcnerypnQA", "sceKernelGettimezone", "libkernel", "libkernel", (void*)&sceKernelGettimezone);
+    module.addSymbolExport("-o5uEDpN+oY", "sceKernelConvertUtcToLocaltime", "libkernel", "libkernel", (void*)&sceKernelConvertUtcToLocaltime);
+    module.addSymbolExport("0NTHN1NKONI", "sceKernelConvertLocaltimeToUtc", "libkernel", "libkernel", (void*)&sceKernelConvertLocaltimeToUtc);
     module.addSymbolExport("4J2sUJmuHZQ", "sceKernelGetProcessTime", "libkernel", "libkernel", (void*)&sceKernelGetProcessTime);
     module.addSymbolExport("fgxnMeTNUtY", "sceKernelGetProcessTimeCounter", "libkernel", "libkernel", (void*)&sceKernelGetProcessTimeCounter);
     module.addSymbolExport("BNowx2l588E", "sceKernelGetProcessTimeCounterFrequency", "libkernel", "libkernel", (void*)&sceKernelGetProcessTimeCounterFrequency);
@@ -261,10 +271,19 @@ void init(Module& module) {
     module.addSymbolExport("f7KBOafysXo", "sceKernelGetModuleInfoFromAddr", "libkernel", "libkernel", (void*)&sceKernelGetModuleInfoFromAddr);
     module.addSymbolExport("RpQJJVKTiFM", "sceKernelGetModuleInfoForUnwind", "libkernel", "libkernel", (void*)&sceKernelGetModuleInfoForUnwind);
     module.addSymbolExport("zE-wXIZjLoM", "sceKernelDebugRaiseExceptionOnReleaseMode", "libkernel", "libkernel", (void*)&sceKernelDebugRaiseExceptionOnReleaseMode);
+    module.addSymbolExport("Wh7HbV7JFqc", "getrlimit", "libkernel", "libkernel", (void*)&kernel_getrlimit);
+    module.addSymbolExport("Wh7HbV7JFqc", "getrlimit", "libScePosix", "libkernel", (void*)&kernel_getrlimit);
+    module.addSymbolExport("pi90NsG3zPA", "sceLibcMspaceCreateForMonoMutex", "libkernel", "libkernel", (void*)&sceLibcMspaceCreateForMonoMutex);
+    module.addSymbolExport("WB66evu8bsU", "sceKernelGetCompiledSdkVersion", "libkernel", "libkernel", (void*)&sceKernelGetCompiledSdkVersion);
+    module.addSymbolExport("fUJRLEbJOuQ", "sceKernelGetProcessName", "libkernel", "libkernel", (void*)&sceKernelGetProcessName);
+    module.addSymbolExport("i-H8tE6wTqI", "sceKernelGetDataTransferMode", "libkernel", "libkernel", (void*)&sceKernelGetDataTransferMode);
+    module.addSymbolExport("QtLhuYZf9jg", "sceKernelGetBackupRestoreMode", "libkernel", "libkernel", (void*)&sceKernelGetBackupRestoreMode);
 
     module.addSymbolExport("D0OdFMjp46I", "sceKernelCreateEqueue", "libkernel", "libkernel", (void*)&sceKernelCreateEqueue);
     module.addSymbolExport("fzyMKs9kim0", "sceKernelWaitEqueue", "libkernel", "libkernel", (void*)&sceKernelWaitEqueue);
     module.addSymbolExport("4R6-OvI2cEA", "sceKernelAddUserEvent", "libkernel", "libkernel", (void*)&sceKernelAddUserEvent);
+    module.addSymbolExport("R74tt43xP6k", "sceKernelAddHRTimerEvent", "libkernel", "libkernel", (void*)&sceKernelAddHRTimerEvent);
+    module.addSymbolStub("J+LF6LwObXU", "sceKernelDeleteHRTimerEvent", "libkernel", "libkernel");
     module.addSymbolStub("WDszmSbWuDk", "sceKernelAddUserEventEdge", "libkernel", "libkernel");
     module.addSymbolExport("23CPPI1tyBY", "sceKernelGetEventFilter", "libkernel", "libkernel", (void*)&sceKernelGetEventFilter);
     module.addSymbolExport("nh2IFMgKTv8", "kqueue", "libkernel", "libkernel", (void*)&kernel_kqueue);
@@ -293,6 +312,8 @@ void init(Module& module) {
     module.addSymbolExport("IKP8typ0QUk", "sem_post", "libScePosix", "libkernel", (void*)&kernel_sem_post);
     module.addSymbolExport("YCV5dGGBcCo", "sem_wait", "libkernel", "libkernel", (void*)&kernel_sem_wait);
     module.addSymbolExport("YCV5dGGBcCo", "sem_wait", "libScePosix", "libkernel", (void*)&kernel_sem_wait);
+    module.addSymbolExport("WBWzsRifCEA", "sem_trywait", "libkernel", "libkernel", (void*)&kernel_sem_trywait);
+    module.addSymbolExport("WBWzsRifCEA", "sem_trywait", "libScePosix", "libkernel", (void*)&kernel_sem_trywait);
     module.addSymbolExport("w5IHyvahg-o", "sem_timedwait", "libkernel", "libkernel", (void*)&kernel_sem_timedwait);
     module.addSymbolExport("w5IHyvahg-o", "sem_timedwait", "libScePosix", "libkernel", (void*)&kernel_sem_timedwait);
     module.addSymbolExport("Bq+LRV-N6Hk", "sem_getvalue", "libkernel", "libkernel", (void*)&kernel_sem_getvalue);
@@ -305,6 +326,12 @@ void init(Module& module) {
     module.addSymbolExport("Ox9i0c7L5w0", "scePthreadRwlockRdlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_rdlock);
     module.addSymbolExport("sIlRvQqsN2Y", "pthread_rwlock_wrlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_wrlock);
     module.addSymbolExport("mqdNorrB+gI", "scePthreadRwlockWrlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_wrlock);
+    module.addSymbolExport("XhWHn6P5R7U", "pthread_rwlock_trywrlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_trywrlock);
+    module.addSymbolExport("XhWHn6P5R7U", "pthread_rwlock_trywrlock", "libScePosix", "libkernel", (void*)&kernel_pthread_rwlock_trywrlock);
+    module.addSymbolExport("bIHoZCTomsI", "scePthreadRwlockTrywrlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_trywrlock);
+    module.addSymbolExport("SFxTMOfuCkE", "pthread_rwlock_tryrdlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_tryrdlock);
+    module.addSymbolExport("SFxTMOfuCkE", "pthread_rwlock_tryrdlock", "libScePosix", "libkernel", (void*)&kernel_pthread_rwlock_tryrdlock);
+    module.addSymbolExport("XD3mDeybCnk", "scePthreadRwlockTryrdlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_tryrdlock);
     module.addSymbolExport("EgmLo6EWgso", "pthread_rwlock_unlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_unlock);
     module.addSymbolExport("+L98PIbGttk", "scePthreadRwlockUnlock", "libkernel", "libkernel", (void*)&kernel_pthread_rwlock_unlock);
     module.addSymbolExport("yOfGg-I1ZII", "scePthreadRwlockattrInit", "libkernel", "libkernel", (void*)&kernel_pthread_rwlockattr_init);
@@ -318,6 +345,7 @@ void init(Module& module) {
     module.addSymbolExport("kc+LEEIYakc", "sceKernelMapNamedSystemFlexibleMemory", "libkernel", "libkernel", (void*)&sceKernelMapNamedSystemFlexibleMemory);
     module.addSymbolExport("7oxv3PPCumo", "sceKernelReserveVirtualRange", "libkernel", "libkernel", (void*)&sceKernelReserveVirtualRange);
     module.addSymbolExport("MBuItvba6z8", "sceKernelReleaseDirectMemory", "libkernel", "libkernel", (void*)&sceKernelReleaseDirectMemory);
+    module.addSymbolStub("teiItL2boFw", "sceKernelReleaseFlexibleMemory", "libkernel", "libkernel");    // TODO
     module.addSymbolExport("hwVSPCmp5tM", "sceKernelCheckedReleaseDirectMemory", "libkernel", "libkernel", (void*)&sceKernelCheckedReleaseDirectMemory);
     module.addSymbolExport("cQke9UuBQOk", "sceKernelMunmap", "libkernel", "libkernel", (void*)&sceKernelMunmap);
     module.addSymbolExport("UqDGjXA5yUM", "munmap", "libkernel", "libkernel", (void*)&kernel_munmap);
@@ -327,6 +355,7 @@ void init(Module& module) {
     module.addSymbolExport("WFcfL2lzido", "sceKernelQueryMemoryProtection", "libkernel", "libkernel", (void*)&sceKernelQueryMemoryProtection);
     module.addSymbolExport("BPE9s9vQQXo", "mmap", "libkernel", "libkernel", (void*)&kernel_mmap);
     module.addSymbolExport("BPE9s9vQQXo", "mmap", "libScePosix", "libkernel", (void*)&kernel_mmap);
+    module.addSymbolExport("PGhQHd-dzv8", "sceKernelMmap", "libkernel", "libkernel", (void*)&sceKernelMmap);
     module.addSymbolStub("YQOfxL4QfeU", "mprotect", "libkernel", "libkernel");
     module.addSymbolStub("Jahsnh4KKkg", "madvise", "libkernel", "libkernel");
     
@@ -377,10 +406,7 @@ void init(Module& module) {
     module.addSymbolStub("XAzZo12sbN8", "scePthreadMutexSetprioceiling", "libkernel", "libkernel");
     module.addSymbolStub("tZY4+SZNFhA", "msync", "libkernel", "libkernel");
     module.addSymbolStub("crb5j7mkk1c", "_is_signal_return", "libkernel", "libkernel"); // TODO: Important
-    module.addSymbolStub("WB66evu8bsU", "sceKernelGetCompiledSdkVersion", "libkernel", "libkernel"); // TODO: Probably important
     module.addSymbolStub("vSMAm3cxYTY", "sceKernelMprotect", "libkernel", "libkernel"); // TODO: Probably important
-    module.addSymbolStub("-o5uEDpN+oY", "sceKernelConvertUtcToLocaltime", "libkernel", "libkernel"); // TODO: Probably important
-    module.addSymbolStub("0NTHN1NKONI", "sceKernelConvertLocaltimeToUtc", "libkernel", "libkernel"); // TODO: Probably important
     module.addSymbolStub("aPcyptbOiZs", "sigprocmask", "libkernel", "libkernel");
     module.addSymbolStub("6xVpy0Fdq+I", "_sigprocmask", "libkernel", "libkernel");
     module.addSymbolStub("jh+8XiK4LeE", "sceKernelIsAddressSanitizerEnabled", "libkernel", "libkernel", false);
@@ -410,8 +436,6 @@ void init(Module& module) {
     module.addSymbolStub("TUuiYS2kE8s", "shutdown", "libScePosix", "libkernel");
     module.addSymbolStub("5dgOEPsEGqw", "scePthreadBarrierInit", "libkernel", "libkernel");
     module.addSymbolStub("t9vVyTglqHQ", "scePthreadBarrierWait", "libkernel", "libkernel");
-    module.addSymbolStub("Wh7HbV7JFqc", "getrlimit", "libkernel", "libkernel");
-    module.addSymbolStub("Wh7HbV7JFqc", "getrlimit", "libScePosix", "libkernel");
     module.addSymbolStub("hHlZQUnlxSM", "getrusage", "libkernel", "libkernel");
     module.addSymbolStub("hHlZQUnlxSM", "getrusage", "libScePosix", "libkernel");
     module.addSymbolStub("6BpEZuDT7YI", "pthread_key_delete", "libkernel", "libkernel");
@@ -423,12 +447,29 @@ void init(Module& module) {
     module.addSymbolStub("bt0POEUZddE", "sceKernelGetSanitizerMallocReplace", "libkernel", "libkernel");
     module.addSymbolStub("F4Kib3Mb0wI", "sceKernelGetSanitizerNewReplace", "libkernel", "libkernel");
     module.addSymbolStub("-YTW+qXc3CQ", "sceKernelInternalMemoryGetModuleSegmentInfo", "libkernel", "libkernel");
-    module.addSymbolStub("pi90NsG3zPA", "sceLibcMspaceCreateForMonoMutex", "libkernel", "libkernel");
     module.addSymbolStub("C2ltEJILIGE", "sceKernelGetPsmIntdevModeForRcmgr", "libkernel", "libkernel");
     module.addSymbolStub("ucFJiTO1EUw", "dlerror", "libkernel", "libkernel");
     module.addSymbolStub("8vE6Z6VEYyk", "access", "libkernel", "libkernel");
     module.addSymbolStub("DFmMT80xcNI", "sysctl", "libkernel", "libkernel");
     module.addSymbolStub("fgIsQ10xYVA", "sceKernelChmod", "libkernel", "libkernel");
+    module.addSymbolStub("Wl2o5hOVZdw", "sceKernelPrintBacktraceWithModuleInfo", "libkernel", "libkernel");
+    module.addSymbolStub("8nY19bKoiZk", "fcntl", "libkernel", "libkernel");
+    module.addSymbolStub("mkawd0NA9ts", "sysconf", "libkernel", "libkernel");
+    module.addSymbolStub("cfjAjVTFG6A", "pthread_suspend_user_context_np", "libkernel", "libkernel");
+    module.addSymbolStub("YkGOXpJEtO8", "pthread_get_user_context_np", "libkernel", "libkernel");
+    module.addSymbolStub("QRdE7dBfNks", "pthread_resume_user_context_np", "libkernel", "libkernel");
+    module.addSymbolStub("6jj29MbyzuI", "sysKernelGetManufacturingMode", "libkernel", "libkernel");
+    module.addSymbolStub("ul57hvm6mBc", "sceKernelGetOpenPsIdForSystem", "libkernel", "libkernel");
+    module.addSymbolStub("2YsHtbvCrgs", "sceKernelGetIdTableCurrentCount", "libkernel", "libkernel");
+    module.addSymbolStub("mpbGISNJ6go", "sceKernelGetSystemExVersion", "libkernel", "libkernel");
+    module.addSymbolStub("B1K98ubk6V8", "sceKernelIsExperimentalBeta", "libkernel", "libkernel");
+    module.addSymbolStub("3EDFoWECKOg", "sceKernelGetSystemSwBeta", "libkernel", "libkernel");
+    module.addSymbolStub("7p7kTAJcuGg", "__inet_addr", "libkernel", "libkernel");
+    module.addSymbolStub("a7ToDPsIQrc", "__inet_aton", "libkernel", "libkernel");
+    module.addSymbolStub("6i5aLrxRhG0", "__inet_ntoa", "libkernel", "libkernel");
+    module.addSymbolStub("H2QD+kNpa+U", "__inet_ntoa_r", "libkernel", "libkernel");
+    module.addSymbolStub("4pYihoPggn8", "__inet_ntop", "libkernel", "libkernel");
+    module.addSymbolStub("fyPeCKJ94Hg", "__inet_pton", "libkernel", "libkernel");
     
     module.addSymbolExport("KiJEPEWRyUY", "sigaction", "libkernel", "libkernel", (void*)&kernel_sigaction);
     module.addSymbolStub("+F7C-hdk7+E", "sigemptyset", "libkernel", "libkernel");
@@ -452,18 +493,19 @@ void init(Module& module) {
     module.addSymbolStub("UtO0OHMCgmI", "sceKernelIsDevelopmentMode", "libSceDipsw", "libSceDipsw");
     
     module.addSymbolStub("XFYItOxS6r0", "sceApplicationInitialize", "libSceSysCore", "libSceSysCore");
-    
-    module.addSymbolStub("CTplLrrndUg", "sceRegMgrGetStr", "libSceRegMgr", "libSceRegMgr");
-    module.addSymbolStub("mPYKD12UDQI", "sceRegMgrGetInt", "libSceRegMgr", "libSceRegMgr");
-    module.addSymbolStub("NqxMleeTiLs", "sceRegMgrGetBin", "libSceRegMgr", "libSceRegMgr");
-    module.addSymbolStub("sywg-RnhZMA", "sceRegMgrSrvGetRegion", "libSceRegMgr", "libSceRegMgr");
 
     // libSceLibcInternal HLE. Move these to their own file later
     //module.addSymbolExport("gQX+4GDQjpM", "malloc", "libSceLibcInternal", "libSceLibcInternal", (void*)&Kernel::malloc);
     //module.addSymbolExport("tIhsqj0qsFE", "free", "libSceLibcInternal", "libSceLibcInternal", (void*)&Kernel::free);
 
     proc_counter_start = SDL_GetPerformanceCounter();
-    environment[0] = nullptr;
+
+    std::memset(environment, 0, sizeof(environment));
+    environment[0] = "MONO_GC_PARAMS=nursery-size=1024m,max-heap-size=4096m";
+    //environment[1] = "MONO_LOG_LEVEL=debug";
+    //environment[2] = "MONO_LOG_MASK=all";
+    //environment[3] = "MONO_DISABLE_SHM=1";
+    kernel_environ = environment;
 
     stdout_file.open("stdout.txt", std::ios::binary | std::ios::trunc);
 }
@@ -612,6 +654,8 @@ s32 PS4_FUNC kernel_clock_gettime(u32 clock_id, SceKernelTimespec* ts) {
 
     switch (clock_id) {
     case SCE_KERNEL_CLOCK_EXT_NETWORK:
+    case SCE_KERNEL_CLOCK_EXT_AD_NETWORK:
+    case SCE_KERNEL_CLOCK_EXT_RAW_NETWORK:
     case SCE_KERNEL_CLOCK_MONOTONIC_PRECISE:
     case SCE_KERNEL_CLOCK_MONOTONIC_FAST:
     case SCE_KERNEL_CLOCK_MONOTONIC: {
@@ -629,7 +673,7 @@ s32 PS4_FUNC kernel_clock_gettime(u32 clock_id, SceKernelTimespec* ts) {
         const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - sec);
 
         ts->tv_sec = sec.time_since_epoch().count();
-        ts->tv_nsec = ns.count();
+        ts->tv_nsec = clock_id != SCE_KERNEL_CLOCK_SECOND ? ns.count() : 0;
         break;
     }
     
@@ -672,6 +716,27 @@ s32 PS4_FUNC sceKernelGettimeofday(SceKernelTimeval* tv) {
 s32 PS4_FUNC sceKernelGettimezone(SceKernelTimezone* tz) {
     log("sceKernelGettimezone(tz=*%p)\n", tz);
     kernel_gettimeofday(nullptr, tz);
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelConvertUtcToLocaltime(time_t time, time_t* local_time, SceKernelTimesec* st, u64* dst_sec) {
+    log("sceKernelConvertUtcToLocaltime(time=%lld, local_time=*%p, st=*%p, dst_sec=*%p)\n", time, local_time, st, dst_sec);
+
+    // TODO
+    *local_time = time;
+    st->t = time;
+    st->west_sec = 0;
+    st->dst_sec = 0;
+    if (dst_sec) *dst_sec = 0;
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelConvertLocaltimeToUtc(time_t local_time, s64 unk1, time_t* time, SceKernelTimezone* timezone, u64* dst_sec) {
+    log("sceKernelConvertLocaltimeToUtc(local_time=%lld, unk1=%lld, time=*%p, timezone=*%p, dst_sec=*%p)\n", local_time, unk1, time, timezone, dst_sec);
+
+    // TODO
+    if (time) *time = local_time;
+    if (dst_sec) *dst_sec = 0;
     return SCE_OK;
 }
 
@@ -826,6 +891,98 @@ s32 PS4_FUNC sceKernelDebugRaiseExceptionOnReleaseMode(u32 error) {
     return SCE_OK;
 }
 
+s32 PS4_FUNC kernel_getrlimit(s32 resource, kernel_rlimit* rlim) {
+    log("getrlimit(resource=%d, rlim=*%p)\n", resource, rlim);
+
+    switch (resource) {
+    case KERNEL_RLIMIT_DATA: {
+        // ?
+        rlim->rlim_cur = 0xffffffffffffffff;
+        rlim->rlim_max = 0xffffffffffffffff;
+        break;
+    }
+
+    case KERNEL_RLIMIT_STACK: {
+        // ?
+        rlim->rlim_cur = 0xffffffffffffffff;
+        rlim->rlim_max = 0xffffffffffffffff;
+        break;
+    }
+
+    case KERNEL_RLIMIT_NOFILE: {
+        rlim->rlim_cur = 256;
+        rlim->rlim_max = 256;
+        break;
+    }
+
+    default: Helpers::panic("getrlimit: unhandled resource %d\n", resource);
+    }
+
+    return SCE_OK;
+}
+
+s64 mono_mspace = 0;
+s64 PS4_FUNC sceLibcMspaceCreateForMonoMutex(s64 unk1, s32 unk2, s32 unk3, s64 unk4) {
+    log("sceLibcMspaceCreateForMonoMutex(unk1=%lld, unk2=%d, unk3=%d, unk4=%lld)\n", unk1, unk2, unk3, unk4);
+
+    if (mono_mspace) {
+        Helpers::panic("sceLibcMspaceCreateForMonoMutex: called twice\n");
+    }
+
+    if (unk1 || unk2 || unk3 || unk4) {
+        Helpers::panic("sceLibcMspaceCreateForMonoMutex: invalid parameters\n");
+    }
+
+    void* addr = nullptr;
+    auto err = sceKernelMapNamedSystemFlexibleMemory(&addr, 10_MB, 3, 0, "MonoMtx");
+    if (err) {
+        Helpers::panic("sceLibcMspaceCreateForMonoMutex: failed to map memory\n");
+    }
+
+    if (!addr) {
+        Helpers::panic("sceLibcMspaceCreateForMonoMutex: out_addr is nullptr\n");
+    }
+
+    auto mod = g_app.findModuleByName("libSceLibcInternal.sprx");
+    auto* sym = mod->findSymbolExport(Helpers::nameToNid("sceLibcMspaceCreate"));
+    mono_mspace = ((PS4_FUNC s64(*)(const char*, void*, size_t, s64))(sym->ptr))("MonoMtx", addr, 10_MB, 12);
+
+    sym = mod->findSymbolExport("wUqJ0psUjDo"); // No idea what this is
+    ((PS4_FUNC s64(*)(s64))(sym->ptr))(mono_mspace);
+
+    return mono_mspace;
+}
+
+s32 PS4_FUNC sceKernelGetCompiledSdkVersion(s32* ver) {
+    log("sceKernelGetCompiledSdkVersion(ver=*%p)\n", ver);
+    // TODO: Get from ELF header
+    *ver = 0x5500000;
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelGetProcessName(s64 pid, char* name) {
+    log("sceKernelGetProcessName(pid=%lld, name=*%p)\n", pid, name);
+
+    // TODO: Don't know what the max length is
+    const auto name_str = std::format("proc_{}", pid);
+    std::strncpy(name, name_str.c_str(), 16);
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelGetDataTransferMode(s32* mode) {
+    log("sceKernelGetDataTransferMode(mode=*%p)\n", mode);
+
+    *mode = 0;
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelGetBackupRestoreMode(s32* mode) {
+    log("sceKernelGetBackupRestoreMode(mode=*%p)\n", mode);
+
+    *mode = 0;
+    return SCE_OK;
+}
+
 s32 PS4_FUNC kernel_getpid() {
     log("getpid()\n");
     return 100;
@@ -833,12 +990,16 @@ s32 PS4_FUNC kernel_getpid() {
 
 s32 PS4_FUNC kernel_sched_get_priority_max() {
     log("sched_get_priority_max()\n");
-    return 256;
+    if (g_app.title_id != "NPXS20001")
+        return 256;
+    else return 767;
 }
 
 s32 PS4_FUNC kernel_sched_get_priority_min() {
     log("sched_get_priority_min()\n");
-    return 767;
+    if (g_app.title_id != "NPXS20001")
+        return 767;
+    else return 256;
 }
 
 s32 PS4_FUNC sigfillset() {
@@ -866,10 +1027,11 @@ s32 PS4_FUNC kernel_sigaction(s32 sig, Sigaction* act, Sigaction* oact) {
     return SCE_OK;
 }
 
+s32 shm_idx = 1;
 s32 PS4_FUNC kernel_shm_open(const char* path, s32 flags, s32 /* mode_t */ mode) {
     log("shm_open(path=\"%s\", flags=%d, mode=%d)\n", path, flags, mode);
 
-    return SCE_OK;
+    return shm_idx++;
 }
 
 s32 PS4_FUNC ipmimgr_call(s64 cmd, s64 unk2, u32* res, u8* args, size_t arg_size_bytes, u64 unk3) {
@@ -887,14 +1049,26 @@ s32 PS4_FUNC ipmimgr_call(s64 cmd, s64 unk2, u32* res, u8* args, size_t arg_size
         std::string name = *(const char**)(args + sizeof(uptr));
         log("Create client \"%s\"", name.c_str());
         *res = -1;
+        PWSTR thread_name;
+        GetThreadDescription(GetCurrentThread(), &thread_name);
+        
+        if (name == "SceVnaIpcServer") {
+            while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
 
         if (    name == "SceMorpheusUpdService"
             ||  name == "SceCompAppProxyUtil"
             ||  name == "SceCompAppProxy"
             ||  name == "SceShellAppProxy"
             ||  name == "SceStickerCoreServer"
+            ||  name == "SceNpPartyIpc"
+            ||  name == "ScePartyIpcService"
            )
             *res = 0;
+
+        if (name == "ScePartyIpcService") {
+            while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
         break;
     }
 
@@ -918,8 +1092,19 @@ s32 PS4_FUNC ipmimgr_call(s64 cmd, s64 unk2, u32* res, u8* args, size_t arg_size
         break;
     }
 
+    // Try get message
+    case 0x252: {
+        *res = SCE_KERNEL_ERROR_EAGAIN;
+        break;
+    }
+
     // Disconnect
     case 0x310: {
+        *res = 0;
+        break;
+    }
+
+    case 0x320: {
         *res = 0;
         break;
     }
@@ -1254,20 +1439,49 @@ s32 PS4_FUNC sceKernelQueryMemoryProtection(void* addr, void** start, void** end
 void* PS4_FUNC kernel_mmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, s64 offs) {
     log("mmap(addr=%p, len=0x%llx, prot=0x%x, flags=0x%x, fd=%d, offs=0x%llx)\n", addr, len, prot, flags, fd, offs);
 
-    // TODO: This is stubbed as a normal alloc for now
+    void* out_addr = nullptr;
 
-    void* out_addr;
+    // stdout / stdin / stderr / ?
+    if (fd < 0x100)
+        fd = -1;
+
+    if (fd == -1) {
 #ifdef _WIN32
-    out_addr = allocate(0x8000'0000, 0x8000'0000 + 2000_GB, Helpers::alignUp<size_t>(len, 16_KB), 16_KB);
+        out_addr = allocate(0x8000'0000, 0x8000'0000 + 2000_GB, Helpers::alignUp<size_t>(len, 16_KB), 16_KB);
 #else
-    Helpers::panic("Unsupported platform\n");
+        Helpers::panic("Unsupported platform\n");
 #endif
 
-    // Clear allocated memory
-    std::memset(out_addr, 0, len);
+        // Clear allocated memory
+        std::memset(out_addr, 0, len);
+    }
+    else {
+#ifdef _WIN32
+        auto& file = FS::getFileFromID(fd);
+        if (len == 0) len = FS::getFileSize(fd);
+        
+        HANDLE file_handle = (HANDLE)_get_osfhandle(_fileno(file.file));
+        if (file_handle == INVALID_HANDLE_VALUE) Helpers::panic("kernel_mmap: could not retrieve native file handle for fd %d\n", fd);
+
+        HANDLE mapping = CreateFileMappingW(file_handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
+        if (!mapping) Helpers::panic("kernel_mmap: CreateFileMappingW failed for fd %d\n", fd);
+
+        out_addr = MapViewOfFile(mapping, FILE_MAP_READ, offs >> 32, offs & 0xffffffff, len);
+        if (!out_addr) Helpers::panic("kernel_mmap: MapViewOfFile failed for fd %d\n", fd);
+#else
+        Helpers::panic("Unsupported platform\n");
+#endif
+    }
 
     log("Allocated at %p\n", out_addr);
     return out_addr;
+}
+
+s32 PS4_FUNC sceKernelMmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, s64 offs, void** res) {
+    log("sceKernelMmap(addr=%p, len=0x%llx, prot=%d, flags=%d, fd=%d, physical_addr=%p, res=*%p)\n", addr, len, prot, flags, fd, offs, res);
+
+    *res = kernel_mmap(addr, len, prot, flags, fd, offs);   // TODO: Check errors
+    return SCE_OK;
 }
 
 SceKernelModule PS4_FUNC sceKernelLoadStartModule(const char* module_path, size_t args, const void* argp, u32 flags, const SceKernelLoadModuleOpt* opt, s32* res) {
@@ -1301,6 +1515,16 @@ SceKernelModule PS4_FUNC sceKernelLoadStartModule(const char* module_path, size_
     log("Loaded module \"%s\" at %p\n", module->filename.c_str(), module->base_address);
     
     s32 ret = module->init_func(args, argp, nullptr);   // TODO: libkernel.sprx seems to pass the address of the module_start (nid=0xBaOKcng8g88) symbol as parameter
+
+    //if (filename == "app.exe.sprx")
+    //    *(u8*)0x8003b28dd0 = 0xc3;
+
+    std::ofstream log_out;
+    log_out.open("log_baseaddress.txt", std::ios::app);
+    const auto base_address_str = std::format("{:016p}:\t{}\n", module->base_address, module->filename);
+    log_out.write(base_address_str.c_str(), base_address_str.length());
+    log_out.flush();
+    log_out.close();
 
     if (res) *res = ret;
     return module->modid;
@@ -1347,7 +1571,7 @@ s32 PS4_FUNC sceKernelDlsym(SceKernelModule handle, const char* symbol, void** a
 
         auto* sym = module->findSymbolExport(nid);
         if (!sym) {
-            printf("sceKernelDlsym: could not find symbol\n");
+            log("sceKernelDlsym: could not find symbol\n");
             return SCE_KERNEL_ERROR_EFAULT;
         }
 

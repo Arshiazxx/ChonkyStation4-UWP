@@ -40,9 +40,10 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
     const u32 width = tsharp->width + 1;
     const u32 height = tsharp->height + 1;
     const u32 depth = is_3d ? std::max(tsharp->depth + 1, 1) : 1;
-    const u32 pitch = tsharp->pitch + 1;
-    //if (tsharp->pow2pad) pitch = std::bit_ceil(pitch);
-
+    u32 pitch = tsharp->pitch + 1;
+    //if (tsharp->pow2pad)
+    //    pitch = std::bit_ceil(pitch);
+    
     void* ptr = (void*)(tsharp->base_address << 8);
     auto [vk_fmt, pixel_size] = getBufFormatAndSize(tsharp->data_format, tsharp->num_format);
     vk_fmt = is_depth_buffer ? depth_vk_fmt : vk_fmt;
@@ -101,14 +102,41 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
 
         // Detile the texture
         void* img_ptr = ptr;
-        auto detiled_buf = std::make_unique<u8[]>(img_size);
+        //auto detiled_buf = std::make_unique<u8[]>(img_size);
+        std::unique_ptr<u8[]> detiled_buf;
 
-        if (tex->tsharp.tiling_index != GNM_TM_DISPLAY_LINEAR_GENERAL) {
+        if (tex->tsharp.tiling_index != GNM_TM_DISPLAY_LINEAR_GENERAL && tex->tsharp.tiling_index != GNM_TM_DISPLAY_LINEAR_ALIGNED) {
             //Profiler::add("Detiled textures", 1);
             //Profiler::Scope profiler("Detiler time");
             const GpaTextureInfo tex_info = gnmTexBuildInfo((GnmTexture*)tsharp);
-            GpaError err = gpaTileTextureAll(ptr, img_size, detiled_buf.get(), img_size, &tex_info, GNM_TM_DISPLAY_LINEAR_GENERAL);
+            GpaTextureInfo out_tex_info = tex_info;
+            out_tex_info.tm = GNM_TM_DISPLAY_LINEAR_GENERAL;
+
+            u64 img_off = 0;
+            size_t in_size = 0;
+            size_t out_size = 0;
+            for (int slice = 0; slice < tex_info.numslices; slice++) {
+                for (int mip = 0; mip < tex_info.nummips; mip++) {
+                    size_t tmp = 0;
+                    gpaComputeSurfaceSizeOffset(&tmp, &img_off, &tex_info, mip, slice);
+                    in_size += tmp;
+                    
+                    tmp = 0;
+                    gpaComputeSurfaceSizeOffset(&tmp, &img_off, &out_tex_info, mip, slice);
+                    out_size += tmp;
+                }
+            }
+
+            in_size += img_off;
+            out_size += img_off;
+
+            detiled_buf = std::make_unique<u8[]>(out_size);
+
+            GpaError err = gpaTileTextureAll(ptr, in_size, detiled_buf.get(), out_size, &tex_info, GNM_TM_DISPLAY_LINEAR_GENERAL);
+            //if (err != 0) Helpers::panic("gpaTileTextureAll failed with error %d\n", err);
             img_ptr = detiled_buf.get();
+            pitch = width;
+            img_size = out_size;
         }
 
         // Upload to a buffer
@@ -117,7 +145,8 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
 
         // Copy buffer to image
         const auto buffer_row_length = pitch >= width ? pitch : 0;
-        if (pitch < width) printf("pitch < width\n");
+        if (pitch < width)
+            printf("pitch < width\n");
         vk::BufferImageCopy region = {
             .bufferOffset = 0,
             .bufferRowLength = buffer_row_length,
@@ -266,7 +295,7 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
     
     // Set debug name
     if (device.getDispatcher()->vkSetDebugUtilsObjectNameEXT)
-        device.setDebugUtilsObjectNameEXT(*img, std::format("Texture @ {}", ptr));
+        device.setDebugUtilsObjectNameEXT(*img, std::format("Texture pitch {} @ {}", pitch, ptr));
 
     // Create image view
     vk::ComponentSwizzle swizzle_map[] = {

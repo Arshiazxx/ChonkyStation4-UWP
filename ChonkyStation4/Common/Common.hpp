@@ -68,6 +68,12 @@ struct SceKernelTimezone {
     s32 tz_dsttime;
 };
 
+struct SceKernelTimesec {
+    time_t t;
+    u32 west_sec;
+    u32 dst_sec;
+};
+
 namespace Helpers {
 
 template <class... Args>

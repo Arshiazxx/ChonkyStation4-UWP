@@ -52,7 +52,29 @@ s32 PS4_FUNC kernel_pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t
     time.tv_sec = secs.time_since_epoch().count();
     time.tv_nsec = nsec.count();
     
-    return pthread_cond_timedwait(cond, mutex, &time);
+    auto ret = pthread_cond_timedwait(cond, mutex, &time);
+    if (ret == 138) // Windows ETIMEDOUT
+        return POSIX_ETIMEDOUT;
+    PTHREAD_CHECK_RESULT(ret);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_cond_reltimedwait_np(pthread_cond_t* cond, pthread_mutex_t* mutex, u64 us) {
+    log("pthread_cond_reltimedwait_np(cond=*%p, mutex=*%p, abstime=*%p)\n", cond, mutex, us);
+
+    timespec time;
+    auto now = std::chrono::system_clock::now();
+    auto timeout = now + std::chrono::microseconds(us);
+    auto secs = std::chrono::time_point_cast<std::chrono::seconds>(timeout);
+    auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(timeout - secs);
+    time.tv_sec = secs.time_since_epoch().count();
+    time.tv_nsec = nsec.count();
+
+    auto ret = pthread_cond_timedwait(cond, mutex, &time);
+    if (ret == 138) // Windows ETIMEDOUT
+        return POSIX_ETIMEDOUT;
+    PTHREAD_CHECK_RESULT(ret);
+    return 0;
 }
 
 s32 PS4_FUNC scePthreadCondTimedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, u64 us) {

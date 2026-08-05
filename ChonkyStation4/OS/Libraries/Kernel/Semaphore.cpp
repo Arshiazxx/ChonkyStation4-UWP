@@ -159,6 +159,16 @@ s32 PS4_FUNC kernel_sem_wait(SceKernelSema* sem) {
     return 0;
 }
 
+s32 PS4_FUNC kernel_sem_trywait(SceKernelSema* sem) {
+    log("sem_trywait(sem=*%p)\n", sem);
+
+    if (!(*sem)->poll(1)) {
+        *Kernel::kernel_error() = POSIX_EAGAIN;
+        return -1;
+    }
+    return SCE_OK;
+}
+
 s32 PS4_FUNC kernel_sem_timedwait(SceKernelSema* sem, const SceKernelTimespec* time) {
     log("sem_timedwait(sem=*%p)\n", sem);
 

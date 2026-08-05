@@ -1,5 +1,6 @@
 #include "rwlock.hpp"
 #include <Logger.hpp>
+#include <ErrorCodes.hpp>
 
 
 namespace PS4::OS::Libs::Kernel {
@@ -33,6 +34,30 @@ s32 PS4_FUNC kernel_pthread_rwlock_wrlock(pthread_rwlock_t* lock) {
 
     s32 ret = pthread_rwlock_wrlock(lock);
     PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_tryrdlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_tryrdlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
+    s32 ret = pthread_rwlock_tryrdlock(lock);
+    if (ret != POSIX_EBUSY)
+        PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_trywrlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_trywrlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
+    s32 ret = pthread_rwlock_trywrlock(lock);
+    if (ret != POSIX_EBUSY)
+        PTHREAD_CHECK_RESULT(ret);
     return ret;
 }
 

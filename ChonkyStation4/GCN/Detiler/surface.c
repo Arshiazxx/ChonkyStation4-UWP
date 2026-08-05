@@ -1443,6 +1443,7 @@ GpaError gpaInitSurfaceContext(
 	}
 
 	if (surfinfo.surfacesize > surfsize) {
+        //printf("err 5\n");
 		return GPA_ERR_OVERFLOW;
 	}
 
