@@ -27,6 +27,13 @@ void init() {
     FS::mount(FS::Device::SYSTEM_EX, Configuration::system_ex_dir_path);
     FS::init();
 
+    // Write random data to /dev/urandom
+    auto urandom = std::make_unique<u8[]>(16_KB);
+    for (size_t i = 0; i < 16_KB; i++)
+        urandom[i] = std::rand() & 0xff;
+    std::ofstream urandom_file(FS::guestPathToHost("/dev/urandom"), std::ios::binary);
+    urandom_file.write((char*)urandom.get(), 16_KB);
+
     // Wait for graphics initialization to complete
     while (!GCN::initialized) std::this_thread::sleep_for(std::chrono::microseconds(1000));
 }
