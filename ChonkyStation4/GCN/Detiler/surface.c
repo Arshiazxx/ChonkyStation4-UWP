@@ -797,6 +797,10 @@ static GpaError ComputeSurfaceInfoMicroTiled(
 
 	pOut->depthalign = microTileThickness;
 
+    if (pIn->miplevel == 0 && pIn->basetiledpitch != 0) {
+        expPitch = umax(expPitch, pIn->basetiledpitch);
+    }
+
 	//
 	// Pad pitch and height to the required granularities.
 	// Compute surface size.
@@ -913,6 +917,10 @@ static GpaError ComputeSurfaceInfoMacroTiled(
 			return err;
 		}
 	}
+
+    if (pIn->miplevel == 0 && pIn->basetiledpitch != 0) {
+        expPitch = umax(expPitch, pIn->basetiledpitch);
+    }
 
 	//
 	// Do padding
