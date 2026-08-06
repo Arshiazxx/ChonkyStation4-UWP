@@ -61,10 +61,10 @@ void* PS4_FUNC initAndJumpToEntry(std::deque<std::shared_ptr<Module>>* modules) 
 
     // Dummy arguments
     Params params;
-    params.argc = 1;
     std::memset(params.argv, 0, 33 * sizeof(char*));
-    params.argv[0] = "--cold-boot";
-    params.argv[1] = nullptr;
+    params.argc = 0;
+    params.argv[0] = nullptr;
+    //params.argv[0] = "--cold-boot";
     params.entry = (*modules)[0]->entry;
 
     asm volatile(R"(

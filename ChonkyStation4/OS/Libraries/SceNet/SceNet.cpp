@@ -509,8 +509,8 @@ SceNetId /* doesn't actually return an id */ PS4_FUNC sceNetResolverGetError(Sce
 
 s32 PS4_FUNC sceNetCtlGetState(s32* state) {
     log("sceNetCtlGetState()\n");
-    //*state = 0; // Disconnected
-    *state = 3; // IP Obtained
+    *state = 0; // Disconnected
+    //*state = 3; // IP Obtained
     return SCE_OK;
 }
 

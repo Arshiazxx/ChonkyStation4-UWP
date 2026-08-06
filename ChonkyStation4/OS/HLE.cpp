@@ -508,6 +508,8 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("HgPSJ1kcnHM", "sceMbusEventCallbackFuncsInit_", "libSceMbus", "libSceMbus");
     module->addSymbolStub("0LkfqnKtPQg", "sceMbusEventCreate", "libSceMbus", "libSceMbus");
     module->addSymbolStub("edYHYROxzx4", "libSceMbus_edYHYROxzx4", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("wpm6Yq7c4YE", "sceMbusSetAutoLoginMode", "libSceMbus", "libSceMbus");
+    module->addSymbolStub("Sq1DqijPveA", "sceMbusSetScratchDataUpdatedEventMask", "libSceMbus", "libSceMbus");
     module->addSymbolExport("puHrnP8V-dY", "sceMbusEventReceive", "libSceMbus", "libSceMbus", (void*)&sceMbusEventReceive);
     module->addSymbolExport("KRL-S9qBqXw", "sceMbusGetDeviceInfoByCondition_", "libSceMbus", "libSceMbus", (void*)&sceMbusGetDeviceInfoByCondition_);
     
@@ -805,6 +807,40 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("o0+89h9H3xA", "sceAvSettingSetVrMode", "libSceAvSetting", "libSceAvSetting");
     module->addSymbolStub("SKq7NiL8fA8", "sceAvSettingSimulateProcessOutputModeArbitration_", "libSceAvSetting", "libSceAvSetting");
     module->addSymbolStub("Xb2ez5SqR38", "sceAvSettingTerm", "libSceAvSetting", "libSceAvSetting");
+
+    module->addSymbolStub("gdVNTX4s0XE", "sceLoginMgrServerCheckSafetyNoticeShown", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("qOlxBR2lpG0", "sceLoginMgrServerCheckTutorialShown", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("m0xKuqISvWY", "sceLoginMgrServerClearMorpheusRequiredUserId", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("VLB2F2owln0", "sceLoginMgrServerConvertToUserId", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("AT6NySjQ2gY", "sceLoginMgrServerCreateUser", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("REIRIXzv-H0", "sceLoginMgrServerDestroyUser", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("wZ2eXClFUaE", "sceLoginMgrServerDialogGetAppId", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("6+tPBogghdI", "sceLoginMgrServerDialogGetOpenParam", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("JkygqqJPGdw", "sceLoginMgrServerDialogNotifyCloseFinished", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("ci5qfgD5F58", "sceLoginMgrServerDialogNotifyOpenFinished", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("YMxfNRx4DR4", "sceLoginMgrServerDialogSetResult", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("K+WAuNzvn3g", "sceLoginMgrServerGetLogoutInfo", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("XpuZT1pS47A", "sceLoginMgrServerGetMorpheusRequiredUserId", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("7qkaKBAshAk", "sceLoginMgrServerGetMoveAssignmentModeForIDU", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("z4VKVtL7JbU", "sceLoginMgrServerGetSharePlayAllowPadOperation", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("4J3Z9DzaMzs", "sceLoginMgrServerInitialize", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("Xo9MQFVHpAQ", "sceLoginMgrServerInitializeSharePlayAllowPadOperation", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("mwCjW5FlkG4", "sceLoginMgrServerIsRequestedCdlgClose", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("P1su7LBMSUw", "sceLoginMgrServerLoginServiceGetRequestParam", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("bE03GJF7Bfc", "sceLoginMgrServerLoginServiceNotifyRequestFinished", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("dxpQVn+xVYE", "sceLoginMgrServerNotifyEasySignInFinished", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("GF+GkOCVVLg", "sceLoginMgrServerNotifyEasySignInUserCode", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("F+xsDVy+gqw", "sceLoginMgrServerNotifyHmdConnectInfo", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("ozddwj2QrKI", "sceLoginMgrServerNotifySafetyNoticeShown", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("LffcWEebPwg", "sceLoginMgrServerNotifyShellUIState", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("gmoxsDewVKI", "sceLoginMgrServerNotifyTutorialShown", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("Jha8yMoMzrg", "sceLoginMgrServerSetLoginFlag", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("DnC0qZ9h+Ms", "sceLoginMgrServerSetMorpheusAssignEnabledFlag", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("wkIxHrwZ3+M", "sceLoginMgrServerSetMorpheusRequiredUserId", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("KxitkrVcrSg", "sceLoginMgrServerSetSharePlayMode", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("-+h1C78SdyU", "sceLoginMgrServerSetUserStatus", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("NtHCBzSqxgo", "sceLoginMgrServerTerminate", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    module->addSymbolStub("NQY2wMTV0ms", "sceLoginMgrServerUpdateUserIdRalatedToPadUniqueId", "libSceLoginMgrServer", "libSceLoginMgrServer");
 
 
     return module;

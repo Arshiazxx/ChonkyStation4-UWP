@@ -463,6 +463,7 @@ void init(Module& module) {
     module.addSymbolStub("2YsHtbvCrgs", "sceKernelGetIdTableCurrentCount", "libkernel", "libkernel");
     module.addSymbolStub("mpbGISNJ6go", "sceKernelGetSystemExVersion", "libkernel", "libkernel");
     module.addSymbolStub("B1K98ubk6V8", "sceKernelIsExperimentalBeta", "libkernel", "libkernel");
+    module.addSymbolStub("8aCOCGoRkUI", "sceKernelIsCEX", "libkernel", "libkernel");
     module.addSymbolStub("3EDFoWECKOg", "sceKernelGetSystemSwBeta", "libkernel", "libkernel");
     module.addSymbolStub("7p7kTAJcuGg", "__inet_addr", "libkernel", "libkernel");
     module.addSymbolStub("a7ToDPsIQrc", "__inet_aton", "libkernel", "libkernel");
@@ -1541,9 +1542,9 @@ s32 PS4_FUNC sceKernelDlsym(SceKernelModule handle, const char* symbol, void** a
     // Convert symbol to NID
     const auto nid = Helpers::nameToNid(symbol);
 
-    // Handle 0x100000 is returned from unimplemented sceSysmodule functions.
-    // Search all modules when this handle is provided (TODO: fix this)
-    if (handle == 0x100000) {
+    // Interpret handle 0 as "search all modules".
+    // TODO: fix this (use proper sceSysmodule handles)
+    if (handle == 0 || handle == 0x10000) {
         Symbol* sym = nullptr;
         g_app.forEachModule([&](auto mod) -> bool {
             sym = mod->findSymbolExport(nid);
