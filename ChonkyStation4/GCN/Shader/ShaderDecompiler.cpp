@@ -1289,6 +1289,14 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         case Shader::Opcode::V_CMPX_GE_U32:     code += V_CMP<Type::Uint>(instr, ">=");     break;
         case Shader::Opcode::V_CMPX_NE_U32:     code += V_CMP<Type::Uint>(instr, "!=");     break;
 
+        // TODO: U64
+        case Shader::Opcode::V_CMP_LT_U64:      code += V_CMP<Type::Uint>(instr, "<");      break;
+        case Shader::Opcode::V_CMP_EQ_U64:      code += V_CMP<Type::Uint>(instr, "==");     break;
+        case Shader::Opcode::V_CMP_LE_U64:      code += V_CMP<Type::Uint>(instr, "<=");     break;
+        case Shader::Opcode::V_CMP_GT_U64:      code += V_CMP<Type::Uint>(instr, ">");      break;
+        case Shader::Opcode::V_CMP_GE_U64:      code += V_CMP<Type::Uint>(instr, ">=");     break;
+        case Shader::Opcode::V_CMP_NE_U64:      code += V_CMP<Type::Uint>(instr, "!=");     break;
+
         case Shader::Opcode::V_CMP_CLASS_F32: {
             code += "// TODO: V_CMP_CLASS_F32\n";
             std::string dst;

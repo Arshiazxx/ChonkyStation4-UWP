@@ -3,6 +3,7 @@
 #define NOMINMAX
 #include "VulkanRenderer.hpp"
 #include <Logger.hpp>
+#include <Configuration.hpp>
 #include <Profiler.hpp>
 #include <Loaders/App.hpp>
 #include <GCN/Backends/Vulkan/VulkanCommon.hpp>
@@ -331,7 +332,22 @@ void VulkanRenderer::init() {
         Helpers::panic("Vulkan: failed to find a suitable GPU!");
 
     // TODO: Sort by score
-    physical_device = std::move(supported_devices.front());
+    printf("Found %d supported devices:\n", supported_devices.size());
+    for (auto& dev : supported_devices) {
+        auto props = dev.getProperties();
+        printf("- %d: %s\n", props.deviceID, props.deviceName);
+    }
+
+    if (Configuration::gpu_device_id) {
+        auto dev = std::find_if(supported_devices.begin(), supported_devices.end(), [&](const auto dev) {
+            return dev.getProperties().deviceID == Configuration::gpu_device_id;
+        });
+
+        if (dev == supported_devices.end())
+            Helpers::panic("VulkanRenderer: GPU device ID %d does not exist\n", Configuration::gpu_device_id);
+
+        physical_device = std::move(*dev);
+    } else physical_device = std::move(supported_devices.front());
 
     // Get the first index into queue_family_properties which supports both graphics and present
     std::vector<vk::QueueFamilyProperties> queue_family_properties = physical_device.getQueueFamilyProperties();

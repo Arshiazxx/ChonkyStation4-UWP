@@ -13,6 +13,8 @@ inline bool is_vsh = false;
 
 inline bool lle_ssl = false;
 
+inline u32 gpu_device_id = 0;
+
 inline bool skip_async_compute_dispatches = false;
 inline bool skip_waitregmem = false;
 inline bool disable_gnmdetiler_texture_size = false;
