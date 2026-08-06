@@ -123,6 +123,8 @@ bool getApp(const AppInfo& info, ::App& app) {
     // TODO: Just have an AppInfo inside App?
     app.name = info.title;
     app.title_id = info.title_id;
+
+    if (Configuration::is_vsh) app.name = "System Menu";
     
     linkSysmodules(app);
 

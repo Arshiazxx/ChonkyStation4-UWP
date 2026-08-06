@@ -16,7 +16,7 @@ add_compile_definitions("_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
 add_compile_definitions("_POSIX_THREAD_ATTR_STACKADDR")
 add_compile_definitions("_POSIX_THREAD_ATTR_STACKSIZE")
 
-set(VERSION_STRING "alpha-1")
+set(VERSION_STRING "alpha-2")
 
 option(ENABLE_USER_BUILD "Enable user build" OFF)
 option(ENABLE_RELEASE_BUILD "Create a release build (do not use this)" OFF)
