@@ -35,6 +35,12 @@ int main(int argc, char** argv) {
     run_cmd->add_option("--system-path", system_path, "Path of the /system directory");
     run_cmd->add_option("--system-ex-path", system_ex_path, "Path of the /system_ex directory");
     run_cmd->add_option("--sysmodules-path", sysmodules_path, "Path of the system modules");
+    run_cmd->add_option("--lle-ssl", PS4::Configuration::lle_ssl, "LLE libSceSsl");
+    run_cmd->add_option("--skip-async-compute-dispatches", PS4::Configuration::skip_async_compute_dispatches, "Skip compute dispatches in async compute queues");
+    run_cmd->add_option("--skip-waitregmem", PS4::Configuration::skip_waitregmem, "Skip the WaitRegMem packet");
+    run_cmd->add_option("--disable-gnmdetiler-texture-size", PS4::Configuration::disable_gnmdetiler_texture_size, "Texture size calculation hack");
+    run_cmd->add_option("--disable-sgpr-init-hack", PS4::Configuration::disable_sgpr_init_hack, "Disable SGPR init hack");
+    run_cmd->add_option("--clamp-gpu-buffers", PS4::Configuration::clamp_gpu_buffers, "Clamp GPU buffer size to fit in mapped memory");
 
     auto* get_appdata_path_cmd = cli_app.add_subcommand("get_appdata_path", "Print the path to the emulator's app data folder");
 

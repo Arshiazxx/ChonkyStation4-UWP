@@ -19,7 +19,6 @@
 #include "vk_mem_alloc.h"
 
 #ifdef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
-#undef CHONKYSTATION4_HAS_NVIDIA_AFTERMATH
 #include <GCN/Backends/Vulkan/NVIDIA/NsightAftermath.hpp>
 #endif
 

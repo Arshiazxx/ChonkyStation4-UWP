@@ -1,4 +1,5 @@
 #include "ShaderDecompiler.hpp"
+#include <Configuration.hpp>
 #include <GCN/Shader/Decoder.hpp>
 #include <GCN/FetchShader.hpp>
 #include <GCN/VSharp.hpp>
@@ -282,7 +283,10 @@ std::string getSGPR(int n) {
     if (!sgpr_map.contains(n)) {
         sgpr_map[n] = true;
         //initialization += std::format("uint {} = 0;\n", reg);
-        shader += std::format("uint {} = uint(-1);\n", reg);
+        if (Configuration::disable_sgpr_init_hack)
+            shader += std::format("uint {} = uint(0);\n", reg);
+        else
+            shader += std::format("uint {} = uint(-1);\n", reg);
     }
     return reg;
 }
@@ -3093,7 +3097,7 @@ bool v_cmp_class_f32(float x, uint mask) {
                 return;
 
             if (block->dominators.contains(succ)) {
-                std::printf(std::format("detected backedge {:08x} -> {:08x}\n", block->pc, succ->pc).c_str());
+                //std::printf(std::format("detected backedge {:08x} -> {:08x}\n", block->pc, succ->pc).c_str());
                 find_loop_body(succ, block.get());
             }
         };

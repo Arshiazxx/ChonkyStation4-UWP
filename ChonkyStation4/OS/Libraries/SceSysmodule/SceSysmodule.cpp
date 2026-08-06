@@ -10,7 +10,6 @@ MAKE_LOG_FUNCTION(log, lib_sceSysmodule);
 void init(Module& module) {
     module.addSymbolExport("CU8m+Qs+HN4", "sceSysmoduleLoadModuleByNameInternal", "libSceSysmodule", "libSceSysmodule", (void*)&sceSysmoduleLoadModuleByNameInternal);
     
-    // See sceKernelDlsym for why I return 0x100000
     module.addSymbolStub("g8cM39EUZ6o", "sceSysmoduleLoadModule", "libSceSysmodule", "libSceSysmodule", 0);
     module.addSymbolStub("39iV5E1HoCk", "sceSysmoduleLoadModuleInternal", "libSceSysmodule", "libSceSysmodule", SCE_OK);
     module.addSymbolStub("fMP5NHUOaMk", "sceSysmoduleIsLoaded", "libSceSysmodule", "libSceSysmodule", SCE_OK /* module is loaded */);

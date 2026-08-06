@@ -1,4 +1,5 @@
 #include "HLE.hpp"
+#include <Configuration.hpp>
 #include <OS/Libraries/Kernel/Kernel.hpp>
 #include <OS/Libraries/SceVideoOut/SceVideoOut.hpp>
 #include <OS/Libraries/SceGnmDriver/SceGnmDriver.hpp>
@@ -214,16 +215,18 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("u5oqtlIP+Fw", "sceNetCtlCheckCallbackForNpToolkit", "libSceNetCtlForNpToolkit", "libSceNetCtl");
 
     // libSceSsl
-    //module->addSymbolExport("TDfQqO-gMbY", "sceSslGetCaCerts", "libSceSsl", "libSceSsl", (void*)&sceSslGetCaCerts);
-    //module->addSymbolStub("hdpVEUDFW3s", "sceSslInit", "libSceSsl", "libSceSsl", 1);
-    //module->addSymbolStub("P14ATpXc4J8", "sceSslCreateSslConnection", "libSceSsl", "libSceSsl");
-    //module->addSymbolStub("w1+L-27nYas", "sceSslDisableOptionInternalInsecure", "libSceSsl", "libSceSsl");
-    //module->addSymbolStub("g-zCwUKstEQ", "sceSslEnableOptionInternal", "libSceSsl", "libSceSsl");
-    //module->addSymbolStub("qIvLs0gYxi0", "sceSslFreeCaCerts", "libSceSsl", "libSceSsl");
-    //module->addSymbolStub("zXvd6iNyfgc", "sceSslConnect", "libSceSsl", "libSceSsl");
-    //module->addSymbolStub("p5bM5PPufFY", "sceSslSend", "libSceSsl", "libSceSsl");
-    //module->addSymbolStub("0K1yQ6Lv-Yc", "sceSslTerm", "libSceSsl", "libSceSsl");
-    
+    if (!Configuration::lle_ssl) {
+        module->addSymbolExport("TDfQqO-gMbY", "sceSslGetCaCerts", "libSceSsl", "libSceSsl", (void*)&sceSslGetCaCerts);
+        module->addSymbolStub("hdpVEUDFW3s", "sceSslInit", "libSceSsl", "libSceSsl", 1);
+        module->addSymbolStub("P14ATpXc4J8", "sceSslCreateSslConnection", "libSceSsl", "libSceSsl");
+        module->addSymbolStub("w1+L-27nYas", "sceSslDisableOptionInternalInsecure", "libSceSsl", "libSceSsl");
+        module->addSymbolStub("g-zCwUKstEQ", "sceSslEnableOptionInternal", "libSceSsl", "libSceSsl");
+        module->addSymbolStub("qIvLs0gYxi0", "sceSslFreeCaCerts", "libSceSsl", "libSceSsl");
+        module->addSymbolStub("zXvd6iNyfgc", "sceSslConnect", "libSceSsl", "libSceSsl");
+        module->addSymbolStub("p5bM5PPufFY", "sceSslSend", "libSceSsl", "libSceSsl");
+        module->addSymbolStub("0K1yQ6Lv-Yc", "sceSslTerm", "libSceSsl", "libSceSsl");
+    }
+
     // libSceHttp
     //module->addSymbolStub("A9cVMUtEp4Y", "sceHttpInit", "libSceHttp", "libSceHttp", 1);
     //module->addSymbolStub("Kiwv9r4IZCc", "sceHttpCreateConnection", "libSceHttp", "libSceHttp");

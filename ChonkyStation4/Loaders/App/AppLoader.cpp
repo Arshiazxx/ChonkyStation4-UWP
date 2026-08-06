@@ -56,8 +56,6 @@ void linkSysmodules(::App& app) {
         "libSceHttp2.sprx",
         "libSceRtc.sprx",
         "libSceNpCommon.sprx",
-        "libSceSsl.sprx",
-        "libSceSsl2.sprx",
     };
 
     const std::string partial_lle_sysmodules_to_load[] = {
@@ -84,6 +82,11 @@ void linkSysmodules(::App& app) {
         }
 
         Loader::Linker::loadAndLinkLib(app, sysmodule_path, true, app.getHLEModule());
+    }
+
+    if (Configuration::lle_ssl) {
+        Loader::Linker::loadAndLinkLib(app, sysmodules_path / "libSceSsl.sprx", false, app.getHLEModule());
+        Loader::Linker::loadAndLinkLib(app, sysmodules_path / "libSceSsl2.sprx", false, app.getHLEModule());
     }
 
     // Load some extra modules used by VSH

@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "TextureCache.hpp"
 #include <Logger.hpp>
+#include <Configuration.hpp>
 #include <Profiler.hpp>
 #include <GCN/GCN.hpp>
 #include <GCN/Backends/Vulkan/VulkanCommon.hpp>
@@ -114,21 +115,30 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
 
             u64 img_off = 0;
             size_t in_size = 0;
+            size_t in_off = 0;
             size_t out_size = 0;
-            for (int slice = 0; slice < tex_info.numslices; slice++) {
-                for (int mip = 0; mip < tex_info.nummips; mip++) {
-                    size_t tmp = 0;
-                    gpaComputeSurfaceSizeOffset(&tmp, &img_off, &tex_info, mip, slice);
-                    in_size += tmp;
-                    
-                    tmp = 0;
-                    gpaComputeSurfaceSizeOffset(&tmp, &img_off, &out_tex_info, mip, slice);
-                    out_size += tmp;
+            size_t out_off = 0;
+            if (!Configuration::disable_gnmdetiler_texture_size) {
+                for (int slice = 0; slice < tex_info.numslices; slice++) {
+                    for (int mip = 0; mip < tex_info.nummips; mip++) {
+                        size_t tmp = 0;
+                        size_t tmp2 = 0;
+                        gpaComputeSurfaceSizeOffset(&tmp, &tmp2, &tex_info, mip, slice);
+                        in_size += tmp;
+                        //in_size += tmp2;
+
+                        tmp = 0;
+                        tmp2 = 0;
+                        gpaComputeSurfaceSizeOffset(&tmp, &tmp2, &out_tex_info, mip, slice);
+                        out_size += tmp;
+                        //out_size += tmp2;
+                    }
                 }
             }
-
-            in_size += img_off;
-            out_size += img_off;
+            else {
+                in_size = img_size;
+                out_size = img_size;
+            }
 
             detiled_buf = std::make_unique<u8[]>(out_size);
 

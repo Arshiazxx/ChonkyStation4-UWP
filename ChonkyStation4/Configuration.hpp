@@ -11,4 +11,12 @@ inline std::string sysmodules_path = "";
 
 inline bool is_vsh = false;
 
+inline bool lle_ssl = false;
+
+inline bool skip_async_compute_dispatches = false;
+inline bool skip_waitregmem = false;
+inline bool disable_gnmdetiler_texture_size = false;
+inline bool disable_sgpr_init_hack = false;
+inline bool clamp_gpu_buffers = false;
+
 }   // End namespace PS4::Configuration

@@ -1,5 +1,6 @@
 #include "CommandProcessor.hpp"
 #include <Logger.hpp>
+#include <Configuration.hpp>
 #include <GCN/PM4.hpp>
 #include <GCN/ComputeJob.hpp>
 #include <OS/Libraries/SceVideoOut/SceVideoOut.hpp>
@@ -276,7 +277,8 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::DispatchDirect: {
-            //if (compute_queue) return;
+            if (compute_queue && Configuration::skip_async_compute_dispatches) return;
+
             ComputeJob job;
             job.dim_x = *args++;
             job.dim_y = *args++;
@@ -367,15 +369,17 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
                 }
             };
 
-            while (!check()) {
-                if (!is_compute)
-                    GCN::processAsyncCompute();
-                else
-                    co::active().get_parent().switch_to();
-            
-            
-                // TODO: Use poll_interval
-                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+            if (!Configuration::skip_waitregmem) {
+                while (!check()) {
+                    if (!is_compute)
+                        GCN::processAsyncCompute();
+                    else
+                        co::active().get_parent().switch_to();
+
+
+                    // TODO: Use poll_interval
+                    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+                }
             }
             break;
         }
