@@ -524,6 +524,11 @@ s32 PS4_FUNC sceNetCtlGetInfo(s32 code, SceNetCtlInfo* info) {
         break;
     }
 
+    case SCE_NET_CTL_INFO_LINK: {
+        info->link = 0;
+        break;
+    }
+
     case SCE_NET_CTL_INFO_HTTP_PROXY_CONFIG: {
         info->http_proxy_config = 0;
         break;

@@ -1,6 +1,7 @@
 #include "SceSystemService.hpp"
 #include <Logger.hpp>
 #include <Loaders/Module.hpp>
+#include <OS/UserManagement.hpp>
 
 
 namespace PS4::OS::Libs::SceSystemService {
@@ -34,7 +35,7 @@ void init(Module& module) {
     module.addSymbolStub("xKSgaSVX1io", "sceShellCoreUtilSetAppData", "libSceShellCoreUtil", "libSceSystemService");
     module.addSymbolStub("l96YlUEtMPk", "sceShellCoreUtilSetDeviceIndexBehavior", "libSceShellCoreUtil", "libSceSystemService");
     module.addSymbolStub("TJp3kdSGsIw", "sceShellCoreUtilSetImposeStatusFlag", "libSceShellCoreUtil", "libSceSystemService");
-    module.addSymbolStub("plK52OfeEIc", "sceShellCoreUtilGetUserIdOfMorpheusUser", "libSceShellCoreUtil", "libSceSystemService");
+    module.addSymbolStub("plK52OfeEIc", "sceShellCoreUtilGetUserIdOfMorpheusUser", "libSceShellCoreUtil", "libSceSystemService", -1);   // PSVR
     module.addSymbolStub("fORZmlh1TQo", "sceShellCoreUtilGetUIStatus", "libSceShellCoreUtil", "libSceSystemService", -1);
     module.addSymbolStub("atiUTsTFJ3k", "sceShellCoreUtilSetUIStatus", "libSceShellCoreUtil", "libSceSystemService");
     module.addSymbolStub("CKTyfq2tb7k", "sceShellCoreUtilGetPlatformPrivacySetting", "libSceShellCoreUtil", "libSceSystemService");

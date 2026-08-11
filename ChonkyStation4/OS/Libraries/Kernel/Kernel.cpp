@@ -1,5 +1,6 @@
 #include "Kernel.hpp"
 #include <Logger.hpp>
+#include <Profiler.hpp>
 #include <ErrorCodes.hpp>
 #include <NameToNid.hpp>
 #include <Loaders/Module.hpp>
@@ -188,6 +189,7 @@ void init(Module& module) {
     module.addSymbolStub("c7ZnT7V1B98", "rmdir", "libScePosix", "libkernel");
     module.addSymbolExport("AqBioC2vF3I", "read", "libkernel", "libkernel", (void*)&kernel_read);
     module.addSymbolExport("AqBioC2vF3I", "read", "libScePosix", "libkernel", (void*)&kernel_read);
+    module.addSymbolExport("DRuBt2pvICk", "_read", "libkernel", "libkernel", (void*)&kernel_read);
     module.addSymbolExport("Cg4srZ6TKbU", "sceKernelRead", "libkernel", "libkernel", (void*)&sceKernelRead);
     module.addSymbolExport("ezv-RSBNKqI", "pread", "libkernel", "libkernel", (void*)&kernel_pread);
     module.addSymbolExport("ezv-RSBNKqI", "pread", "libScePosix", "libkernel", (void*)&kernel_pread);
@@ -219,6 +221,7 @@ void init(Module& module) {
     module.addSymbolExport("taRWhTJFTgE", "sceKernelGetdirentries", "libkernel", "libkernel", (void*)&sceKernelGetdirentries);
     module.addSymbolExport("bY-PO6JhzhQ", "close", "libkernel", "libkernel", (void*)&kernel_close);
     module.addSymbolExport("bY-PO6JhzhQ", "close", "libScePosix", "libkernel", (void*)&kernel_close);
+    module.addSymbolExport("NNtFaKJbPt0", "_close", "libkernel", "libkernel", (void*)&kernel_close);
     module.addSymbolExport("UK2Tl2DWUns", "sceKernelClose", "libkernel", "libkernel", (void*)&sceKernelClose);
     module.addSymbolExport("6mMQ1MSPW-Q", "chdir", "libkernel", "libkernel", (void*)&kernel_chdir);
     module.addSymbolExport("JGfTMBOdUJo", "sceKernelGetFsSandboxRandomWord", "libkernel", "libkernel", (void*)&sceKernelGetFsSandboxRandomWord);
@@ -356,7 +359,9 @@ void init(Module& module) {
     module.addSymbolExport("BPE9s9vQQXo", "mmap", "libkernel", "libkernel", (void*)&kernel_mmap);
     module.addSymbolExport("BPE9s9vQQXo", "mmap", "libScePosix", "libkernel", (void*)&kernel_mmap);
     module.addSymbolExport("PGhQHd-dzv8", "sceKernelMmap", "libkernel", "libkernel", (void*)&sceKernelMmap);
+    module.addSymbolExport("2SKEx6bSq-4", "sceKernelBatchMap", "libkernel", "libkernel", (void*)&sceKernelBatchMap);
     module.addSymbolStub("YQOfxL4QfeU", "mprotect", "libkernel", "libkernel");
+    module.addSymbolStub("9bfdLIyuwCY", "sceKernelMtypeprotect", "libkernel", "libkernel");
     module.addSymbolStub("Jahsnh4KKkg", "madvise", "libkernel", "libkernel");
     
     module.addSymbolExport("wzvqT4UqKX8", "sceKernelLoadStartModule", "libkernel", "libkernel", (void*)&sceKernelLoadStartModule);
@@ -601,6 +606,48 @@ void* findNextFree(uptr reservation_start, uptr reservation_end, size_t size, si
         cur_addr = (cur_addr + alignment - 1) & ~(alignment - 1);
 
         if (cur_addr > reservation_end) Helpers::panic("allocate: out of memory\n");
+    }
+
+
+    return nullptr;
+}
+
+// Same as findNextFree, except it looks for mapped memory
+void* findNextMapped(uptr reservation_start, uptr reservation_end, size_t size, size_t alignment) {
+    auto lk = std::unique_lock<std::mutex>(allocator_mtx);
+
+    if (reservation_start >= reservation_end) return nullptr;
+    if (!alignment || (alignment & (alignment - 1)) != 0) return nullptr;
+    if (size == 0) return nullptr;
+
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    const size_t page_size = si.dwPageSize;
+    alignment = alignment < page_size ? page_size : alignment;
+    size = (size + page_size - 1) & ~(page_size - 1);
+
+    uptr cur_addr = reservation_start;
+    // Align up
+    cur_addr = (cur_addr + alignment - 1) & ~(alignment - 1);
+
+    while (true) {
+        MEMORY_BASIC_INFORMATION mbi;
+        if (!VirtualQuery((void*)cur_addr, &mbi, sizeof(mbi)))
+            Helpers::panic("allocate: VirtualQuery failed\n");
+
+        if (mbi.State == MEM_COMMIT) {
+            uptr region_end = (uptr)mbi.BaseAddress + mbi.RegionSize;
+            if (cur_addr + size <= region_end) {
+                return (void*)cur_addr;
+            }
+
+            // Free area wasn't big enough
+        }
+        cur_addr = (uptr)mbi.BaseAddress + mbi.RegionSize;
+        // Align up
+        cur_addr = (cur_addr + alignment - 1) & ~(alignment - 1);
+
+        if (cur_addr > reservation_end) return nullptr;
     }
 
 
@@ -991,16 +1038,12 @@ s32 PS4_FUNC kernel_getpid() {
 
 s32 PS4_FUNC kernel_sched_get_priority_max() {
     log("sched_get_priority_max()\n");
-    if (g_app.title_id != "NPXS20001")
-        return 256;
-    else return 767;
+    return 767;
 }
 
 s32 PS4_FUNC kernel_sched_get_priority_min() {
     log("sched_get_priority_min()\n");
-    if (g_app.title_id != "NPXS20001")
-        return 767;
-    else return 256;
+    return 256;
 }
 
 s32 PS4_FUNC sigfillset() {
@@ -1179,7 +1222,7 @@ s32 PS4_FUNC sceKernelMapDirectMemory(void** addr, size_t len, s32 prot, s32 fla
         Helpers::panic("sceKernelMapDirectMemory: failed to allocate\n");
     }
 
-    if ((flags & 0x10) && *addr != in_addr) {
+    if ((flags & SCE_KERNEL_MAP_FIXED) && *addr != in_addr) {
         if (virt_dmem_map.contains(in_addr)) {
             printf("dmem %p was mapped at in_addr with size %d. mapping requested size %d\n", virt_dmem_map[in_addr], dmem_size_map[virt_dmem_map[in_addr]], len);
         }
@@ -1255,7 +1298,7 @@ s32 PS4_FUNC sceKernelReserveVirtualRange(void** addr, size_t len, s32 flags, si
     log("in_addr=%p\n", *addr);
 
     // Quick hack: if MAP_FIXED is specified and MAP_NO_OVERWRITE isn't, just reserve the input address directly
-    if ((flags & 0x10) && !(flags & 0x80)) {
+    if ((flags & SCE_KERNEL_MAP_FIXED) && !(flags & 0x80)) {
         if (!*addr) {
             Helpers::panic("sceKernelReserveVirtualRange: MAP_FIXED was specified but *addr is null\n");
         }
@@ -1298,7 +1341,7 @@ s32 PS4_FUNC sceKernelReserveVirtualRange(void** addr, size_t len, s32 flags, si
     }
 
     // Check for fixed mapping and error only if the NO_OVERWRITE flag is specified
-    if ((flags & 0x10) && out_addr != original_addr) {
+    if ((flags & SCE_KERNEL_MAP_FIXED) && out_addr != original_addr) {
         if (flags & 0x80) {     // SCE_KERNEL_MAP_NO_OVERWRITE
 #ifdef _WIN32
             MEMORY_BASIC_INFORMATION mbi;
@@ -1392,16 +1435,20 @@ s32 PS4_FUNC sceKernelVirtualQuery(const void* addr, s32 flags, SceKernelVirtual
     MEMORY_BASIC_INFORMATION mbi;
     VirtualQuery(addr, &mbi, sizeof(mbi));
 
+    if (mbi.State == MEM_RESERVE) {
+        if (flags & 1) {    // SCE_KERNEL_VQ_FIND_NEXT
+            void* next = findNextMapped((uptr)addr, 0x8000'0000 + 2000_GB, 4_KB, 1);
+            if (!next) return SCE_KERNEL_ERROR_EACCES;
+
+            VirtualQuery(next, &mbi, sizeof(mbi));
+        } else return SCE_KERNEL_ERROR_EACCES;
+    }
+
     info->start             = mbi.BaseAddress;
     info->end               = (void*)((uptr)mbi.BaseAddress + mbi.RegionSize);
 #else
     Helpers::panic("Unsupported platform\n");
 #endif
-    
-    if (flags & 1) {
-        printf("sceKernelVirtualQuery: unhandled flag find_next\n");
-        //return SCE_KERNEL_ERROR_EACCES;
-    }
 
     bool is_dmem = false;
     if (virt_dmem_map.contains(info->start)) {
@@ -1482,6 +1529,32 @@ s32 PS4_FUNC sceKernelMmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, 
     log("sceKernelMmap(addr=%p, len=0x%llx, prot=%d, flags=%d, fd=%d, physical_addr=%p, res=*%p)\n", addr, len, prot, flags, fd, offs, res);
 
     *res = kernel_mmap(addr, len, prot, flags, fd, offs);   // TODO: Check errors
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelBatchMap(SceKernelBatchMapEntry* entries, s32 n_entries, s32* n_processed) {
+    log("sceKernelBatchMap(entries=*%p, n_entries=%d, n_processed=*%p)\n", entries, n_entries, n_processed);
+
+    s32 processed;
+    for (processed = 0; processed < n_entries; processed++) {
+        const auto& i = processed;
+        s32 ret = SCE_OK;
+
+        switch (entries[processed].operation) {
+        case SCE_KERNEL_MAP_OP_MAP_DIRECT:      ret = sceKernelMapDirectMemory(&entries[i].start, entries[i].length, entries[i].prot, SCE_KERNEL_MAP_FIXED, (void*)entries[i].offset, 0);   break;
+        case SCE_KERNEL_MAP_OP_UNMAP:           ret = sceKernelMunmap(entries[i].start, entries[i].length);                                                                                 break;
+        case SCE_KERNEL_MAP_OP_PROTECT:         Helpers::panic("sceKernelBatchMap: SCE_KERNEL_MAP_OP_PROTECT (TODO)\n");                                                                    break;
+        case SCE_KERNEL_MAP_OP_MAP_FLEXIBLE:    ret = sceKernelMapFlexibleMemory(&entries[i].start, entries[i].length, entries[i].prot, SCE_KERNEL_MAP_FIXED);                              break;
+        case SCE_KERNEL_MAP_OP_TYPE_PROTECT:    Helpers::panic("sceKernelBatchMap: SCE_KERNEL_MAP_OP_TYPE_PROTECT (TODO)\n");                                                               break;
+        }
+
+        if (ret != SCE_OK) {
+            log("sceKernelBatchMap: interrupted because of error\n");
+            break;
+        }
+    }
+
+    if (n_processed) *n_processed = processed;
     return SCE_OK;
 }
 

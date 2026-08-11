@@ -7,8 +7,14 @@ namespace PS4::OS::Libs::SceAjm {
 
 MAKE_LOG_FUNCTION(log, lib_sceAjm);
 
+s32 PS4_FUNC sceAjmBatchWait() {
+    //std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    return SCE_OK;
+}
+
 void init(Module& module) {
     module.addSymbolExport("eDFeTyi+G3Y", "sceAjmDecMp3ParseFrame", "libSceAjm", "libSceAjm", (void*)&sceAjmDecMp3ParseFrame);
+    module.addSymbolExport("-qLsfDAywIY", "sceAjmBatchWait", "libSceAjm", "libSceAjm", (void*)&sceAjmBatchWait);
     
     module.addSymbolStub("dl+4eHSzUu4", "sceAjmInitialize", "libSceAjm", "libSceAjm");
     module.addSymbolStub("Q3dyFuwGn64", "sceAjmModuleRegister", "libSceAjm", "libSceAjm");
@@ -17,8 +23,8 @@ void init(Module& module) {
     module.addSymbolStub("dmDybN--Fn8", "sceAjmBatchJobControlBufferRa", "libSceAjm", "libSceAjm");
     module.addSymbolStub("7jdAXK+2fMo", "sceAjmBatchJobRunSplitBufferRa", "libSceAjm", "libSceAjm");
     module.addSymbolStub("fFFkk0xfGWs", "sceAjmBatchStartBuffer", "libSceAjm", "libSceAjm");
-    module.addSymbolStub("-qLsfDAywIY", "sceAjmBatchWait", "libSceAjm", "libSceAjm");
     module.addSymbolStub("ElslOCpOIns", "sceAjmBatchJobRunBufferRa", "libSceAjm", "libSceAjm");
+    module.addSymbolStub("RbLbuKv8zho", "sceAjmInstanceDestroy", "libSceAjm", "libSceAjm");
     module.addSymbolStub("MHur6qCsUus", "sceAjmFinalize", "libSceAjm", "libSceAjm");
 }
 

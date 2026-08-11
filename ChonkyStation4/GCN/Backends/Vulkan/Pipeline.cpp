@@ -475,6 +475,11 @@ std::vector<vk::WriteDescriptorSet> Pipeline::uploadBuffersAndTextures(PushConst
                     });
                 };
 
+                if (Configuration::skip_bindless_buffers && buf_info.desc_info.ptr_is_from_buf) {
+                    null_descriptor();
+                    continue;
+                }
+
                 // Get pointer to the V#
                 VSharp* vsharp = buf_info.desc_info.asPtr<VSharp>();
                 // Skip bad shaders until I fix them...
@@ -542,8 +547,13 @@ std::vector<vk::WriteDescriptorSet> Pipeline::uploadBuffersAndTextures(PushConst
                     });
                 };
 
+                if (Configuration::skip_bindless_buffers && buf_info.desc_info.ptr_is_from_buf) {
+                    null_descriptor();
+                    continue;
+                }
+
                 TSharp* tsharp = buf_info.desc_info.asPtr<TSharp>();
-                if (tsharp->data_format == 0 || tsharp->data_format == 15) {
+                if (tsharp->data_format == 0 || tsharp->data_format == 45) {
                     null_descriptor();
                     continue;
                 }

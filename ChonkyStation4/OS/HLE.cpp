@@ -26,6 +26,7 @@
 #include <OS/Libraries/SceZlib/SceZlib.hpp>
 #include <OS/Libraries/SceRegMgr/SceRegMgr.hpp>
 #include <OS/Libraries/SceComposite/SceComposite.hpp>
+#include <OS/Libraries/SceMbus/SceMbus.hpp>
 #include <GCN/GCN.hpp>
 
 
@@ -62,13 +63,31 @@ s32 PS4_FUNC sceSslGetCaCerts(s32 ctx_id, SceSslCaCerts* certs) {
     return SCE_OK;
 }
 
-s32 PS4_FUNC sceMbusEventReceive() {
-    return 0;
-    while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
+s32 PS4_FUNC sceNpPartyGetState(s16* state) {
+    printf("sceNpPartyGetState(state=*%p)\n");
+    *state = 2;     // SCE_NP_PARTY_STATE_NOT_IN_PARTY
+    return SCE_OK;
 }
 
-s32 PS4_FUNC sceMbusGetDeviceInfoByCondition_() {
-    return 0;
+struct SceVoiceBasePortInfo {
+    s32 port_type;
+    s32 state;
+    u32* edges;
+    u32 n_bytes;
+    u32 frame_size;
+    u16 n_edges;
+    u16 reserved;
+};
+
+s32 PS4_FUNC sceVoiceGetPortInfo(u32 port_id, SceVoiceBasePortInfo* port_info) {
+    //printf("sceVoiceGetPortInfo(port_id=%d, port_info=*%p)\n", port_id, port_info);
+
+    port_info->port_type = 0;
+    port_info->state = 0;
+    port_info->n_bytes = 0;
+    port_info->frame_size = 1;  // Game will try to divide by this, can't be zero (happens in GTAV)
+    port_info->n_edges = 0;
+    return SCE_OK;
 }
 
 s32 PS4_FUNC sceKeyboardPadEmulateOpen() {
@@ -118,6 +137,7 @@ std::shared_ptr<Module> buildHLEModule() {
     PS4::OS::Libs::SceZlib::init(*module);
     PS4::OS::Libs::SceRegMgr::init(*module);
     PS4::OS::Libs::SceComposite::init(*module);
+    PS4::OS::Libs::SceMbus::init(*module);
 
     // libSceScreenShot
     module->addSymbolStub("2xxUtuC-RzE", "sceScreenShotEnable", "libSceScreenShot", "libSceScreenShot");
@@ -154,15 +174,18 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("BQ3tey0JmQM", "sceCommonDialogIsUsed", "libSceCommonDialog", "libSceCommonDialog", false);
     
     // libSceNpParty
+    module->addSymbolExport("aEzKdJzATZ0", "sceNpPartyGetState", "libSceNpParty", "libSceNpParty", (void*)&sceNpPartyGetState);
     module->addSymbolStub("lhYCTQmBkds", "sceNpPartyInitialize", "libSceNpParty", "libSceNpParty");
     module->addSymbolStub("kA88gbv71ao", "sceNpPartyRegisterHandler", "libSceNpParty", "libSceNpParty");
     module->addSymbolStub("3e4k2mzLkmc", "sceNpPartyCheckCallback", "libSceNpParty", "libSceNpParty");
     module->addSymbolStub("+v4fVHMwFWc", "sceNpPartyRegisterHandlerA", "libSceNpParty", "libSceNpParty");
+    module->addSymbolStub("T2UOKf00ZN0", "sceNpPartyGetMembers", "libSceNpParty", "libSceNpParty");
     
     // libSceErrorDialog
     module->addSymbolStub("I88KChlynSs", "sceErrorDialogInitialize", "libSceErrorDialog", "libSceErrorDialog", 0);
     module->addSymbolStub("M2ZF-ClLhgY", "sceErrorDialogOpen", "libSceErrorDialog", "libSceErrorDialog", 0);
     module->addSymbolStub("WWiGuh9XfgQ", "sceErrorDialogUpdateStatus", "libSceErrorDialog", "libSceErrorDialog", 0);
+    module->addSymbolStub("9XAxK2PMwk8", "sceErrorDialogTerminate", "libSceErrorDialog", "libSceErrorDialog", 0);
     
     // libSceNpProfileDialog
     module->addSymbolStub("Lg+NCE6pTwQ", "sceNpProfileDialogInitialize", "libSceNpProfileDialog", "libSceNpProfileDialog");
@@ -367,13 +390,15 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("IQtWgnrw6v8", "sceAudioInChangeAppModuleState", "libSceAudioIn", "libSceAudioIn");
     
     // libSceVoice
+    module->addSymbolExport("CrLqDwWLoXM", "sceVoiceGetPortInfo", "libSceVoice", "libSceVoice", (void*)&sceVoiceGetPortInfo);
     module->addSymbolStub("9TrhuGzberQ", "sceVoiceInit", "libSceVoice", "libSceVoice");
     module->addSymbolStub("nXpje5yNpaE", "sceVoiceCreatePort", "libSceVoice", "libSceVoice");
     module->addSymbolStub("54phPH2LZls", "sceVoiceStart", "libSceVoice", "libSceVoice");
-    module->addSymbolStub("CrLqDwWLoXM", "sceVoiceGetPortInfo", "libSceVoice", "libSceVoice");
     module->addSymbolStub("oV9GAdJ23Gw", "sceVoiceConnectIPortToOPort", "libSceVoice", "libSceVoice");
     module->addSymbolStub("elcxZTEfHZM", "sceVoiceGetPortAttr", "libSceVoice", "libSceVoice");
     module->addSymbolStub("QBFoAIjJoXQ", "sceVoiceSetVolume", "libSceVoice", "libSceVoice");
+    module->addSymbolStub("cJLufzou6bc", "sceVoiceGetBitRate", "libSceVoice", "libSceVoice");
+    module->addSymbolStub("cQ6DGsQEjV4", "sceVoiceReadFromOPort", "libSceVoice", "libSceVoice");
 
     // libSceDiscMap
     module->addSymbolStub("lbQKqsERhtE", "sceDiscMapIsRequestOnHDD", "libSceDiscMap", "libSceDiscMap", 0x81100004);
@@ -504,17 +529,6 @@ std::shared_ptr<Module> buildHLEModule() {
     
     // libSceAsyncStorageInternal
     module->addSymbolStub("AdTjrblPbkA", "libSceAsyncStorageInternalAux_AdTjrblPbkA", "libSceAsyncStorageInternalAux", "libSceAsyncStorageInternal");
-    
-    // libSceMbus
-    module->addSymbolStub("wRPXMGtkOq0", "sceMbusInit", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("c08SEHicDNU", "sceMbusEventCreate_", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("HgPSJ1kcnHM", "sceMbusEventCallbackFuncsInit_", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("0LkfqnKtPQg", "sceMbusEventCreate", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("edYHYROxzx4", "libSceMbus_edYHYROxzx4", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("wpm6Yq7c4YE", "sceMbusSetAutoLoginMode", "libSceMbus", "libSceMbus");
-    module->addSymbolStub("Sq1DqijPveA", "sceMbusSetScratchDataUpdatedEventMask", "libSceMbus", "libSceMbus");
-    module->addSymbolExport("puHrnP8V-dY", "sceMbusEventReceive", "libSceMbus", "libSceMbus", (void*)&sceMbusEventReceive);
-    module->addSymbolExport("KRL-S9qBqXw", "sceMbusGetDeviceInfoByCondition_", "libSceMbus", "libSceMbus", (void*)&sceMbusGetDeviceInfoByCondition_);
     
     // libSceIpmi
     module->addSymbolStub("fjPNqzuUop8", "libSceIpmi_fjPNqzuUop8", "libSceIpmi", "libSceIpmi");
@@ -844,6 +858,31 @@ std::shared_ptr<Module> buildHLEModule() {
     module->addSymbolStub("-+h1C78SdyU", "sceLoginMgrServerSetUserStatus", "libSceLoginMgrServer", "libSceLoginMgrServer");
     module->addSymbolStub("NtHCBzSqxgo", "sceLoginMgrServerTerminate", "libSceLoginMgrServer", "libSceLoginMgrServer");
     module->addSymbolStub("NQY2wMTV0ms", "sceLoginMgrServerUpdateUserIdRalatedToPadUniqueId", "libSceLoginMgrServer", "libSceLoginMgrServer");
+    
+    // libSceContentExport
+    module->addSymbolStub("FzEWeYnAFlI", "sceContentExportInit", "libSceContentExport", "libSceContentExport");
+    
+    // libSceContentSearch
+    module->addSymbolStub("dPj4ZtRcIWk", "sceContentSearchInit", "libSceContentSearch", "libSceContentSearch");
+    
+    // libSceCompanionHttpd
+    module->addSymbolStub("8pWltDG7h6A", "sceCompanionHttpdAddHeader", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("B-QBMeFdNgY", "sceCompanionHttpdGet2ndScreenStatus", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("Vku4big+IYM", "sceCompanionHttpdGetEvent", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("0SySxcuVNG0", "sceCompanionHttpdGetUserId", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("ykNpWs3ktLY", "sceCompanionHttpdInitialize", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("OA6FbORefbo", "sceCompanionHttpdInitialize2", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("r-2-a0c7Kfc", "sceCompanionHttpdOptParamInitialize", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("fHNmij7kAUM", "sceCompanionHttpdRegisterRequestBodyReceptionCallback", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("OaWw+IVEdbI", "sceCompanionHttpdRegisterRequestCallback", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("-0c9TCTwnGs", "sceCompanionHttpdRegisterRequestCallback2", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("h3OvVxzX4qM", "sceCompanionHttpdSetBody", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("w7oz0AWHpT4", "sceCompanionHttpdSetStatus", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("k7F0FcDM-Xc", "sceCompanionHttpdStart", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("0SCgzfVQHpo", "sceCompanionHttpdStop", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("+-du9tWgE9s", "sceCompanionHttpdTerminate", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("ZSHiUfYK+QI", "sceCompanionHttpdUnregisterRequestBodyReceptionCallback", "libSceCompanionHttpd", "libSceCompanionHttpd");
+    module->addSymbolStub("xweOi2QT-BE", "sceCompanionHttpdUnregisterRequestCallback", "libSceCompanionHttpd", "libSceCompanionHttpd");
 
 
     return module;

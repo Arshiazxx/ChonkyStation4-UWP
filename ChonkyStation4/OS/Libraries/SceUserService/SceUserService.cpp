@@ -15,13 +15,13 @@ void init(Module& module) {
     module.addSymbolExport("1xxcMiGu2fo", "sceUserServiceGetUserName", "libSceUserService", "libSceUserService", (void*)&sceUserServiceGetUserName);
     module.addSymbolExport("J-KEr4gUEvQ", "sceUserServiceGetHomeDirectory", "libSceUserService", "libSceUserService", (void*)&sceUserServiceGetHomeDirectory);
     module.addSymbolExport("x6m8P9DBPSc", "sceUserServiceGetThemeEntitlementId", "libSceUserService", "libSceUserService", (void*)&sceUserServiceGetThemeEntitlementId);
+    module.addSymbolExport("eNb53LQJmIM", "sceUserServiceGetForegroundUser", "libSceUserService", "libSceUserService", (void*)&sceUserServiceGetForegroundUser);
     
     module.addSymbolStub("j3YMu1MVNNo", "sceUserServiceInitialize", "libSceUserService", "libSceUserService");
     module.addSymbolStub("az-0R6eviZ0", "sceUserServiceInitialize2", "libSceUserService", "libSceUserService");
     module.addSymbolStub("lUoqwTQu4Go", "sceUserServiceGetUserColor", "libSceUserService", "libSceUserService");
     module.addSymbolStub("wuI7c7UNk0A", "sceUserServiceRegisterEventCallback", "libSceUserService", "libSceUserService");
     module.addSymbolStub("5EiQCnL2G1Y", "sceUserServiceGetRegisteredUserIdList", "libSceUserService", "libSceUserService");
-    module.addSymbolStub("eNb53LQJmIM", "sceUserServiceGetForegroundUser", "libSceUserService", "libSceUserService");
     module.addSymbolStub("WGXOvoUwrOs", "sceUserServiceGetCreatedVersion", "libSceUserService", "libSceUserService");
     module.addSymbolStub("6dfDreosXGY", "sceUserServiceGetNpAccountId", "libSceUserService", "libSceUserService");
     module.addSymbolStub("fEy0EW0AR18", "sceUserServiceGetNpOfflineAccountId", "libSceUserService", "libSceUserService");
@@ -149,6 +149,14 @@ s32 PS4_FUNC sceUserServiceGetThemeEntitlementId(const SceUserServiceUserId user
 
     std::memset(out_id, '\0', size);
     std::strcpy(out_id, "aaaa-bbbb-cccc-dddd");
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceUserServiceGetForegroundUser(SceUserServiceUserId* user_id) {
+    log("sceUserServiceGetForegroundUser(user_id=*%p)\n", user_id);
+
+    //*user_id = User::current->getID();
+    *user_id = 0x10000000;
     return SCE_OK;
 }
 

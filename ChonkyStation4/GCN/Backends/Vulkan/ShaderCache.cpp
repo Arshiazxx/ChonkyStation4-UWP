@@ -1,5 +1,6 @@
 #include "ShaderCache.hpp"
 #include <Logger.hpp>
+#include <Profiler.hpp>
 #include <GCN/FetchShader.hpp>
 #include <GCN/Backends/Vulkan/VulkanCommon.hpp>
 #include <GCN/Backends/Vulkan/GLSLCompiler.hpp>
@@ -54,6 +55,7 @@ CachedShader* getShader(const u8* code, Shader::ShaderStage stage, FetchShader* 
     };
 
     // Compile it
+    //Profiler::add("New shaders", 1);
     log("Compiling new shader %016llx\n", hash);
     CachedShader* cached_shader = new CachedShader();
     cached_shader->data.hash = hash;

@@ -1,5 +1,6 @@
 #include "Eflag.hpp"
 #include <Logger.hpp>
+#include <GCN/GCN.hpp>
 #include <ErrorCodes.hpp>
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -170,19 +171,22 @@ s32 PS4_FUNC sceKernelPollEventFlag(SceKernelEventFlag ef, u64 bitptn, u32 wait_
     log("sceKernelPollEventFlag(ef=%p, bitptn=0x%016llx, wait_mode=0x%x, result=*%p)\n", ef, bitptn, wait_mode, result);
 
     if (ef->name == "SceShellUIBootManager") {
+        //printf("boot manager polled\n");
         ef->bitptn |= 0x00000000800000;    // BackgroundInitFinishedBeforeBGLayer
         ef->bitptn |= 0x00000001000000;    // BackgroundInitFinishedBeforeBasePlugin
         ef->bitptn |= 0x00001000000000;    // MainOnStandbyFinished
         ef->bitptn |= 0x04000000000000;    // RegMgrInitOKCompleted
-        //ef->bitptn |= 0x01000000000000;    // SelectResolutionCompleted
-        //ef->bitptn |= 0x00000000000100;    // InitialSetupCompleted
-        //ef->bitptn |= 0x00000000020000;    // CrashReportPluginCompleted
-        //ef->bitptn |= 0x00000000001000;    // PowerOffWarningFinished
-        //ef->bitptn |= 0x00008000000000;    // CreateKratosUserCompleted
-        //ef->bitptn |= 0x10000000000000;    // NotifyDBInitializedStarted
-        //ef->bitptn |= 0x00020000000000;    // AutoStandbyAnnouncementFinished
-        //ef->bitptn |= 0x00000200000000;    // SystemUpdateCompleted
-        //ef->bitptn |= 0x00100000000000;    // SystemPasscodeInputCompleted
+        //if (GCN::global_flip_counter > 10) {
+        //    ef->bitptn |= 0x01000000000000;    // SelectResolutionCompleted
+        //    ef->bitptn |= 0x00000000000100;    // InitialSetupCompleted
+        //    ef->bitptn |= 0x00000000020000;    // CrashReportPluginCompleted
+        //    ef->bitptn |= 0x00000000001000;    // PowerOffWarningFinished
+        //    ef->bitptn |= 0x00008000000000;    // CreateKratosUserCompleted
+        //    ef->bitptn |= 0x10000000000000;    // NotifyDBInitializedStarted
+        //    ef->bitptn |= 0x00020000000000;    // AutoStandbyAnnouncementFinished
+        //    ef->bitptn |= 0x00000200000000;    // SystemUpdateCompleted
+        //    ef->bitptn |= 0x00100000000000;    // SystemPasscodeInputCompleted
+        //}
         //ef->bitptn |= 0x00000040000000;    // HealthWarningStarted
         //ef->bitptn |= 0x20000000000000;    // NotifyDBInitializedFinished
         //ef->bitptn |= 0x80000000000000;    // PlatformPrivacyCompleted

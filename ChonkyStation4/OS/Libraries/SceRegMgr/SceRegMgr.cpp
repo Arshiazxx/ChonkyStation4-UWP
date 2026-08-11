@@ -24,6 +24,7 @@ s32 PS4_FUNC sceRegMgrGetInt(s32 key, s32* data) {
     case SCE_REGMGR_ENT_KEY_SYSTEM_language:            *data = 1;  break;
     case SCE_REGMGR_ENT_KEY_SYSTEM_button_assign:       *data = 1;  break;
     case SCE_REGMGR_ENT_KEY_VIDEOOUT_reset_reso_flag:   *data = 1;  break;
+    case 0x2860100:                                     *data = 0;  break;
     default:                                            *data = 0;  break;
     }
 

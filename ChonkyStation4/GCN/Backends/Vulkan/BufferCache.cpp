@@ -172,7 +172,7 @@ void init() {
 }
 
 void updateBuffer(CachedBuffer* buf, bool recreate_vk_buf, u64 starting_page = 0) {
-    //Profiler::Scope profiler("updateBuffer");
+    ////Profiler::Scope profiler("updateBuffer");
     auto& staging_vk_buf    = buf->staging_buf;
     auto& vk_buf            = buf->buf;
     auto& staging_alloc     = buf->staging_alloc;
@@ -196,8 +196,10 @@ void updateBuffer(CachedBuffer* buf, bool recreate_vk_buf, u64 starting_page = 0
         alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
         alloc_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         VkBuffer raw_buf;
-        VmaAllocationInfo info;
-        vmaCreateBuffer(allocator, &*buf_create_info, &alloc_create_info, &raw_buf, &staging_alloc, &info);
+        VmaAllocationInfo info = {};
+        if (vmaCreateBuffer(allocator, &*buf_create_info, &alloc_create_info, &raw_buf, &staging_alloc, &info) != VK_SUCCESS)
+            Helpers::panic("copy_region: vmaCreateBuffer failed\n");
+
         staging_vk_buf = vk::Buffer(raw_buf);
 
         if (info.size < size) {
@@ -306,6 +308,7 @@ void deleteBuf(CachedBuffer* buf) {
 }
 
 std::tuple<vk::Buffer, size_t, bool> getBuffer(void* base, size_t size) {
+    //Profiler::Scope profiler("getBuffer");
     const uptr   aligned_base   = Helpers::alignDown<uptr>((uptr)base, page_size);
     const uptr   aligned_end    = Helpers::alignUp<uptr>((uptr)base + size, page_size);
     const size_t aligned_size   = aligned_end - aligned_base;
@@ -561,7 +564,7 @@ void clear() {
     auto lk = std::unique_lock<std::mutex>(cache_mtx);
 
     {
-        //Profiler::Scope profiler("Buffer cleanup");
+        ////Profiler::Scope profiler("Buffer cleanup");
         for (auto& alloc : allocations_to_clear[frame_idx]) {
             vmaDestroyBuffer(allocator, alloc.buf, alloc.alloc);
         }
@@ -569,7 +572,7 @@ void clear() {
     }
 
     {
-        //Profiler::Scope profiler("Buffer hash cache cleanup");
+        ////Profiler::Scope profiler("Buffer hash cache cleanup");
         for (auto& [hash, buf] : hash_cache[frame_idx]) {
             vmaDestroyBuffer(allocator, buf->buf, buf->alloc);
             delete buf;

@@ -31,6 +31,8 @@ void init(Module& module) {
     module.addSymbolStub("BMR4F-Uek3E", "sceSaveDataUmount", "libSceSaveData", "libSceSaveData");
     module.addSymbolStub("VwadwBBBJ80", "sceSaveDataUmountWithBackup", "libSceSaveData", "libSceSaveData");
     module.addSymbolStub("j8xKtiFj0SY", "sceSaveDataGetEventResult", "libSceSaveData", "libSceSaveData");
+    module.addSymbolStub("cGjO3wM3V28", "sceSaveDataLoadIcon", "libSceSaveData", "libSceSaveData");
+    module.addSymbolStub("S1GkePI17zQ", "sceSaveDataDelete", "libSceSaveData", "libSceSaveData");
     module.addSymbolStub("yKDy8S5yLA0", "sceSaveDataTerminate", "libSceSaveData", "libSceSaveData");
 }
 

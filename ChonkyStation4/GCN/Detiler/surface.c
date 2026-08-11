@@ -900,6 +900,10 @@ static GpaError ComputeSurfaceInfoMacroTiled(
 		}
 	}
 
+    if (pIn->miplevel == 0 && pIn->basetiledpitch != 0) {
+        expPitch = umax(expPitch, pIn->basetiledpitch);
+    }
+
 	paddedPitch = expPitch;
 	paddedHeight = expHeight;
 
@@ -917,10 +921,6 @@ static GpaError ComputeSurfaceInfoMacroTiled(
 			return err;
 		}
 	}
-
-    if (pIn->miplevel == 0 && pIn->basetiledpitch != 0) {
-        expPitch = umax(expPitch, pIn->basetiledpitch);
-    }
 
 	//
 	// Do padding
@@ -1068,7 +1068,7 @@ GpaError gpaComputeSurfaceInfo(
 	uint32_t basePitch = params->basetiledpitch;
 	uint32_t expandX = 1;
 	uint32_t expandY = 1;
-	/*if (params->isblockcompressed) {
+	if (params->isblockcompressed) {
 		// Evergreen family workaround
 		switch (bitsperelem) {
 		case 1:
@@ -1098,7 +1098,7 @@ GpaError gpaComputeSurfaceInfo(
 		default:
 			return GPA_ERR_INVALID_ARGS;
 		}
-	}*/
+	}
 
 	// Mipmap including level 0 must be pow2 padded since either SI
 	// hw expects so or it is required by CFX  for Hw Compatibility
@@ -1127,6 +1127,7 @@ GpaError gpaComputeSurfaceInfo(
 	tpcopy.linearheight = linearheight;
 	tpcopy.lineardepth = lineardepth;
 	tpcopy.basetiledpitch = basePitch;
+    tpcopy.bitsperfrag = bitsperelem;
 
 	GpaError err = DispatchComputeSurfaceInfo(out, &tpcopy);
 	if (err != GPA_ERR_OK) {
@@ -1134,6 +1135,7 @@ GpaError gpaComputeSurfaceInfo(
 	}
 
 	// ElemLib::RestoreSurfaceInfo
+    out->pitch *= expandX;
 	out->height *= expandY;
 	out->pitchalign *= expandX;
 	out->heightalign *= expandY;
@@ -1455,9 +1457,24 @@ GpaError gpaInitSurfaceContext(
 		return GPA_ERR_OVERFLOW;
 	}
 
+    uint32_t bits_per_frag = tp->bitsperfrag;
+    if (tp->isblockcompressed) {
+        switch (tp->bitsperfrag) {
+        case 1:
+            bits_per_frag *= 8;
+            break;
+        case 4:
+        case 8:
+            bits_per_frag *= 16;
+            break;
+        default:
+            return GPA_ERR_UNSUPPORTED;
+        }
+    }
+
 	GpaTileInfo tileinfo = {0};
 	err = gpaGetTileInfo(
-	    &tileinfo, tp->tilemode, tp->bitsperfrag, tp->numfragsperpixel,
+	    &tileinfo, tp->tilemode, bits_per_frag, tp->numfragsperpixel,
 	    tp->mingpumode
 	);
 	if (err != GPA_ERR_OK) {
@@ -2234,7 +2251,7 @@ static GpaError ComputeSurfaceAddrFromCoordMacroTiled(
 	//
 	// Compute the number of macro tiles per slice.
 	//
-	macroTilesPerSlice = macroTilesPerRow * (height / macroTileHeight);
+	macroTilesPerSlice = macroTilesPerRow * ((height + macroTileHeight - 1) / macroTileHeight);
 
 	//
 	// Compute the slice size.
@@ -2379,7 +2396,7 @@ GpaError gpaComputeSurfaceCoord(
 	case GNM_ARRAY_1D_TILED_THICK:
 		err = ComputeSurfaceAddrFromCoordMicroTiled(
 		    x, y, z, fragindex, ctx->bitsperelement, ctx->paddedwidth,
-		    ctx->paddedheight, ctx->paddeddepth, arraymode,
+		    ctx->paddedheight, ctx->numfragsperpixel, arraymode,
 		    microTileType, isDepthSampleOrder, &addr, &bitPosition
 		);
 		break;
@@ -2397,7 +2414,7 @@ GpaError gpaComputeSurfaceCoord(
 	case GNM_ARRAY_PRT_3D_TILED_THICK:
 		err = ComputeSurfaceAddrFromCoordMacroTiled(
 		    x, y, z, fragindex, ctx->bitsperelement, ctx->paddedwidth,
-		    ctx->paddedheight, ctx->paddeddepth, arraymode,
+		    ctx->paddedheight, ctx->numfragsperpixel, arraymode,
 		    microTileType, isDepthSampleOrder, ctx->pipeswizzlemask,
 		    ctx->bankswizzlemask, &ctx->tileinfo, &addr, &bitPosition
 		);

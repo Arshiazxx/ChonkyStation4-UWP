@@ -107,7 +107,7 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
         std::unique_ptr<u8[]> detiled_buf;
 
         if (tex->tsharp.tiling_index != GNM_TM_DISPLAY_LINEAR_GENERAL && tex->tsharp.tiling_index != GNM_TM_DISPLAY_LINEAR_ALIGNED) {
-            //Profiler::add("Detiled textures", 1);
+            ////Profiler::add("Detiled textures", 1);
             //Profiler::Scope profiler("Detiler time");
             const GpaTextureInfo tex_info = gnmTexBuildInfo((GnmTexture*)tsharp);
             GpaTextureInfo out_tex_info = tex_info;
@@ -210,7 +210,7 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
                ) {
                 auto* tex = tracked_tex;
                 if (is_depth_buffer && !tex->is_depth_buffer) {
-                    //Profiler::add("Dead textures", 1);
+                    ////Profiler::add("Dead textures", 1);
                     tex->dead = true;
                     continue;
                 }
@@ -249,7 +249,7 @@ void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool
     //out.open(std::format("{}_{}_{}_{}.bin", width, height, pitch, (tsharp->base_address << 8)), std::ios::binary);
     //out.write((char*)(tsharp->base_address << 8), img_size);
 
-    //Profiler::add("New textures", 1);
+    ////Profiler::add("New textures", 1);
 
     // Create image
     TrackedTexture* tex = new TrackedTexture();
@@ -407,7 +407,7 @@ void freeUnusedTextures() {
                 //for (u64 page = base >> Cache::page_bits; page < (end >> Cache::page_bits); page++)
                 //    Cache::unprotect(page);
 
-                //Profiler::add("Released textures", 1);
+                ////Profiler::add("Released textures", 1);
                 deleted.insert(*tex);
                 delete *tex;
                 tex = it->second.erase(tex);

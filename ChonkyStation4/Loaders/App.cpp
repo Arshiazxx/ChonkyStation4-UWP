@@ -1,7 +1,6 @@
 #include "App.hpp"
 #include <PlayStation4.hpp>
 #include <Configuration.hpp>
-#include <Configuration.hpp>
 #include <NameToNid.hpp>
 #include <OS/Thread.hpp>
 #include <OS/Libraries/SceVideoOut/SceVideoOut.hpp>
@@ -63,8 +62,13 @@ void* PS4_FUNC initAndJumpToEntry(std::deque<std::shared_ptr<Module>>* modules) 
     Params params;
     std::memset(params.argv, 0, 33 * sizeof(char*));
     params.argc = 0;
-    params.argv[0] = nullptr;
-    //params.argv[0] = "--cold-boot";
+    
+    if (PS4::Configuration::is_vsh) {
+        params.argc = 2;
+        params.argv[0] = "/app0/eboot.bin";
+        params.argv[1] = "--cold-boot";
+    }
+
     params.entry = (*modules)[0]->entry;
 
     asm volatile(R"(

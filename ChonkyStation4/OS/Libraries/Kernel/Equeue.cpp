@@ -119,6 +119,7 @@ s32 PS4_FUNC sceKernelWaitEqueue(SceKernelEqueue eq, SceKernelEvent* ev, s32 n_e
 
     // TODO
     if (eq->has_hr_timer_event) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         eq->has_hr_timer_event = false;
         *n_out = 1;
         return SCE_OK;

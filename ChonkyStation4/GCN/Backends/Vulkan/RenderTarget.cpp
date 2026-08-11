@@ -92,7 +92,7 @@ Attachment getVulkanAttachmentForColorTarget(ColorTarget* rt, bool degamma_enabl
     return attachment;
 }
 
-Attachment getVulkanAttachmentForDepthTarget(DepthTarget* depth, bool has_stencil, bool* save) {
+Attachment getVulkanAttachmentForDepthStencilTarget(DepthTarget* depth, bool has_depth, bool has_stencil, bool* save) {
     auto get_dfmt_nfmt = [&]() -> std::pair<DataFormat, NumberFormat> {
         if (has_stencil) return { DataFormat::Format32, NumberFormat::Float };
 
@@ -160,7 +160,7 @@ Attachment getVulkanAttachmentForDepthTarget(DepthTarget* depth, bool has_stenci
     *save = true;
     vk::AttachmentLoadOp load_op = vk::AttachmentLoadOp::eLoad;
     if (!used_bufs[frame_idx].contains(out_info)) {
-        used_bufs[frame_idx][out_info] = true;
+        if (has_depth) used_bufs[frame_idx][out_info] = true;
         load_op = vk::AttachmentLoadOp::eClear;
         *save = false;
     }

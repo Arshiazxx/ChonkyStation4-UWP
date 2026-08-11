@@ -95,6 +95,7 @@ static Logger lib_sceAppContent     = Logger<true> ("[Lib    ][SceAppContent    
 static Logger lib_sceZlib           = Logger<true> ("[Lib    ][SceZlib          ] ");
 static Logger lib_sceRegMgr         = Logger<true> ("[Lib    ][SceRegMgr        ] ");
 static Logger lib_sceComposite      = Logger<true> ("[Lib    ][SceComposite     ] ");
+static Logger lib_sceMbus           = Logger<true> ("[Lib    ][SceMbus          ] ");
 
 // GCN
 static Logger gcn_command_processor = Logger<false>("[GCN    ][Command          ] ");

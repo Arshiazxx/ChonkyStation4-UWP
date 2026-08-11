@@ -51,6 +51,14 @@ static constexpr s32 KERNEL_RLIMIT_UMTXP    = 14;      /* process-shared umtx */
 static constexpr s32 KERNEL_RLIMIT_PIPEBUF  = 15;      /* pipes/fifos buffers */
 static constexpr s32 KERNEL_RLIMIT_VMM      = 16;      /* virtual machines */
 
+static constexpr s32 SCE_KERNEL_MAP_OP_MAP_DIRECT    = 0;
+static constexpr s32 SCE_KERNEL_MAP_OP_UNMAP         = 1;
+static constexpr s32 SCE_KERNEL_MAP_OP_PROTECT       = 2;
+static constexpr s32 SCE_KERNEL_MAP_OP_MAP_FLEXIBLE  = 3;
+static constexpr s32 SCE_KERNEL_MAP_OP_TYPE_PROTECT  = 4;
+
+
+
 struct TLSIndex {
     u64 modid;
     u64 offset;
@@ -68,6 +76,16 @@ struct SceKernelVirtualQueryInfo {
     u8 is_pooled_mem : 1;
     u8 is_committed : 1;
     char name[32];
+};
+
+struct SceKernelBatchMapEntry {
+    void* start;
+    size_t offset;  // off_t
+    size_t length;
+    u8 prot;
+    u8 type;
+    u16 reserved;
+    s32 operation;
 };
 
 struct SceKernelTitleWorkaround {
@@ -231,6 +249,7 @@ s32 PS4_FUNC sceKernelVirtualQuery(const void* addr, s32 flags, SceKernelVirtual
 s32 PS4_FUNC sceKernelQueryMemoryProtection(void* addr, void** start, void** end, s32* prot);
 void* PS4_FUNC kernel_mmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, s64 offs);
 s32 PS4_FUNC sceKernelMmap(void* addr, size_t len, s32 prot, s32 flags, s32 fd, s64 offs, void** res);
+s32 PS4_FUNC sceKernelBatchMap(SceKernelBatchMapEntry* entries, s32 n_entries, s32* n_processed);
 
 // Module
 SceKernelModule PS4_FUNC sceKernelLoadStartModule(const char* module_path, size_t args, const void* argp, u32 flags, const SceKernelLoadModuleOpt* opt, s32* res);

@@ -1,5 +1,6 @@
 #include "PipelineCache.hpp"
 #include <Logger.hpp>
+#include <Profiler.hpp>
 #include <GCN/FetchShader.hpp>
 #include <GCN/VSharp.hpp>
 #include <GCN/RegisterOffsets.hpp>
@@ -17,6 +18,7 @@ std::unordered_map<u64, Pipeline*> pipelines;
 std::unordered_map<u64, ComputePipeline*> compute_pipelines;
 
 Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, const u8* fetch_shader_code, const u32* regs) {
+    //Profiler::Scope profiler("getPipeline");
     // Compile shaders
 
     auto check_fetch_shader = [&]() -> bool {
@@ -72,16 +74,26 @@ Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, c
         index++;
     }
     cfg.binding_hash = XXH3_64bits_digest(state);
-
     XXH3_freeState(state);
 
     // Primitive info
     cfg.prim_type = regs[Reg::mmVGT_PRIMITIVE_TYPE__CI__VI];
 
-    // Color blending info
-    for (int i = 0; i < 8; i++) {
+    // Color blending info and hash
+    for (int i = 0; i < 8; i++)
         cfg.blend_control[i].raw = regs[Reg::mmCB_BLEND0_CONTROL + i];
+
+    u64 blend_hash;
+    state = XXH3_createState();
+    XXH3_64bits_reset(state);
+    for (int i = 0; i < 8; i++) {
+        const bool enable = cfg.blend_control[i].enable;
+        XXH3_64bits_update(state, &enable, sizeof(enable));
+        if (enable)
+            XXH3_64bits_update(state, &cfg.blend_control[i].raw, sizeof(BlendControl));
     }
+    blend_hash = XXH3_64bits_digest(state);
+    XXH3_freeState(state);
 
     // Color
     cfg.degamma_enable = (regs[Reg::mmCB_COLOR_CONTROL] >> 3) & 1;
@@ -127,8 +139,8 @@ Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, c
     XXH3_64bits_update(state, &cfg.has_ps, sizeof(cfg.has_ps));
     if (cfg.has_vs) XXH3_64bits_update(state, &cfg.vertex_hash, sizeof(cfg.vertex_hash));
     if (cfg.has_ps) XXH3_64bits_update(state, &cfg.pixel_hash, sizeof(cfg.pixel_hash));
+    XXH3_64bits_update(state, &blend_hash, sizeof(blend_hash));
     XXH3_64bits_update(state, &cfg.prim_type, sizeof(cfg.prim_type));
-    XXH3_64bits_update(state, &cfg.blend_control, sizeof(BlendControl) * 8);
     XXH3_64bits_update(state, &cfg.degamma_enable, sizeof(cfg.degamma_enable));
     XXH3_64bits_update(state, &cfg.depth_control, sizeof(cfg.depth_control));
     XXH3_64bits_update(state, &cfg.depth_clear_enable, sizeof(cfg.depth_clear_enable));
@@ -161,6 +173,7 @@ Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, c
     if (pipelines.contains(pipeline_hash))
         return *pipelines[pipeline_hash];
 
+    //Profiler::add("New pipelines", 1);
     log("Compiling new pipeline\n");
     auto* pipeline = new Pipeline(vert_shader, pixel_shader, fetch_shader, cfg);
     pipelines[pipeline_hash] = pipeline;

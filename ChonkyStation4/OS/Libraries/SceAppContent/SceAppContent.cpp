@@ -26,7 +26,11 @@ s32 PS4_FUNC sceAppContentAppParamGetInt(SceAppContentAppParamId param_id, s32* 
     
     s32 val = 0;
     switch (param_id) {
-    case SCE_APP_CONTENT_APPPARAM_ID_SKU_FLAG:  val = 3;    break;  // Full
+    case SCE_APP_CONTENT_APPPARAM_ID_SKU_FLAG:              val = 3;    break;  // Full
+    case SCE_APP_CONTENT_APPPARAM_ID_USER_DEFINED_PARAM_1:  val = 0;    break;  // TODO
+    case SCE_APP_CONTENT_APPPARAM_ID_USER_DEFINED_PARAM_2:  val = 0;    break;  // TODO
+    case SCE_APP_CONTENT_APPPARAM_ID_USER_DEFINED_PARAM_3:  val = 0;    break;  // TODO
+    case SCE_APP_CONTENT_APPPARAM_ID_USER_DEFINED_PARAM_4:  val = 0;    break;  // TODO
     default:    Helpers::panic("sceAppContentAppParamGetInt: unhandled param_id %d\n", param_id);
     }
 

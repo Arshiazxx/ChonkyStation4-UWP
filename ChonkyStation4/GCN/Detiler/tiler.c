@@ -70,7 +70,7 @@ GpaError gpaTpInit(
 		return err;
 	}
 	err = gpaAdjustTileMode(
-	    &tp->tilemode, tp->tilemode, surfinfo.tileinfo.arraymode
+	    &tp->tilemode, tp->tilemode, gpaGetArrayMode(surfinfo.tilemode)
 	);
 	if (err != GPA_ERR_OK) {
 		return err;

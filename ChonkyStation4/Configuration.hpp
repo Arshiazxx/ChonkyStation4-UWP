@@ -20,5 +20,6 @@ inline bool skip_waitregmem = false;
 inline bool disable_gnmdetiler_texture_size = false;
 inline bool disable_sgpr_init_hack = false;
 inline bool clamp_gpu_buffers = false;
+inline bool skip_bindless_buffers = false;
 
 }   // End namespace PS4::Configuration

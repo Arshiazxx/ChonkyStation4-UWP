@@ -663,7 +663,7 @@ vk::Extent2D VulkanRenderer::setupRenderingAttachments(Pipeline* pipeline, bool&
             || depth_attachment.tex->curr_layout != vk::ImageLayout::eDepthStencilAttachmentOptimal
             ) {
             bool save = false;
-            depth_attachment = RenderTarget::getVulkanAttachmentForDepthTarget(&new_depth_rt, stencil_enabled, &save);
+            depth_attachment = RenderTarget::getVulkanAttachmentForDepthStencilTarget(&new_depth_rt, depth_enabled, stencil_enabled, &save);
 
             if (save)
                 last_depth_rt = new_depth_rt;
@@ -686,6 +686,7 @@ vk::Extent2D VulkanRenderer::setupRenderingAttachments(Pipeline* pipeline, bool&
 }
 
 void VulkanRenderer::draw(const u64 cnt, const void* idx_buf_ptr, u32 idx_offs) {
+    //Profiler::Scope profiler("draw");
     const auto* vs_ptr = getVSPtr();
     const auto* ps_ptr = getPSPtr();
     log("Vertex Shader address : %p\n", vs_ptr);
@@ -710,7 +711,7 @@ void VulkanRenderer::draw(const u64 cnt, const void* idx_buf_ptr, u32 idx_offs) 
     // Get pipeline
     auto& pipeline = Vulkan::PipelineCache::getPipeline(vs_ptr, ps_ptr, fetch_shader_ptr, regs);
     curr_frame_pipelines[frame_idx].push_back(&pipeline);
-    
+
     if (disable_stencil)
         pipeline.cfg.depth_control.stencil_enable = false;
 
@@ -815,6 +816,7 @@ void VulkanRenderer::draw(const u64 cnt, const void* idx_buf_ptr, u32 idx_offs) 
 }
 
 void VulkanRenderer::drawIndirect(const u64 cnt, const bool is_indexed, void* draw_args, void* idx_buf_ptr, s32 idx_buf_max_size) {
+    //Profiler::Scope profiler("drawIndirect");
     const auto* vs_ptr = getVSPtr();
     const auto* ps_ptr = getPSPtr();
     log("Vertex Shader address : %p\n", vs_ptr);
@@ -933,6 +935,7 @@ void VulkanRenderer::drawIndirect(const u64 cnt, const bool is_indexed, void* dr
 }
 
 void VulkanRenderer::dispatch(ComputeJob job) {
+    //Profiler::Scope profiler("dispatch");
     log("Compute shader address: %p\n", job.addr);
     endRendering();
     

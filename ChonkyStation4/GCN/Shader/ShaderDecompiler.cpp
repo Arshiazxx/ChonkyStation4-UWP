@@ -536,10 +536,12 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
             const auto dest_pair = instr.dst[0].code;
 
             auto desc_sgpr = descs.contains(sgpr_pair) ? descs[sgpr_pair].sgpr : sgpr_pair;
-            if (descs.contains(sgpr_pair) && descs[sgpr_pair].is_ptr)
-                Helpers::panic("trackAndCreateBuffers: double (or more) deref\n");
+            if (descs.contains(sgpr_pair) && descs[sgpr_pair].is_ptr) {
+                //Helpers::panic("trackAndCreateBuffers: double (or more) deref\n");
+                printf("trackAndCreateBuffers: double (or more) deref in shader 0x%llx\n", out_data.hash);
+            }
 
-            descs[dest_pair] = { desc_sgpr, s_load_dword_offset(instr), true};
+            descs[dest_pair] = { desc_sgpr, s_load_dword_offset(instr), true };
             break;
         }
 
@@ -548,8 +550,10 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
             const auto dest_pair = instr.dst[0].code;
 
             auto desc_sgpr = descs.contains(sgpr_pair) ? descs[sgpr_pair].sgpr : sgpr_pair;
-            if (descs.contains(sgpr_pair) && descs[sgpr_pair].is_ptr)
-                Helpers::panic("trackAndCreateBuffers: double (or more) deref\n");
+            if (descs.contains(sgpr_pair) && descs[sgpr_pair].is_ptr) {
+                //Helpers::panic("trackAndCreateBuffers: double (or more) deref\n");
+                printf("trackAndCreateBuffers: double (or more) deref in shader 0x%llx\n", out_data.hash);
+            }
 
             descs[dest_pair + 0] = { desc_sgpr, s_load_dword_offset(instr) + 0u, true };
             descs[dest_pair + 4] = { desc_sgpr, s_load_dword_offset(instr) + 4u, true };
@@ -561,8 +565,10 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
             const auto dest_pair = instr.dst[0].code;
 
             auto desc_sgpr = descs.contains(sgpr_pair) ? descs[sgpr_pair].sgpr : sgpr_pair;
-            if (descs.contains(sgpr_pair) && descs[sgpr_pair].is_ptr)
-                Helpers::panic("trackAndCreateBuffers: double (or more) deref\n");
+            if (descs.contains(sgpr_pair) && descs[sgpr_pair].is_ptr) {
+                //Helpers::panic("trackAndCreateBuffers: double (or more) deref\n");
+                printf("trackAndCreateBuffers: double (or more) deref in shader 0x%llx\n", out_data.hash);
+            }
 
             descs[dest_pair +  0] = { desc_sgpr, s_load_dword_offset(instr) + 0u, true };
             descs[dest_pair +  4] = { desc_sgpr, s_load_dword_offset(instr) + 4u, true };
@@ -601,7 +607,10 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
         case Shader::Opcode::IMAGE_ATOMIC_UMIN:
             is_img_store = true;
         case Shader::Opcode::IMAGE_GATHER4_LZ:
+        case Shader::Opcode::IMAGE_GATHER4_LZ_O:
         case Shader::Opcode::IMAGE_GATHER4_C:
+        case Shader::Opcode::IMAGE_GATHER4_C_LZ:
+        case Shader::Opcode::IMAGE_GATHER4_C_LZ_O:
         case Shader::Opcode::IMAGE_LOAD:
         case Shader::Opcode::IMAGE_LOAD_MIP:
         case Shader::Opcode::IMAGE_SAMPLE:
@@ -610,6 +619,7 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
         case Shader::Opcode::IMAGE_SAMPLE_C:
         case Shader::Opcode::IMAGE_SAMPLE_O:
         case Shader::Opcode::IMAGE_SAMPLE_B:
+        case Shader::Opcode::IMAGE_SAMPLE_D:
         case Shader::Opcode::IMAGE_SAMPLE_LZ_O:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ_O:
@@ -623,6 +633,7 @@ void trackAndCreateBuffers(ShaderStage stage, ShaderData& out_data, Shader::GcnD
         case Shader::Opcode::BUFFER_STORE_DWORDX3:
         case Shader::Opcode::BUFFER_STORE_DWORDX4:
         case Shader::Opcode::BUFFER_ATOMIC_SWAP:
+        case Shader::Opcode::BUFFER_ATOMIC_ADD:
         case Shader::Opcode::S_BUFFER_LOAD_DWORD:
         case Shader::Opcode::S_BUFFER_LOAD_DWORDX2:
         case Shader::Opcode::S_BUFFER_LOAD_DWORDX4:
@@ -845,6 +856,8 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
 
     code += std::format("// BASIC BLOCK {:08x}\n", start_pc);
 
+    std::vector<Shader::GcnInst> unimpl_instructions;
+
     u32 pc = start_pc;
     bool done = false;
     while (!code_slice.atEnd() && !done) {
@@ -979,6 +992,12 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
 
         case Shader::Opcode::S_NOR_B64: {
             code += setDST<Type::Uint>(instr.dst[0], std::format("~({} | {})", getSRC<Type::Uint>(instr.src[0]), getSRC<Type::Uint>(instr.src[1])));
+            code += std::format("scc = uint({} != 0);\n", getSRC<Type::Uint>(instr.dst[0]));
+            break;
+        }
+
+        case Shader::Opcode::S_XNOR_B64: {
+            code += setDST<Type::Uint>(instr.dst[0], std::format("~({} ^ {})", getSRC<Type::Uint>(instr.src[0]), getSRC<Type::Uint>(instr.src[1])));
             code += std::format("scc = uint({} != 0);\n", getSRC<Type::Uint>(instr.dst[0]));
             break;
         }
@@ -1791,6 +1810,11 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             break;
         }
 
+        case Shader::Opcode::V_LSHL_B64: {
+            code += setDST<Type::Uint>(instr.dst[0], std::format("{} << ({} & 0x3f)", getSRC<Type::Uint>(instr.src[0]), getSRC<Type::Uint>(instr.src[1])));
+            break;
+        }
+
         case Shader::Opcode::V_MAX_F64: {
             // TODO: This is not right
             code += setDST(instr.dst[0], std::format("max({}, {}) /* V_MAX_F64 */", getSRC(instr.src[0]), getSRC(instr.src[1])));
@@ -1937,6 +1961,16 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             code += std::format("{} = {}.data[{}];\n", getSGPR(instr.dst[0].code + 13), ssbo_name, offset + " + 13");
             code += std::format("{} = {}.data[{}];\n", getSGPR(instr.dst[0].code + 14), ssbo_name, offset + " + 14");
             code += std::format("{} = {}.data[{}];\n", getSGPR(instr.dst[0].code + 15), ssbo_name, offset + " + 15");
+            break;
+        }
+
+        case Shader::Opcode::DS_MIN_U32: {
+            code += "// TODO: DS_MIN_U32\n";
+            break;
+        }
+
+        case Shader::Opcode::DS_MAX_U32: {
+            code += "// TODO: DS_MAX_U32\n";
             break;
         }
 
@@ -2250,6 +2284,23 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             break;
         }
 
+        case Shader::Opcode::BUFFER_ATOMIC_ADD: {
+            const auto buffer_mapping = pc;
+            Helpers::debugAssert(buffer_map.contains(buffer_mapping), "BUFFER_ATOMIC_ADD: no buffer_mapping");  // Unreachable if everything works as intended
+            auto* buf = buffer_map[buffer_mapping];
+
+            const auto ssbo_name = std::format("ssbo{}", buf->binding);
+            const std::string idx = instr.control.mubuf.idxen ? getSRC<Type::Uint>(instr.src[0]) : "0";
+            const std::string voffset = instr.control.mubuf.offen ? getVGPR(instr.control.mubuf.idxen ? instr.src[0].code + 1 : instr.src[0].code) : "0";
+            const std::string soffset = getSRC<Type::Uint>(instr.src[3]);
+            const std::string instr_offs = std::format("{}", instr.control.mubuf.offset);
+            code += std::format("tmp_u = ({}) * getStrideForBinding({}) + {} + {} + {};\n", idx, buf->binding, voffset, soffset, instr_offs);  // Is this right?
+            code += std::format("tmp_u = atomicAdd({}.data[tmp_u >> 2], {});\n", ssbo_name, getVGPR(instr.src[1].code));
+            if (instr.control.mubuf.glc)
+                code += std::format("{} = tmp_u;\n", getVGPR(instr.src[1].code));
+            break;
+        }
+
         case Shader::Opcode::IMAGE_STORE: {
             const auto buffer_mapping = pc;
             Helpers::debugAssert(buffer_map.contains(buffer_mapping), "IMAGE_STORE: no buffer_mapping");  // Unreachable if everything works as intended
@@ -2310,6 +2361,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         case Shader::Opcode::IMAGE_SAMPLE_C:
         case Shader::Opcode::IMAGE_SAMPLE_O:
         case Shader::Opcode::IMAGE_SAMPLE_B:
+        case Shader::Opcode::IMAGE_SAMPLE_D:
         case Shader::Opcode::IMAGE_SAMPLE_LZ_O:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ:
         case Shader::Opcode::IMAGE_SAMPLE_C_LZ_O:
@@ -2367,7 +2419,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
                 // It samples at (0, 0) with offset (1, 0) expecting to receive the texel at (1, 0). This would work if we used textureOffset, because the offset is applied in texel-space.
                 // Because we add the offset to the normalized coordinates instead, it doesn't work, because (0, 0) is the top-left corner of the texture 
                 // rather than the center of the texel, so adding (1, 0) to it ends up falling in between the 2 pixels and doesn't reliably sample the correct pixel.
-                texcoords = std::format("{} + (vec2({}.xy) + 0.5) * (1.0 / vec2(textureSize({}, 0)))", texcoords, offset_str, sampler_name);    // TODO: Multiple dimensions
+                texcoords = std::format("{} + (vec2({}.xy) + 0.5) * (1.0 / vec2(textureSize({}, 0)))", texcoords, offset_str, sampler_name);    // TODO: 1imensions
 
             std::string operation = std::format("{}({}, {}", sample_op, sampler_name, texcoords);
             // TODO: Add other parameters for other sampling options
@@ -2454,7 +2506,10 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         }
 
         case Shader::Opcode::IMAGE_GATHER4_LZ:
-        case Shader::Opcode::IMAGE_GATHER4_C: {
+        case Shader::Opcode::IMAGE_GATHER4_LZ_O:
+        case Shader::Opcode::IMAGE_GATHER4_C:
+        case Shader::Opcode::IMAGE_GATHER4_C_LZ:
+        case Shader::Opcode::IMAGE_GATHER4_C_LZ_O: {
             const auto buffer_mapping = pc;
             Helpers::debugAssert(buffer_map.contains(buffer_mapping), "IMAGE_GATHER4: no buffer_mapping");  // Unreachable if everything works as intended
             auto* buf = buffer_map[buffer_mapping];
@@ -2462,7 +2517,35 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
             code += std::format("// T# is in s{}\n", instr.src[2].code * 4);
 
             const auto sampler_name = std::format("tex{}", buf->binding);
-            const std::string texcoords = std::format("vec2(u2f({}), u2f({}))", getVGPR(instr.src[0].code), getVGPR(instr.src[0].code + 1));
+            
+            auto* tsharp = buf->desc_info.asPtr<TSharp>();
+            const bool is_3d = tsharp ? tsharp->type == 10 : false;
+
+            const auto flags = MimgModifierFlags(instr.control.mimg.mod);
+            const bool offset = flags.test(MimgModifier::Offset);
+            const bool lod_bias = flags.test(MimgModifier::LodBias);
+            const bool pcf = flags.test(MimgModifier::Pcf);
+            const bool derivative = flags.test(MimgModifier::Derivative);
+
+            int coord_reg_idx = instr.src[0].code;
+
+            int offset_reg = 0;
+            std::string offset_str = "";
+            if (offset) {
+                offset_reg = coord_reg_idx++;
+                offset_str = std::format("unpackImageOffset({})", getVGPR(offset_reg));
+            }
+
+            if (lod_bias)
+                coord_reg_idx++;
+
+            if (pcf)
+                coord_reg_idx++;
+
+            if (derivative)
+                coord_reg_idx += !is_3d ? 2 : 3; // TODO: This should be 1 per dimension (i.e. 3 for 3D textures)
+            
+            const std::string texcoords = std::format("vec2(u2f({}), u2f({}))", getVGPR(coord_reg_idx), getVGPR(coord_reg_idx + 1));
 
             // For gather instructions dmask selects the component
             int comp = 0;
@@ -2544,6 +2627,7 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         default: {
             //printf("BasicBlock so far:\n%s\n", code.c_str());
             //Helpers::panic("Unimplemented shader instruction %d\n", instr.opcode);
+            unimpl_instructions.push_back(instr);
             code += "// TODO\n";
         }
         }
@@ -2554,6 +2638,12 @@ void decompileBasicBlock(u32* data, u32 start_pc, ShaderStage stage, BasicBlock&
         if (is_vector) {
             code += "}";
         }
+    }
+
+    if (!unimpl_instructions.empty()) {
+        printf("Shader has unimplemented instructions:\n");
+        for (auto& instr : unimpl_instructions)
+            printf("- %d\n", instr.opcode);
     }
 }
 
@@ -2698,8 +2788,9 @@ std::string emit(BasicBlock* from, BasicBlock* to, bool& needs_barrier, int leve
 void decompileShader(u32* data, ShaderStage stage, ShaderData& out_data, FetchShader* fetch_shader, ComputeJob* compute_job) {
     //std::ofstream out;
     //if (stage == ShaderStage::Vertex) {
+    //if (out_data.hash == 0xc8a0b43783b08c63) {
     //  out.open(std::format("{:x}.bin", out_data.hash), std::ios::binary);
-    //  out.write((char*)data, 8_KB);
+    //  out.write((char*)data, 12_KB);
     //  out.close();
     //}
 
@@ -2864,16 +2955,18 @@ bool v_cmp_class_f32(float x, uint mask) {
             // Handle swizzling
             std::array<u32, 4> swizzles = { vsharp->dst_sel_x, vsharp->dst_sel_y, vsharp->dst_sel_z, vsharp->dst_sel_w };
             for (int i = 0; i < binding.n_elements; i++) {
+                const bool is_float = !(type.contains("ivec") || type.contains("uvec") || type.contains("int"));
+
                 auto swizzle = swizzles[i];
                 std::string val;
-                if      (swizzle == DSEL_0) val = "0.0f";
-                else if (swizzle == DSEL_1) val = "1.0f";
+                if      (swizzle == DSEL_0) val = is_float ? "0.0f" : "0";
+                else if (swizzle == DSEL_1) val = is_float ? "1.0f" : "1";
                 else if (swizzle == DSEL_R) val = attr + ".x";
                 else if (swizzle == DSEL_G) val = attr + ".y";
                 else if (swizzle == DSEL_B) val = attr + ".z";
                 else if (swizzle == DSEL_A) val = attr + ".w";
 
-                if (!(type.contains("ivec") || type.contains("uvec") || type.contains("int")))
+                if (is_float)
                     val = std::format("floatBitsToUint({})", val);
 
                 main += std::format("{} = {};\n", getVGPR(binding.dest_vgpr + i), val);

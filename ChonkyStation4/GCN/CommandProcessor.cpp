@@ -1,5 +1,6 @@
 #include "CommandProcessor.hpp"
 #include <Logger.hpp>
+#include <Profiler.hpp>
 #include <Configuration.hpp>
 #include <GCN/PM4.hpp>
 #include <GCN/ComputeJob.hpp>
@@ -106,6 +107,7 @@ union ReleaseMem3 {
 // Constant engine
 std::atomic<u32> ce_count = 0;
 std::atomic<u32> de_count = 0;
+std::atomic<bool> ce_thread_running = false;
 std::thread ce_thread;
 u8 constant_ram[48_KB];
 
@@ -116,6 +118,7 @@ void initCommandProcessor() {
 void processCcb(u32* ccb, size_t ccb_size) {
     if (ce_thread.joinable()) ce_thread.join();
 
+    ce_thread_running = true;
     ce_thread = std::thread([=]() {
         for (u32* ptr = ccb; (u8*)ptr < (u8*)ccb + ccb_size; ) {
             PM4Header* pkt = (PM4Header*)ptr;
@@ -159,9 +162,10 @@ void processCcb(u32* ccb, size_t ccb_size) {
             }
 
             case PM4ItOpcode::WaitOnDeCounterDiff: {
+                //Profiler::Scope profiler("WaitOnDeCounterDiff");
                 const u32 diff = *args++;
                 while (de_count - ce_count >= diff) {
-                    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+                    //std::this_thread::sleep_for(std::chrono::microseconds(10));
                     std::this_thread::yield();
                 }
                 break;
@@ -175,6 +179,8 @@ void processCcb(u32* ccb, size_t ccb_size) {
 
             ptr += pkt->count + 2;
         }
+
+        ce_thread_running = false;
     });
 }
 
@@ -191,6 +197,8 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         processCcb(ccb, ccb_size);
     }
     
+    //Profiler::Scope profiler("processCommands");
+
     const bool is_compute = compute_queue != nullptr;
 
     for (u32* ptr = dcb; (u8*)ptr < (u8*)dcb + dcb_size; ) {
@@ -295,6 +303,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::WriteData: {
+            //Profiler::Scope profiler("WriteData");
             const WriteData1 d1 = { .raw = *args++ };
             const u64 addr = *args | ((u64)(*(args + 1)) << 32);
             args += 2;
@@ -328,6 +337,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
             }
 
             case Select::WaitSemaphore: {
+                //Profiler::Scope profiler("WaitSemaphore");
                 log("Waiting on semaphore\n");
                 while (*ptr == 0) std::this_thread::sleep_for(std::chrono::microseconds(10));
                 break;
@@ -492,6 +502,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::DmaData: {
+            //Profiler::Scope profiler("DmaData");
             const DmaData1 info = { .raw = *args++ };
             const u32 src_addr_lo = *args++;
             const u32 src_addr_hi = *args++;
@@ -509,7 +520,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
             switch (info.dst_sel) {
             case DmaData::DmaDataDst::Memory:
             case DmaData::DmaDataDst::MemoryUsingL2:    dst = (void*)(dst_addr_lo | ((u64)dst_addr_hi << 32));  break;
-            case DmaData::DmaDataDst::Gds:              log("TODO: GDS TRANSFER\n"); dst = 0;                   break;
+            case DmaData::DmaDataDst::Gds:              dst = 0;                                                break;
             default:
                 Helpers::panic("DmaData: unhandled dst_sel %d\n", info.dst_sel.Value());
             }
@@ -518,6 +529,7 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
             case DmaData::DmaDataSrc::Memory:
             case DmaData::DmaDataSrc::MemoryUsingL2:    src = (void*)(src_addr_lo | ((u64)src_addr_hi << 32));  break;
             case DmaData::DmaDataSrc::Data:             is_fill = true;                                         break;
+            case DmaData::DmaDataSrc::Gds:              log("TODO: GDS READBACK\n"); dst = 0;                   break;
             default:
                 Helpers::panic("DmaData: unhandled src_sel %d\n", info.src_sel.Value());
             }
@@ -692,8 +704,9 @@ void processCommands(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size, OS::L
         }
 
         case PM4ItOpcode::WaitOnCeCounter: {
-            while (ce_count <= de_count) {
-                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+            //Profiler::Scope profiler("WaitOnCeCounter");
+            while ((ce_count <= de_count) && ce_thread_running.load()) {
+                //std::this_thread::sleep_for(std::chrono::microseconds(10));
                 std::this_thread::yield();
             }
             break;
