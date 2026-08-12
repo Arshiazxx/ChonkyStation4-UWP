@@ -58,8 +58,7 @@ std::uint64_t ReadU64(const std::uint8_t* bytes) {
 }
 
 bool ReadAt(
-    std::ifstream& file,
-    std::uint64_t fileSize,
+    const std::vector<std::uint8_t>& bytes,
     std::uint64_t offset,
     void* destination,
     std::size_t size,
@@ -67,28 +66,13 @@ bool ReadAt(
     if (size == 0) {
         return true;
     }
-    if (offset > fileSize || static_cast<std::uint64_t>(size) > fileSize - offset) {
+    if (offset > bytes.size() || static_cast<std::uint64_t>(size) > bytes.size() - offset) {
         if (error != nullptr) {
             *error = "requested ELF data is outside the file";
         }
         return false;
     }
-
-    file.clear();
-    file.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
-    if (!file.good()) {
-        if (error != nullptr) {
-            *error = "unable to seek to requested ELF data";
-        }
-        return false;
-    }
-    file.read(static_cast<char*>(destination), static_cast<std::streamsize>(size));
-    if (file.gcount() != static_cast<std::streamsize>(size)) {
-        if (error != nullptr) {
-            *error = "unable to read requested ELF data";
-        }
-        return false;
-    }
+    std::copy_n(bytes.data() + offset, size, static_cast<std::uint8_t*>(destination));
     return true;
 }
 
@@ -175,14 +159,43 @@ ElfLoadReport Elf64Loader::LoadFile(const std::string& path) const {
         return report;
     }
     const auto fileSize = static_cast<std::uint64_t>(end);
+    if (fileSize > (std::numeric_limits<std::size_t>::max)()) {
+        SetError(report, "ELF file is too large for this host");
+        return report;
+    }
 
-    if (fileSize < ElfHeaderSize64) {
+    std::vector<std::uint8_t> bytes;
+    try {
+        bytes.resize(static_cast<std::size_t>(fileSize));
+    } catch (const std::bad_alloc&) {
+        SetError(report, "unable to allocate ELF file staging storage");
+        return report;
+    }
+    file.seekg(0, std::ios::beg);
+    if (!bytes.empty()) {
+        file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (file.gcount() != static_cast<std::streamsize>(bytes.size())) {
+            SetError(report, "unable to read ELF file");
+            return report;
+        }
+    }
+    return LoadBytes(path, bytes);
+}
+
+ElfLoadReport Elf64Loader::LoadBytes(
+    const std::string& imageName,
+    const std::vector<std::uint8_t>& bytes) const {
+    ElfLoadReport report;
+    report.filePath = imageName;
+    const auto fileSize = static_cast<std::uint64_t>(bytes.size());
+
+    if (bytes.size() < ElfHeaderSize64) {
         SetError(report, "file is smaller than an ELF64 header");
         return report;
     }
 
     std::array<std::uint8_t, ElfHeaderSize64> headerBytes{};
-    if (!ReadAt(file, fileSize, 0, headerBytes.data(), headerBytes.size(), &report.error)) {
+    if (!ReadAt(bytes, 0, headerBytes.data(), headerBytes.size(), &report.error)) {
         SetError(report, report.error);
         return report;
     }
@@ -243,8 +256,7 @@ ElfLoadReport Elf64Loader::LoadFile(const std::string& path) const {
         const auto offset = report.header.programHeaderOffset +
             static_cast<std::uint64_t>(index) * report.header.programHeaderSize;
         std::array<std::uint8_t, ElfProgramHeaderSize64> programHeaderBytes{};
-        if (!ReadAt(file, fileSize, offset, programHeaderBytes.data(), programHeaderBytes.size(),
-                    &report.error)) {
+        if (!ReadAt(bytes, offset, programHeaderBytes.data(), programHeaderBytes.size(), &report.error)) {
             SetError(report, report.error);
             return report;
         }
@@ -267,6 +279,17 @@ ElfLoadReport Elf64Loader::LoadFile(const std::string& path) const {
             SetError(report, "ELF loadable segment virtual address range overflows");
             return report;
         }
+        if (programHeader.alignment > 1) {
+            if ((programHeader.alignment & (programHeader.alignment - 1)) != 0) {
+                SetError(report, "ELF loadable segment alignment is not a power of two");
+                return report;
+            }
+            if ((programHeader.fileOffset % programHeader.alignment) !=
+                (programHeader.virtualAddress % programHeader.alignment)) {
+                SetError(report, "ELF loadable segment file and virtual alignment disagree");
+                return report;
+            }
+        }
 
         report.loadableSegments.push_back({
             programHeader.fileOffset,
@@ -287,32 +310,78 @@ bool Elf64Loader::LoadIntoMemory(
     const std::string& path,
     Memory::GuestMemory& memory,
     ElfLoadReport* report) const {
-    auto parsed = LoadFile(path);
-    if (!parsed.success) {
-        if (report != nullptr) {
-            *report = parsed;
-        }
-        return false;
-    }
-
     std::ifstream file(path, std::ios::binary | std::ios::in);
     if (!file.is_open()) {
-        SetError(parsed, "unable to reopen ELF file for segment loading");
+        ElfLoadReport failed;
+        failed.filePath = path;
+        SetError(failed, "unable to open ELF file");
         if (report != nullptr) {
-            *report = parsed;
+            *report = failed;
         }
         return false;
     }
     file.seekg(0, std::ios::end);
     const auto end = file.tellg();
     if (end < 0) {
-        SetError(parsed, "unable to determine ELF file size for segment loading");
+        ElfLoadReport failed;
+        failed.filePath = path;
+        SetError(failed, "unable to determine ELF file size");
+        if (report != nullptr) {
+            *report = failed;
+        }
+        return false;
+    }
+    const auto fileSize = static_cast<std::uint64_t>(end);
+    if (fileSize > (std::numeric_limits<std::size_t>::max)()) {
+        ElfLoadReport failed;
+        failed.filePath = path;
+        SetError(failed, "ELF file is too large for this host");
+        if (report != nullptr) {
+            *report = failed;
+        }
+        return false;
+    }
+
+    std::vector<std::uint8_t> bytes;
+    try {
+        bytes.resize(static_cast<std::size_t>(fileSize));
+    } catch (const std::bad_alloc&) {
+        ElfLoadReport failed;
+        failed.filePath = path;
+        SetError(failed, "unable to allocate ELF file staging storage");
+        if (report != nullptr) {
+            *report = failed;
+        }
+        return false;
+    }
+    file.seekg(0, std::ios::beg);
+    if (!bytes.empty()) {
+        file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (file.gcount() != static_cast<std::streamsize>(bytes.size())) {
+            ElfLoadReport failed;
+            failed.filePath = path;
+            SetError(failed, "unable to read ELF file");
+            if (report != nullptr) {
+                *report = failed;
+            }
+            return false;
+        }
+    }
+    return LoadBytesIntoMemory(path, bytes, memory, report);
+}
+
+bool Elf64Loader::LoadBytesIntoMemory(
+    const std::string& imageName,
+    const std::vector<std::uint8_t>& bytes,
+    Memory::GuestMemory& memory,
+    ElfLoadReport* report) const {
+    auto parsed = LoadBytes(imageName, bytes);
+    if (!parsed.success) {
         if (report != nullptr) {
             *report = parsed;
         }
         return false;
     }
-    const auto fileSize = static_cast<std::uint64_t>(end);
 
     std::vector<GuestVirtualAddress> mappedAddresses;
     for (const auto& segment : parsed.loadableSegments) {
@@ -332,8 +401,7 @@ bool Elf64Loader::LoadIntoMemory(
             break;
         }
 
-        if (!ReadAt(file, fileSize, segment.fileOffset, initialData.data(), initialData.size(),
-                    &parsed.error)) {
+        if (!ReadAt(bytes, segment.fileOffset, initialData.data(), initialData.size(), &parsed.error)) {
             SetError(parsed, parsed.error);
             break;
         }

@@ -74,11 +74,24 @@ class Elf64Loader final {
 public:
     ElfLoadReport LoadFile(const std::string& path) const;
 
+    // Parses an ELF image already held by the caller. This keeps platform-neutral
+    // loader tests independent of host file-system policy while preserving the
+    // existing LoadFile API for real images.
+    ElfLoadReport LoadBytes(
+        const std::string& imageName,
+        const std::vector<std::uint8_t>& bytes) const;
+
     // Parses the file, then maps each PT_LOAD segment into the supplied
     // platform-neutral guest memory object. File-backed bytes are copied and
     // the remaining memory-size bytes are zero initialized.
     bool LoadIntoMemory(
         const std::string& path,
+        Memory::GuestMemory& memory,
+        ElfLoadReport* report = nullptr) const;
+
+    bool LoadBytesIntoMemory(
+        const std::string& imageName,
+        const std::vector<std::uint8_t>& bytes,
         Memory::GuestMemory& memory,
         ElfLoadReport* report = nullptr) const;
 };

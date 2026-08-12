@@ -34,6 +34,7 @@
             <Button x:Name="RunCpuTestButton" Content="Run CPU Test" Click="OnRunCpuTest" />
             <Button x:Name="RunRuntimeTestButton" Content="Run Runtime Test" Click="OnRunRuntimeTest" />
             <Button x:Name="RunAbiTestButton" Content="Run ABI Test" Click="OnRunAbiTest" />
+            <Button x:Name="RunModuleTestButton" Content="Run Module Test" Click="OnRunModuleTest" />
         </StackPanel>
     </Grid>
 </Page>

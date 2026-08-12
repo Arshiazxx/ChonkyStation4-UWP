@@ -22,6 +22,24 @@
     <Filter Include="Core\ABI">
       <UniqueIdentifier>{D0AF4691-47D4-4D9B-9AA2-1C3E07CC4B1A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Loader">
+      <UniqueIdentifier>{3DBF40E1-3D03-41F2-9C9A-7AE2ABF3230E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Loader\Module">
+      <UniqueIdentifier>{1B5A4C1A-BA0A-49C8-B7C4-0E68B6D20E70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Loader\Relocations">
+      <UniqueIdentifier>{8C3A0F3C-1E1C-45EC-AF85-596F9F6E2F62}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Loader\Symbols">
+      <UniqueIdentifier>{E1BB4C79-5B0D-4C37-8D2D-DA8F6A7D5F29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Loader\Dependencies">
+      <UniqueIdentifier>{A95E4B49-4F88-4A45-B0A7-52A7B2C9A08E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Execution">
+      <UniqueIdentifier>{4F1D88BA-1A4D-4C87-9D36-6E4D3CF1BD82}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.xaml.h" />
@@ -33,7 +51,19 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Core\Loader\Elf64Loader.hpp">
-      <Filter>Core</Filter>
+      <Filter>Core\Loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Module\LoadedModule.hpp">
+      <Filter>Core\Loader\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Relocations\Relocation.hpp">
+      <Filter>Core\Loader\Relocations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Symbols\Symbol.hpp">
+      <Filter>Core\Loader\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Dependencies\Dependency.hpp">
+      <Filter>Core\Loader\Dependencies</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Core\Memory\GuestMemory.hpp">
       <Filter>Core</Filter>
@@ -98,6 +128,18 @@
     <ClInclude Include="..\..\..\Core\ABI\AbiSmokeTests.hpp">
       <Filter>Core\ABI</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\ExecutionContext.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\IExecutionBackend.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\NativeExecutionBackend.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\ModuleSmokeTests.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Host\HostServices.cpp">
@@ -107,7 +149,19 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Elf64Loader.cpp">
-      <Filter>Core</Filter>
+      <Filter>Core\Loader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Module\LoadedModule.cpp">
+      <Filter>Core\Loader\Module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Relocations\Relocation.cpp">
+      <Filter>Core\Loader\Relocations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Symbols\Symbol.cpp">
+      <Filter>Core\Loader\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Dependencies\Dependency.cpp">
+      <Filter>Core\Loader\Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Memory\GuestMemory.cpp">
       <Filter>Core</Filter>
@@ -165,6 +219,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Core\ABI\AbiSmokeTests.cpp">
       <Filter>Core\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\ExecutionContext.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\NativeExecutionBackend.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\ModuleSmokeTests.cpp">
+      <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="App.xaml.cpp" />
     <ClCompile Include="MainPage.xaml.cpp" />

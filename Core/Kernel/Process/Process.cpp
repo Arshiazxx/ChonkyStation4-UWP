@@ -1,5 +1,8 @@
 #include "Process.hpp"
 
+#include <limits>
+#include <utility>
+
 namespace ChonkyStation4::Core::Kernel {
 
 Process::Process(ProcessId id, Memory::GuestMemory& addressSpace) noexcept
@@ -42,6 +45,14 @@ bool Process::LoadExecutable(const std::string& path, std::string* error) {
     executable_.architecture = report.architecture;
     executable_.entryPoint = report.entryPoint;
     executable_.loadableSegments = report.loadableSegments;
+    Loader::LoadedModule mainModule(
+        "Main Executable", Loader::ModuleKind::MainExecutable);
+    if (!Loader::LoadedModule::FromElfReport(path, report, mainModule, error) ||
+        !RegisterMainModule(mainModule, error)) {
+        state_ = ProcessState::Faulted;
+        exceptionMessage_ = error != nullptr ? *error : "unable to register main executable module";
+        return false;
+    }
     state_ = ProcessState::Ready;
     exceptionMessage_.clear();
     return true;
@@ -49,6 +60,50 @@ bool Process::LoadExecutable(const std::string& path, std::string* error) {
 
 const LoadedExecutable& Process::Executable() const noexcept {
     return executable_;
+}
+
+bool Process::RegisterModule(const Loader::LoadedModule& module, std::string* error) {
+    if (!module.IsLoaded()) {
+        if (error != nullptr) {
+            *error = "cannot register an unloaded module";
+        }
+        return false;
+    }
+    modules_.push_back(module);
+    if (state_ == ProcessState::Created) {
+        state_ = ProcessState::Ready;
+    }
+    return true;
+}
+
+bool Process::RegisterMainModule(const Loader::LoadedModule& module, std::string* error) {
+    if (!module.IsLoaded()) {
+        if (error != nullptr) {
+            *error = "cannot register an unloaded main module";
+        }
+        return false;
+    }
+    if (mainModuleIndex_ == (std::numeric_limits<std::size_t>::max)()) {
+        mainModuleIndex_ = modules_.size();
+        modules_.push_back(module);
+    } else {
+        modules_[mainModuleIndex_] = module;
+    }
+    if (state_ == ProcessState::Created) {
+        state_ = ProcessState::Ready;
+    }
+    return true;
+}
+
+const std::vector<Loader::LoadedModule>& Process::Modules() const noexcept {
+    return modules_;
+}
+
+const Loader::LoadedModule* Process::MainModule() const noexcept {
+    if (mainModuleIndex_ == (std::numeric_limits<std::size_t>::max)()) {
+        return nullptr;
+    }
+    return &modules_[mainModuleIndex_];
 }
 
 void Process::AttachThread(ThreadId id) {

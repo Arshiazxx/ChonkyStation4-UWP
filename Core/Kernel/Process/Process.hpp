@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Core/Loader/Elf64Loader.hpp"
+#include "Core/Loader/Module/LoadedModule.hpp"
 #include "Core/Memory/GuestMemory.hpp"
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -42,6 +44,15 @@ public:
     bool LoadExecutable(const std::string& path, std::string* error = nullptr);
     const LoadedExecutable& Executable() const noexcept;
 
+    bool RegisterModule(
+        const Loader::LoadedModule& module,
+        std::string* error = nullptr);
+    bool RegisterMainModule(
+        const Loader::LoadedModule& module,
+        std::string* error = nullptr);
+    const std::vector<Loader::LoadedModule>& Modules() const noexcept;
+    const Loader::LoadedModule* MainModule() const noexcept;
+
     void AttachThread(ThreadId id);
     const std::vector<ThreadId>& ThreadIds() const noexcept;
 
@@ -54,6 +65,8 @@ private:
     ProcessId id_ = 0;
     Memory::GuestMemory* addressSpace_ = nullptr;
     LoadedExecutable executable_{};
+    std::vector<Loader::LoadedModule> modules_;
+    std::size_t mainModuleIndex_ = (std::numeric_limits<std::size_t>::max)();
     ProcessState state_ = ProcessState::Created;
     std::vector<ThreadId> threadIds_;
     std::int64_t exitCode_ = 0;

@@ -44,6 +44,10 @@ endif()
 
 target_sources(ChonkyStation4 PRIVATE
 "Core/Common/VirtualAddress.hpp" "Core/Loader/Elf64Loader.cpp" "Core/Loader/Elf64Loader.hpp"
+"Core/Loader/Module/LoadedModule.hpp" "Core/Loader/Module/LoadedModule.cpp"
+"Core/Loader/Relocations/Relocation.hpp" "Core/Loader/Relocations/Relocation.cpp"
+"Core/Loader/Symbols/Symbol.hpp" "Core/Loader/Symbols/Symbol.cpp"
+"Core/Loader/Dependencies/Dependency.hpp" "Core/Loader/Dependencies/Dependency.cpp"
 "Core/Memory/GuestMemory.cpp" "Core/Memory/GuestMemory.hpp"
 "Core/CPU/CpuState.hpp" "Core/CPU/Registers.hpp" "Core/CPU/Registers.cpp"
 "Core/CPU/Flags.hpp" "Core/CPU/Flags.cpp" "Core/CPU/Instruction.hpp" "Core/CPU/Instruction.cpp"
@@ -62,6 +66,10 @@ target_sources(ChonkyStation4 PRIVATE
 "Core/ABI/ReturnValues/ReturnValue.hpp" "Core/ABI/ReturnValues/ReturnValue.cpp"
 "Core/ABI/Syscall/SyscallTransition.hpp" "Core/ABI/Syscall/SyscallTransition.cpp"
 "Core/ABI/AbiSmokeTests.hpp" "Core/ABI/AbiSmokeTests.cpp"
+"Core/Execution/ExecutionContext.hpp" "Core/Execution/ExecutionContext.cpp"
+"Core/Execution/IExecutionBackend.hpp" "Core/Execution/NativeExecutionBackend.hpp"
+"Core/Execution/NativeExecutionBackend.cpp"
+"Core/Execution/ModuleSmokeTests.hpp" "Core/Execution/ModuleSmokeTests.cpp"
 "Core/Kernel/Process/Process.hpp" "Core/Kernel/Process/Process.cpp"
 "Core/Kernel/Thread/Thread.hpp" "Core/Kernel/Thread/Thread.cpp"
 "Core/Kernel/Scheduler/Scheduler.hpp" "Core/Kernel/Scheduler/Scheduler.cpp"
