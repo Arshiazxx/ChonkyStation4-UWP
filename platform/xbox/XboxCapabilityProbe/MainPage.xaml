@@ -1,0 +1,28 @@
+<Page
+    x:Class="XboxCapabilityProbe.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="#FF101018">
+    <Grid Padding="42">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="6">
+            <TextBlock Text="XboxCapabilityProbe" FontSize="34" FontWeight="SemiBold" />
+            <TextBlock Text="Measures host capabilities; does not start PS4 guest execution." Opacity="0.72" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="14" Margin="0,20,0,20">
+            <Button x:Name="RunButton" Content="Run capability probe" Click="OnRunProbe" />
+            <Button x:Name="GuestMemoryButton" Content="Run guest memory diagnostic" Click="OnRunGuestMemory" />
+            <TextBlock x:Name="StatusText" Text="Not run" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="2">
+            <TextBox x:Name="OutputText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" />
+        </ScrollViewer>
+    </Grid>
+</Page>

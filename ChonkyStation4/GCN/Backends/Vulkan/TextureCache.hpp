@@ -1,0 +1,42 @@
+#pragma once
+
+#include <Common.hpp>
+#include <GCN/TSharp.hpp>
+#include <vulkan/vulkan_raii.hpp>
+#include <deque>
+
+
+namespace PS4::GCN::Vulkan {
+
+struct TrackedTexture {
+    TSharp  tsharp;
+    void* base = nullptr;
+    size_t  size = 0;
+    u32     width = 0;
+    u32     height = 0;
+    u32     depth = 1;
+    u64     page = 0;
+    u64     page_end = 0;
+    bool    dirty = false;
+    bool    was_bound = false;
+    bool    was_targeted = false;
+    bool    is_depth_buffer = false;
+    bool    dead = false;
+    int     invalidate_cnt = 0;
+    vk::Format vk_fmt;
+    vk::raii::Image image = nullptr;
+    vk::raii::DeviceMemory mem = nullptr;
+    vk::raii::ImageView view = nullptr;
+    vk::raii::Sampler sampler = nullptr;
+    vk::ImageLayout curr_layout = vk::ImageLayout::eUndefined;
+    vk::DescriptorImageInfo image_info;
+    vk::DescriptorImageInfo image_info_general;
+    u64 last_used_frame = 0;
+
+    void transition(vk::ImageLayout new_layout);
+};
+
+void getVulkanImageInfoForTSharp(TSharp* tsharp, TrackedTexture** out_info, bool dont_match_num_format = false, bool is_depth_buffer = false, vk::Format depth_vk_fmt = vk::Format::eD32Sfloat, bool dont_track_cpu_writes = false);
+void freeUnusedTextures();
+
+} // End namespace PS4::GCN::Vulkan

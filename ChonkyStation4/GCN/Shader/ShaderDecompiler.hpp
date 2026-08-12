@@ -1,0 +1,73 @@
+#pragma once
+
+#include <Common.hpp>
+#include <GCN/ComputeJob.hpp>
+#include <deque>
+
+
+namespace PS4::GCN {
+
+class FetchShader;
+
+}   // End namespace PS4::GCN
+
+namespace PS4::GCN::Shader {
+
+enum class ShaderStage {
+    Vertex,
+    Fragment,
+    Compute,
+    Geometry,
+    Tessellation
+};
+
+enum class DescriptorType {
+    Vsharp,
+    Tsharp
+};
+
+struct BufferDescriptorInfo {
+    int sgpr = -1;          // The user data SGPR the descriptor is in
+    bool is_ptr = false;    // Whether or not the user data is a pointer to it or is the descriptor itself
+    DescriptorType type;
+};
+
+// TODO: Duplicated from FetchShader.hpp
+struct Buffer;
+struct DescriptorLocation {
+    u32 sgpr = 0;                   // SGPR pair that contains the pointer to the descriptor or the descriptor itself
+    u32 offs = 0;                   // Offset in DWORDs from the pointer above
+    bool is_ptr = false;            // Whether or not the user data is a pointer to it or is the descriptor itself
+    bool ptr_is_from_buf = false;   // Whether or not to load the descriptor from the buffer below (bindless descriptor) or the user data
+    Buffer* buf = nullptr;          // For bindless buffers, this is the buffer the descriptor is loaded from
+    s32 buf_offs = 0;               // For bindless buffers, this is the offset (in DWORDs) into the buffer the descriptor is loaded from
+    DescriptorType type;
+    ShaderStage stage;
+
+    template<typename T> T* asPtr();
+};
+
+struct Buffer {
+    int binding = -1;
+    DescriptorLocation desc_info;
+    bool is_image_store = false;
+    bool is_instr_typed = false;
+    u32 instr_dfmt = 0;
+    u32 instr_nfmt = 0;
+};
+
+struct ShaderData {
+    std::string source;
+    std::deque<Buffer> buffers; // Buffers required by this shader
+    std::vector<int> vtx_outputs;   // For vertex shaders only, this is a list of the output attribute locations
+    bool has_gds = false;
+    u64 hash;
+
+    bool operator==(const ShaderData& other) {
+        return source == other.source;
+    }
+};
+
+void decompileShader(u32* data, ShaderStage stage, ShaderData& out_data, FetchShader* fetch_shader = nullptr, ComputeJob* compute_job = nullptr);
+
+}   // End namespace PS4::GCN::Shader

@@ -1,0 +1,125 @@
+#include "cond.hpp"
+#include <Logger.hpp>
+#include <Common/ErrorCodes.hpp>
+
+
+namespace PS4::OS::Libs::Kernel {
+
+MAKE_LOG_FUNCTION(log, lib_kernel);
+
+s32 PS4_FUNC kernel_pthread_condattr_init(pthread_condattr_t* attr) {
+    log("pthread_condattr_init(attr=*%p)\n", attr);
+    s32 ret = pthread_condattr_init(attr);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
+    log("pthread_cond_init(cond=*%p, attr=*%p)\n", cond, attr);
+    s32 ret = pthread_cond_init(cond, attr);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC scePthreadCondInit(pthread_cond_t* cond, const pthread_condattr_t* attr, const char* name) {
+    log("scePthreadCondInit(cond=*%p, attr=*%p, name=\"%s\")\n", cond, attr, name);
+    s32 ret = pthread_cond_init(cond, attr);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
+    log("pthread_cond_wait(cond=*%p, mutex=*%p)\n", cond, mutex);
+
+    if (*cond == 0) *cond = PTHREAD_COND_INITIALIZER;
+    s32 ret = pthread_cond_wait(cond, mutex);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const SceKernelTimespec* abstime) {
+    log("pthread_cond_timedwait(cond=*%p, mutex=*%p, abstime=*%p)\n", cond, mutex, abstime);
+    timespec time;
+    //time.tv_sec  = abstime->tv_sec;
+    //time.tv_nsec = abstime->tv_nsec;
+    
+    if (*cond == 0) *cond = PTHREAD_COND_INITIALIZER;
+
+    auto now = std::chrono::system_clock::now();
+    auto timeout = now + std::chrono::milliseconds(100);
+    auto secs = std::chrono::time_point_cast<std::chrono::seconds>(timeout);
+    auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(timeout - secs);
+    time.tv_sec = secs.time_since_epoch().count();
+    time.tv_nsec = nsec.count();
+    
+    auto ret = pthread_cond_timedwait(cond, mutex, &time);
+    if (ret == 138) // Windows ETIMEDOUT
+        return POSIX_ETIMEDOUT;
+    PTHREAD_CHECK_RESULT(ret);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_cond_reltimedwait_np(pthread_cond_t* cond, pthread_mutex_t* mutex, u64 us) {
+    log("pthread_cond_reltimedwait_np(cond=*%p, mutex=*%p, abstime=*%p)\n", cond, mutex, us);
+
+    timespec time;
+    auto now = std::chrono::system_clock::now();
+    auto timeout = now + std::chrono::microseconds(us);
+    auto secs = std::chrono::time_point_cast<std::chrono::seconds>(timeout);
+    auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(timeout - secs);
+    time.tv_sec = secs.time_since_epoch().count();
+    time.tv_nsec = nsec.count();
+
+    auto ret = pthread_cond_timedwait(cond, mutex, &time);
+    if (ret == 138) // Windows ETIMEDOUT
+        return POSIX_ETIMEDOUT;
+    PTHREAD_CHECK_RESULT(ret);
+    return 0;
+}
+
+s32 PS4_FUNC scePthreadCondTimedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, u64 us) {
+    log("scePthreadCondTimedwait(cond=*%p, mutex=*%p, us=%lld)\n", cond, mutex, us);
+
+    if (*cond == 0) *cond = PTHREAD_COND_INITIALIZER;
+
+    auto now = std::chrono::system_clock::now();
+    auto timeout = now + std::chrono::microseconds(us);
+    auto secs = std::chrono::time_point_cast<std::chrono::seconds>(timeout);
+    auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(timeout - secs);
+
+    timespec time;
+    time.tv_sec = secs.time_since_epoch().count();
+    time.tv_nsec = nsec.count();
+    const auto ret = pthread_cond_timedwait(cond, mutex, &time);
+    if (ret == ETIMEDOUT)
+        return SCE_KERNEL_ERROR_ETIMEDOUT;
+    else if (ret == 0)
+        return 0;
+
+    Helpers::panic("scePthreadCondTimedwait: unexpected error %d\n", ret);
+}
+
+s32 PS4_FUNC kernel_pthread_cond_signal(pthread_cond_t* cond) {
+    log("pthread_cond_signal(cond=*%p)\n", cond);
+
+    if (*cond == 0) *cond = PTHREAD_COND_INITIALIZER;
+    s32 ret = pthread_cond_signal(cond);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_cond_broadcast(pthread_cond_t* cond) {
+    log("pthread_cond_broadcast(cond=*%p)\n", cond);
+
+    if (*cond == 0) *cond = PTHREAD_COND_INITIALIZER;
+    s32 ret = pthread_cond_broadcast(cond);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_condattr_destroy(pthread_condattr_t* attr) {
+    log("pthread_condattr_destroy(attr=*%p)\n", attr);
+    return pthread_condattr_destroy(attr);
+}
+
+};  // End namespace PS4::OS::Libs::Kernel

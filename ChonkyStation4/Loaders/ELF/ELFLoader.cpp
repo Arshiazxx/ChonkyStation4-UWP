@@ -1,0 +1,406 @@
+#include "ELFLoader.hpp"
+#include "CodePatcher.hpp"
+#include <fstream>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
+
+
+using namespace ELFIO;
+
+static int modid = 1;
+static int tls_modid = 0;
+static void* last_load_addr = (void*)0x80'0000'0000;
+
+std::ifstream file;
+ELFLoader::SELFHeader self_header;
+std::vector<ELFLoader::SELFSegment> self_segments;
+std::vector<Elf64_Phdr> elf_phdrs;
+bool is_self = true;
+
+std::shared_ptr<Module> ELFLoader::load(const fs::path& path, bool is_partial_lle_module, std::shared_ptr<Module> hle_module) {
+    elfio elf;
+    std::shared_ptr<Module> module = std::make_unique<Module>();
+    module->filename = path.filename().generic_string();
+    module->modid = modid++;
+
+    // Try to load SELF header
+    auto str = path.generic_string();
+    if (file.is_open()) file.close();
+    file.open(str, std::ios::binary);
+    file.read((char*)&self_header, sizeof(SELFHeader));
+    if (self_header.magic == SELF_MAGIC) {
+        is_self = true;
+        // Load SELF segments
+        self_segments.resize(self_header.n_segments);
+        file.read((char*)self_segments.data(), sizeof(SELFSegment) * self_header.n_segments);
+
+        // Load ELF header
+        const size_t ehdr_offs = file.tellg();
+        Elf64_Ehdr elf_header;
+        file.read((char*)&elf_header, sizeof(Elf64_Ehdr));
+
+        // Load ELF program headers
+        elf_phdrs.resize(elf_header.e_phnum);
+        file.seekg(ehdr_offs + elf_header.e_phoff, std::ios::beg);
+        file.read((char*)elf_phdrs.data(), sizeof(Elf64_Phdr) * elf_header.e_phnum);
+        
+        // Set entry
+        elf.set_entry(elf_header.e_entry);
+
+        // Populate elfio segment vector
+        for (auto& phdr : elf_phdrs) {
+            auto* seg = elf.segments.add();
+            seg->set_type(phdr.p_type);
+            seg->set_flags(phdr.p_flags);
+            seg->set_virtual_address(phdr.p_vaddr);
+            seg->set_physical_address(phdr.p_paddr);
+            seg->set_file_size(phdr.p_filesz);
+            seg->set_memory_size(phdr.p_memsz);
+            seg->set_align(phdr.p_align);
+        }
+    } else {
+        // File is an ELF file?
+        is_self = false;
+        log("File %s is not a SELF file, loading as ELF (magic was 0x%08x)\n", str.c_str(), self_header.magic);
+
+        // Try to load as ELF
+        if (!elf.load(str.c_str())) {
+            Helpers::panic("Couldn't load ELF %s:\n%s\n", str.c_str(), elf.validate().c_str());
+        }
+    }
+
+    log("Loading %s %s\n", is_self ? "SELF" : "ELF", str.c_str());
+    log("* %d segments\n", elf.segments.size());
+
+    // Iterate over segments to find the total size we need to allocate
+    u64 min_vaddr = -1ull;
+    u64 max_vaddr = 0;
+    for (auto& seg : elf.segments) {
+        const auto type = seg->get_type();
+        if (type != PT_LOAD) continue;
+        u64 start = seg->get_virtual_address();
+        u64 end   = start + seg->get_memory_size();
+        if (start < min_vaddr) min_vaddr = start;
+        if (end   > max_vaddr) max_vaddr = end;
+    }
+    //const size_t total_size = max_vaddr - min_vaddr;
+    const size_t total_size = max_vaddr;
+    module->size = total_size;
+    log("* Total size of ELF: %d bytes (%f KB)\n", total_size, total_size / 1024.0f);
+
+    // Allocate memory
+#ifdef _WIN32
+    while (true) {
+        MEMORY_BASIC_INFORMATION mbi;
+        VirtualQuery(last_load_addr, &mbi, sizeof(mbi));
+        if (mbi.State == MEM_RESERVE && mbi.RegionSize > total_size) {
+            module->base_address = VirtualAlloc(mbi.BaseAddress, total_size, MEM_COMMIT, PAGE_READWRITE);
+            last_load_addr = (void*)((u64)module->base_address + total_size);
+            break;
+        }
+        last_load_addr = (void*)((u64)mbi.BaseAddress + mbi.RegionSize);
+    }
+    Helpers::debugAssert(module->base_address, "ELFLoader: VirtualAlloc failed");
+#else
+    Helpers::panic("Unsupported platform\n");
+#endif
+
+    log("* Base address of ELF: 0x%016llx\n", (u64)module->base_address);
+    log("* Mapped area: %p - %p (%p - %p)\n", module->base_address, (u64)module->base_address + total_size, 0, total_size);
+
+    module->entry = (void*)((u8*)module->base_address + elf.get_entry());
+    log("* Entry: 0x%016llx\n", (u64)module->entry);
+
+    auto register_segment = [&](ELFIO::segment& seg) {
+        if (module->n_segments == 4) {
+            Helpers::panic("ELFLoader: mapping more than 4 segments\n");
+        }
+
+        auto& seg_info = module->segments[module->n_segments++];
+        seg_info.addr = (void*)((uptr)module->base_address + seg.get_virtual_address());
+        seg_info.size = seg.get_memory_size();
+        seg_info.prot = seg.get_flags();
+    };
+
+    for (int i = 0; i < elf.segments.size(); i++) {
+        auto seg = elf.segments[i];
+        
+        std::string type_string;
+        if (segment_type_string.contains(seg->get_type()))
+            type_string = segment_type_string[seg->get_type()];
+        else
+            type_string = std::format("0x{:08x}", seg->get_type());
+
+        log("* Segment %d type %s: 0x%016llx -> 0x%016llx\n", i, type_string.c_str(), seg->get_virtual_address(), seg->get_virtual_address() + seg->get_memory_size());
+        switch (seg->get_type()) {
+        case PT_LOAD:
+        case PT_SCE_RELRO: {
+            register_segment(*seg);
+            loadSegment(*seg, module);
+            break;
+        }
+
+        case PT_DYNAMIC: {
+            register_segment(*seg);
+            module->dynamic_tags.resize(seg->get_file_size());
+            loadSegment(*seg, module, (u8*)module->dynamic_tags.data(), false, false);
+            break;
+        }
+
+        // Contains data for dynamic linking (PT_DYNAMIC) (i.e. string tables and symbol info)
+        case PT_SCE_DYNLIBDATA: {
+            module->dynamic_data.resize(seg->get_file_size());
+            loadSegment(*seg, module, (u8*)module->dynamic_data.data(), false, false);
+            break;
+        }
+
+        case PT_SCE_PROCPARAM: {
+            module->proc_param_ptr = seg->get_virtual_address() + (u64)module->base_address;
+            break;
+        }
+
+        // TLS info
+        case PT_TLS: {
+            module->tls_modid = tls_modid++;
+            module->tls_vaddr = seg->get_virtual_address() + (u64)module->base_address;
+            module->tls_filesz = seg->get_file_size();
+            module->tls_memsz = seg->get_memory_size();
+            
+            // Align size
+            const auto align = seg->get_align();
+            if (align)
+                module->tls_memsz = (module->tls_memsz + align - 1) & ~(align - 1);
+            break;
+        }
+
+        case PT_GNU_EH_FRAME: {
+            module->eh_frame_hdr_addr = (void*)(seg->get_virtual_address() + (uptr)module->base_address);
+            module->eh_frame_hdr_size = seg->get_memory_size();
+            // TODO: eh_frame_addr, eh_frame_size
+            break;
+        }
+        }
+    }
+
+    // Load dynamic linking data
+    for (Elf64_Dyn* dyn = (Elf64_Dyn*)module->dynamic_tags.data(); dyn->d_tag != DT_NULL; dyn++) {
+        log("%s\n", dump::str_dynamic_tag(dyn->d_tag).c_str());
+
+        switch (dyn->d_tag) {
+        case DT_INIT: {
+            module->init_func = (PS4::Loader::InitFunc)(dyn->d_un.d_ptr + (u64)module->base_address);
+            break;
+        }
+
+        case DT_SCE_MODULE_INFO: {
+            auto& module_info = module->exported_modules.emplace_back();
+            module_info.load(dyn->d_un.d_val, module->dyn_str_table);
+            log("Exported module %s\n", module_info.name.c_str());
+            break;
+        }
+
+        case DT_SCE_NEEDED_MODULE: {
+            auto& module_info = module->required_modules.emplace_back();
+            module_info.load(dyn->d_un.d_val, module->dyn_str_table);
+            log("Required module %s\n", module_info.name.c_str());
+            break;
+        }
+
+        case DT_SCE_EXPORT_LIB: {
+            auto& lib = module->exported_libs.emplace_back();
+            lib.load(dyn->d_un.d_val, module->dyn_str_table);
+            log("Exported library %s\n", lib.name.c_str());
+            break;
+        }
+
+        case DT_SCE_IMPORT_LIB: {
+            auto& lib = module->required_libs.emplace_back();
+            lib.load(dyn->d_un.d_val, module->dyn_str_table);
+            log("Imported library %s\n", lib.name.c_str());
+            break;
+        }
+
+        case DT_SCE_JMPREL: {
+            module->jmp_reloc_table = (Elf64_Rela*)(module->dynamic_data.data() + dyn->d_un.d_ptr);
+            break;
+        }
+
+        case DT_SCE_PLTRELSZ: {
+            module->jmp_reloc_table_size = dyn->d_un.d_val;
+            break;
+        }
+
+        case DT_SCE_RELA: {
+            module->reloc_table = (Elf64_Rela*)(module->dynamic_data.data() + dyn->d_un.d_ptr);
+            break;
+        }
+
+        case DT_SCE_RELASZ: {
+            module->reloc_table_size = dyn->d_un.d_val;
+            break;
+        }
+
+        case DT_SCE_STRTAB: {   // Sets the pointer of the string table
+            module->dyn_str_table = (char*)module->dynamic_data.data() + dyn->d_un.d_ptr;
+            break;
+        }
+
+        case DT_SCE_SYMTAB: {
+            module->sym_table = (Elf64_Sym*)(module->dynamic_data.data() + dyn->d_un.d_ptr);
+            break;
+        }
+
+        case DT_SCE_SYMTABSZ: {
+            module->sym_table_size = dyn->d_un.d_val;
+            break;
+        }
+        }
+    }
+
+    // Export symbols
+    if (!module->sym_table) log("WARNING: NO SYMBOL TABLE!\n");
+    for (Elf64_Sym* sym = module->sym_table; (u8*)sym < (u8*)module->sym_table + module->sym_table_size; sym++) {
+        auto bind = ELF_ST_BIND(sym->st_info);
+        const std::string sym_name = module->dyn_str_table + sym->st_name;
+
+        // Export STB_GLOBAL and STB_WEAK symbols (not local symbols) that have st_value != 0
+        // Special case for "environ" because we need it
+        if ((bind == STB_LOCAL || sym->st_value == 0) && !sym_name.contains("+2thxYZ4syk")) {
+            log("* Skipped local symbol %s\n", sym_name.c_str());
+            continue;
+        }
+
+        // module_start
+        if (sym_name == "BaOKcng8g88")
+            continue;
+        
+        // module_stop
+        if (sym_name == "KpDMrPHvt3Q")
+            continue;
+
+        // Find library and module
+        auto tokens = Helpers::split(sym_name, "#");
+        Helpers::debugAssert(tokens.size() == 3, "Linker: invalid symbol %s\n", sym_name.c_str());
+        auto* lib = module->findLibrary(tokens[1]);
+        auto* mod = module->findModule(tokens[2]);
+        Helpers::debugAssert(lib, "Linker: could not find library for symbol %s\n", sym_name.c_str());
+        Helpers::debugAssert(mod, "Linker: could not find module for symbol %s\n", sym_name.c_str());
+
+        auto export_symbol = [&]() {
+            module->addSymbolExport(tokens[0], tokens[0], lib->name, mod->name, (void*)((u64)module->base_address + sym->st_value));
+            log("* Exported symbol %s (%s)\n", tokens[0].c_str(), lib->name.c_str());
+        };
+
+        // Export symbol
+        if (!is_partial_lle_module) {
+            // Only export it if the HLE module did not already export it (partial HLE)
+            if (hle_module.get() && hle_module->findSymbolExport(tokens[0], lib->name, mod->name))
+                continue;
+            export_symbol();
+        }
+        // If this is a partial LLE module, only export it if specified in the HLE module's partial LLE symbol list
+        else if (hle_module->isPartialLLESymbol(tokens[0], lib->name, mod->name))
+            export_symbol();
+    }
+
+    // Print modules
+    log("Loaded modules:\n");
+    for (auto& module : module->required_modules) {
+        log("* %s: %s\n", module.id.c_str(), module.name.c_str());
+    }
+    log("Exported modules:\n");
+    for (auto& module : module->exported_modules) {
+        log("* %s: %s\n", module.id.c_str(), module.name.c_str());
+    }
+
+    // Print libraries
+    log("Loaded libraries:\n");
+    for (auto& lib : module->required_libs) {
+        log("* %s: %s\n", lib.id.c_str(), lib.name.c_str());
+    }
+    log("Exported libraries:\n");
+    for (auto& lib : module->exported_libs) {
+        log("* %s: %s\n", lib.id.c_str(), lib.name.c_str());
+    }
+
+    // Fix permissions for each segment
+    for (auto& seg : elf.segments) {
+        if (seg->get_type() != PT_LOAD) continue;
+
+#ifdef _WIN32
+        // Set permissions
+        auto get_perms = [](u32 flags) -> u64 {
+            bool r = flags & PF_R;
+            bool w = flags & PF_W;
+            bool x = flags & PF_X;
+            if (r && !w && !x)      return PAGE_READONLY;
+            else if (r && w && !x)  return PAGE_READWRITE;
+            else if (r && !w && x)  return PAGE_EXECUTE_READ;
+            else if (r && w && x)   return PAGE_EXECUTE_READWRITE;
+            else Helpers::panic("ELFLoader: invalid flags 0x%08x\n", flags);
+        };
+
+        const u8* ptr = (u8*)module->base_address + seg->get_virtual_address();
+
+        // TODO: To apply permissions properly (get_perms(seg->get_flags())) we need to apply them AFTER relocations happen.
+        //       Doing that requires restructuring some code. Stub to RWX.
+        DWORD old_flags;
+        if (!VirtualProtect((LPVOID*)ptr, seg->get_memory_size(), PAGE_EXECUTE_READWRITE, &old_flags)) {
+            Helpers::panic("ELFLoader: VirtualProtect failed\n");
+        }
+#else
+        Helpers::panic("Unsupported platform\n");
+#endif
+
+    }
+
+    return module;
+}
+
+void* ELFLoader::loadSegment(ELFIO::segment& seg, std::shared_ptr<Module> module, u8* ptr, bool do_patch, bool zero_fill) {
+    // Load segment in host memory if no explicit pointer is specified
+    if (!ptr) {
+        ptr = (u8*)module->base_address + seg.get_virtual_address();
+    }
+    
+    if (!is_self) {
+        // Copy segment data
+        std::memcpy((u8*)ptr, seg.get_data(), seg.get_file_size());
+    } else {
+        // Find the SELF segment that corresponds to this ELF phdr
+        bool found = false;
+        for (auto& self_seg : self_segments) {
+            if ((self_seg.flags & 0x800) == 0) continue;   // if !IsBlocked
+            
+            const auto id = self_seg.flags >> 20;
+            const auto& phdr = elf_phdrs[id];
+            if (Helpers::inRangeSized<u64>(elf_phdrs[seg.get_index()].p_offset, phdr.p_offset, phdr.p_filesz)) {
+                found = true;
+                file.seekg((elf_phdrs[seg.get_index()].p_offset - phdr.p_offset) + self_seg.offset, std::ios::beg);
+                file.read((char*)ptr, seg.get_file_size());
+                break;
+            }
+        }
+        
+        if (!found) {
+            Helpers::panic("ELFLoader: could not find SELF segment for ELF segment offset 0x%016llx\n", elf_phdrs[seg.get_index()].p_offset);
+        }
+    }
+
+    if (zero_fill) {
+        // Set the remaining memory to 0
+        std::memset((u8*)ptr + seg.get_file_size(), 0, seg.get_memory_size() - seg.get_file_size());
+    }
+    
+    if (do_patch) {
+        // Apply patches if the segment is executable
+        const bool x = seg.get_flags() & PF_X;
+        const u64 size = seg.get_memory_size();
+        if (x) PS4::Loader::ELF::patchCode(*module, (u8*)ptr, size);
+    }
+
+    return (void*)((u8*)ptr);
+}

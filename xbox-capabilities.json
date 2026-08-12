@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "source_commit": "310269290a3c256f5911d4bc7e441489bffffbf6",
+  "run_state": "NOT_RUN",
+  "device_family": "UNKNOWN",
+  "note": "Repository baseline only. Replace with output produced by XboxCapabilityProbe on actual target hardware.",
+  "results": [
+    {
+      "category": "memory",
+      "name": "app_memory_usage_limit",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "memory",
+      "name": "large_address_reservation",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "memory",
+      "name": "reserve_and_commit_16mib",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "virtual_memory",
+      "name": "fixed_address_reservation",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "virtual_memory",
+      "name": "page_protection_read_only",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "virtual_memory",
+      "name": "page_protection_execute_read",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "virtual_memory",
+      "name": "page_protection_restore_read_write",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "jit_related",
+      "name": "executable_memory_allocation",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "jit_related",
+      "name": "instruction_cache_flush_api",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "jit_related",
+      "name": "generated_code_execution",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "jit_related",
+      "name": "guest_tls_abi",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "cpu",
+      "name": "hardware_concurrency_query",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "cpu",
+      "name": "thread_batch_32",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "cpu",
+      "name": "mutex_condition_variable",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "cpu",
+      "name": "steady_clock_monotonic_sample",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics",
+      "name": "d3d12_device",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics",
+      "name": "feature_level",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics",
+      "name": "shader_model",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics",
+      "name": "root_signature_version",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics",
+      "name": "shader_visible_descriptor_heap",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics",
+      "name": "committed_buffer_resource",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics_format",
+      "name": "BGRA8_UNORM",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics_format",
+      "name": "RGBA8_UNORM",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics_format",
+      "name": "RGBA32_FLOAT",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics_format",
+      "name": "BC1_UNORM",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "graphics_format",
+      "name": "D32_FLOAT",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "local_filesystem_read_write",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "networking_api",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "network_connectivity",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "gamepad_api",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "physical_controller_input",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "audio_output_endpoint",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "application_launch",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    },
+    {
+      "category": "uwp",
+      "name": "suspend_resume_lifecycle",
+      "status": "REQUIRES_HARDWARE_TEST",
+      "observed": "NOT_TESTED",
+      "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+    }
+  ]
+}

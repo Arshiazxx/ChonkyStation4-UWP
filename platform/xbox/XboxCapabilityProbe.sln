@@ -1,0 +1,18 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.0.0
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "XboxCapabilityProbe", "XboxCapabilityProbe\XboxCapabilityProbe.vcxproj", "{5C0F782A-783A-4D97-97C1-BF28A7A73B55}"
+EndProject
+Global
+    GlobalSection(SolutionConfigurationPlatforms) = preSolution
+        Debug|x64 = Debug|x64
+        Release|x64 = Release|x64
+    EndGlobalSection
+    GlobalSection(ProjectConfigurationPlatforms) = postSolution
+        {5C0F782A-783A-4D97-97C1-BF28A7A73B55}.Debug|x64.ActiveCfg = Debug|x64
+        {5C0F782A-783A-4D97-97C1-BF28A7A73B55}.Debug|x64.Build.0 = Debug|x64
+        {5C0F782A-783A-4D97-97C1-BF28A7A73B55}.Release|x64.ActiveCfg = Release|x64
+        {5C0F782A-783A-4D97-97C1-BF28A7A73B55}.Release|x64.Build.0 = Release|x64
+    EndGlobalSection
+EndGlobal

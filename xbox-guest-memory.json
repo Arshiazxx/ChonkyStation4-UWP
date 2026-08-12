@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "source_commit": "310269290a3c256f5911d4bc7e441489bffffbf6",
+  "run_state": "NOT_RUN",
+  "device_family": "UNKNOWN",
+  "guest_base": "0x0000000080000000",
+  "reservation_bytes": 2199023255552,
+  "allocation_search_bytes": 2147483648000,
+  "system_mapping_area": "0x0000001000000000",
+  "guest_page_bytes": 16384,
+  "note": "Repository baseline only. Replace or archive beside output produced by the Xbox guest-memory diagnostic on actual Xbox Dev Mode hardware.",
+  "results": {
+    "exact_reservation": "REQUIRES_HARDWARE_TEST",
+    "reservation_query": "REQUIRES_HARDWARE_TEST",
+    "commit": "REQUIRES_HARDWARE_TEST",
+    "write_read": "REQUIRES_HARDWARE_TEST",
+    "read_only_protection": "REQUIRES_HARDWARE_TEST",
+    "read_write_restore": "REQUIRES_HARDWARE_TEST",
+    "decommit": "REQUIRES_HARDWARE_TEST",
+    "shared_mapping": "REQUIRES_HARDWARE_TEST",
+    "release": "REQUIRES_HARDWARE_TEST",
+    "executable_guest_memory": "NOT_TESTED_M7",
+    "guest_execution": "NOT_TESTED_M7"
+  }
+}

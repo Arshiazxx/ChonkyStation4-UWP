@@ -1,0 +1,345 @@
+#pragma once
+
+#include <cstdio>
+#include <cstdint>
+#include <cstdarg>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <format>
+#include <string>
+#include <vector>
+#include <filesystem>
+#include <iterator>
+#include <cstring>
+
+
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+// Types
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
+
+using s8 = std::int8_t;
+using s16 = std::int16_t;
+using s32 = std::int32_t;
+using s64 = std::int64_t;
+
+using uptr = std::uintptr_t;
+
+union v128 {
+    u8 b[16];
+    u16 h[8];
+    u32 w[4];
+    u64 dw[2];
+    float f[4];
+    double d[2];
+};
+
+constexpr size_t operator""_KB(unsigned long long int x) { return 1024ULL * x; }
+constexpr size_t operator""_MB(unsigned long long int x) { return 1024_KB * x; }
+constexpr size_t operator""_GB(unsigned long long int x) { return 1024_MB * x; }
+
+namespace fs = std::filesystem;
+
+#define PS4_FUNC __attribute__((sysv_abi))
+
+#define PTHREAD_CHECK_RESULT(res) \
+if (res) Helpers::panic("%s: pthread result check failed\n", __PRETTY_FUNCTION__);
+
+static constexpr s32 SCE_OK = 0;
+
+struct SceKernelTimespec {
+    s64 tv_sec;
+    s64 tv_nsec;
+};
+
+struct SceKernelTimeval {
+    s64 tv_sec;
+    s64 tv_usec;
+};
+
+struct SceKernelTimezone {
+    s32 tz_minuteswest;
+    s32 tz_dsttime;
+};
+
+struct SceKernelTimesec {
+    time_t t;
+    u32 west_sec;
+    u32 dst_sec;
+};
+
+namespace Helpers {
+
+template <class... Args>
+[[noreturn]] static void panic(const char* fmt, Args&&... args) {
+    std::string error;
+    error.resize(512_KB);
+    std::sprintf(error.data(), fmt, args...);
+    //throw std::runtime_error(error);
+    std::printf("FATAL: ");
+    std::printf(error.c_str());
+    std::putc('\n', stdout);
+    std::_Exit(0);
+}
+
+template <class... Args>
+static void debugAssert(bool cond, const char* fmt, Args&&... args) {
+    if (!cond) [[unlikely]] {
+        std::string error;
+        error.resize(512_KB);
+        std::sprintf(error.data(), fmt, args...);
+        throw std::runtime_error(error);
+    }
+}
+
+static auto readBinary(const fs::path& directory) -> std::vector<u8> {
+    std::ifstream file(directory, std::ios::binary);
+    if (!file.is_open()) {
+        std::cout << "Couldn't find ROM at " << directory << "\n";
+        exit(1);
+    }
+
+    std::vector<uint8_t> binary;
+    file.unsetf(std::ios::skipws);
+    std::streampos fileSize;
+    file.seekg(0, std::ios::end);
+    fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    binary.insert(binary.begin(),
+        std::istream_iterator<uint8_t>(file),
+        std::istream_iterator<uint8_t>());
+    file.close();
+
+    return binary;
+}
+
+static void dump(const char* filename, u8* data, u64 size) {
+    std::ofstream file(filename, std::ios::binary);
+    file.write((const char*)data, size);
+}
+
+template<typename T>
+static inline bool inRange(T num, T start, T end) {
+    if ((start <= num) && (num <= end)) return true;
+    else return false;
+}
+
+template<typename T>
+static inline bool inRangeSized(T num, T start, T size) {
+    if ((start <= num) && (num < (start + size))) return true;
+    else return false;
+}
+
+template <typename T>
+static inline T alignDown(T value, size_t align) {
+    return value & ~(align - 1);
+}
+
+template <typename T>
+static inline T alignUp(T value, size_t align) {
+    return (value + align - 1) & ~(align - 1);
+}
+
+static std::string readString(u8* ptr) {
+    std::string str;
+    while (*ptr)
+        str += *ptr++;
+    return str;
+}
+
+static std::string readString(const u8* ptr) {
+    std::string str;
+    while (*ptr)
+        str += *ptr++;
+    return str;
+}
+
+static std::vector<std::string> split(const std::string& s, const std::string& delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    std::string token;
+    std::vector<std::string> res;
+
+    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+        token = s.substr(pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back(token);
+    }
+
+    res.push_back(s.substr(pos_start));
+    return res;
+}
+
+static inline u16 bswap16(u16 val) {
+    return (val >> 8) | (val << 8);
+}
+
+static inline u32 bswap32(u32 val) {
+    u32 byte0 = val & 0xff;
+    u32 byte1 = (val >> 8) & 0xff;
+    u32 byte2 = (val >> 16) & 0xff;
+    u32 byte3 = (val >> 24) & 0xff;
+    return (byte0 << 24) | (byte1 << 16) | (byte2 << 8) | byte3;
+}
+
+static inline u64 bswap64(u64 val) {
+    u64 byte0 = val & 0xff;
+    u64 byte1 = (val >> 8) & 0xff;
+    u64 byte2 = (val >> 16) & 0xff;
+    u64 byte3 = (val >> 24) & 0xff;
+    u64 byte4 = (val >> 32) & 0xff;
+    u64 byte5 = (val >> 40) & 0xff;
+    u64 byte6 = (val >> 48) & 0xff;
+    u64 byte7 = (val >> 56) & 0xff;
+    return (byte0 << 56) | (byte1 << 48) | (byte2 << 40) | (byte3 << 32) | (byte4 << 24) | (byte5 << 16) | (byte6 << 8) | byte7;
+}
+
+template<typename T>
+static inline T bswap(T val) {
+    if constexpr (sizeof(T) == sizeof(u8)) return val;
+    else if constexpr (sizeof(T) == sizeof(u16)) {
+#ifdef _MSC_VER
+        return _byteswap_ushort(val);
+#elif __has_builtin(__builtin_bswap16)
+        return __builtin_bswap16(val);
+#else
+        return (val >> 8) | (val << 8);
+#endif
+    }
+    else if constexpr (sizeof(T) == sizeof(u32)) {
+#ifdef _MSC_VER
+        return _byteswap_ulong(val);
+#elif __has_builtin(__builtin_bswap32)
+        return __builtin_bswap32(val);
+#else
+        u32 byte0 = val & 0xff;
+        u32 byte1 = (val >> 8) & 0xff;
+        u32 byte2 = (val >> 16) & 0xff;
+        u32 byte3 = (val >> 24) & 0xff;
+        return (byte0 << 24) | (byte1 << 16) | (byte2 << 8) | byte3;
+#endif
+    }
+    else if constexpr (sizeof(T) == sizeof(u64)) {
+#ifdef _MSC_VER
+        return _byteswap_uint64(val);
+#elif __has_builtin(__builtin_bswap64)
+        return __builtin_bswap64(val);
+#else
+        u64 byte0 = val & 0xff;
+        u64 byte1 = (val >> 8) & 0xff;
+        u64 byte2 = (val >> 16) & 0xff;
+        u64 byte3 = (val >> 24) & 0xff;
+        u64 byte4 = (val >> 32) & 0xff;
+        u64 byte5 = (val >> 40) & 0xff;
+        u64 byte6 = (val >> 48) & 0xff;
+        u64 byte7 = (val >> 56) & 0xff;
+        return (byte0 << 56) | (byte1 << 48) | (byte2 << 40) | (byte3 << 32) | (byte4 << 24) | (byte5 << 16) | (byte6 << 8) | byte7;
+#endif
+    }
+    else return 0;
+}
+
+// From shadPS4 & GPCS4
+template <typename T>
+class Flags {
+public:
+    using IntType = std::underlying_type_t<T>;
+
+    Flags() {}
+
+    Flags(IntType t) : m_bits(t) {}
+
+    template <typename... Tx>
+    Flags(T f, Tx... fx) {
+        this->set(f, fx...);
+    }
+
+    template <typename... Tx>
+    void set(Tx... fx) {
+        m_bits |= bits(fx...);
+    }
+
+    void set(Flags flags) {
+        m_bits |= flags.m_bits;
+    }
+
+    template <typename... Tx>
+    void clr(Tx... fx) {
+        m_bits &= ~bits(fx...);
+    }
+
+    void clr(Flags flags) {
+        m_bits &= ~flags.m_bits;
+    }
+
+    template <typename... Tx>
+    bool any(Tx... fx) const {
+        return (m_bits & bits(fx...)) != 0;
+    }
+
+    template <typename... Tx>
+    bool all(Tx... fx) const {
+        const IntType mask = bits(fx...);
+        return (m_bits & mask) == mask;
+    }
+
+    bool test(T f) const {
+        return this->any(f);
+    }
+
+    bool isClear() const {
+        return m_bits == 0;
+    }
+
+    void clrAll() {
+        m_bits = 0;
+    }
+
+    u32 raw() const {
+        return m_bits;
+    }
+
+    Flags operator&(const Flags& other) const {
+        return Flags(m_bits & other.m_bits);
+    }
+
+    Flags operator|(const Flags& other) const {
+        return Flags(m_bits | other.m_bits);
+    }
+
+    Flags operator^(const Flags& other) const {
+        return Flags(m_bits ^ other.m_bits);
+    }
+
+    bool operator==(const Flags& other) const {
+        return m_bits == other.m_bits;
+    }
+
+    bool operator!=(const Flags& other) const {
+        return m_bits != other.m_bits;
+    }
+
+private:
+    IntType m_bits = 0;
+
+    static IntType bit(T f) {
+        return IntType(1) << static_cast<IntType>(f);
+    }
+
+    template <typename... Tx>
+    static IntType bits(T f, Tx... fx) {
+        return bit(f) | bits(fx...);
+    }
+
+    static IntType bits() {
+        return 0;
+    }
+};
+
+}   // End namespace Helpers

@@ -1,0 +1,427 @@
+ChonkyStation4 Xbox M2-M6 final validation
+upstream_source_commit=310269290a3c256f5911d4bc7e441489bffffbf6
+validated_repository_head=cd63a1981f88ccae0d2751d19ca52db2c802435e
+validation_started_utc=2026-08-10T16:51:23Z
+
+$ python3 platform/xbox/tools/validate_project.py
+PASS: ChonkyStation4.Xbox/ChonkyStation4.Xbox.vcxproj XML and file references
+PASS: manifest target Windows.Xbox 10.0.17763.0..10.0.26100.0
+PASS: AppContainerApplication=true
+PASS: ApplicationType=Windows Store
+exit_code=0
+
+$ python3 platform/xbox/tools/validate_d3d12_foundation.py
+PASS: device creation
+PASS: adapter selection
+PASS: command queue
+PASS: command allocator
+PASS: command list
+PASS: composition swap chain
+PASS: XAML swap-chain binding
+PASS: RTV descriptor heap
+PASS: shader-visible SRV heap
+PASS: resource allocation
+PASS: shader compilation
+PASS: root signature
+PASS: pipeline state
+PASS: fence synchronization
+PASS: presentation
+PASS: clear test
+PASS: triangle/quad draw
+PASS: texture SRV
+PASS: clear/triangle/textured-quad demo modes
+PASS: D3D12/DXGI/shader compiler link dependencies
+PASS: host render-test controls wired
+PASS: M4 static D3D12 foundation validation
+exit_code=0
+
+$ python3 platform/xbox/tools/validate_capability_probe.py
+PASS: capability probe project/XML/source coverage
+PASS: baseline xbox-capabilities.json is NOT_RUN and contains no fabricated SUPPORTED result
+exit_code=0
+
+$ python3 platform/xbox/tools/validate_guest_memory.py
+PASS: M6 layout matches current upstream constants
+PASS: UWP data-memory reservation/commit/protect/decommit/shared-map diagnostics are present
+PASS: M6 contains no executable-page or guest-execution implementation
+PASS: baseline xbox-guest-memory.json is NOT_RUN
+exit_code=0
+
+$ python3 -m json.tool xbox-capabilities.json
+{
+    "schema_version": 1,
+    "source_commit": "310269290a3c256f5911d4bc7e441489bffffbf6",
+    "run_state": "NOT_RUN",
+    "device_family": "UNKNOWN",
+    "note": "Repository baseline only. Replace with output produced by XboxCapabilityProbe on actual target hardware.",
+    "results": [
+        {
+            "category": "memory",
+            "name": "app_memory_usage_limit",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "memory",
+            "name": "large_address_reservation",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "memory",
+            "name": "reserve_and_commit_16mib",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "virtual_memory",
+            "name": "fixed_address_reservation",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "virtual_memory",
+            "name": "page_protection_read_only",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "virtual_memory",
+            "name": "page_protection_execute_read",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "virtual_memory",
+            "name": "page_protection_restore_read_write",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "jit_related",
+            "name": "executable_memory_allocation",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "jit_related",
+            "name": "instruction_cache_flush_api",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "jit_related",
+            "name": "generated_code_execution",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "jit_related",
+            "name": "guest_tls_abi",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "cpu",
+            "name": "hardware_concurrency_query",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "cpu",
+            "name": "thread_batch_32",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "cpu",
+            "name": "mutex_condition_variable",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "cpu",
+            "name": "steady_clock_monotonic_sample",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics",
+            "name": "d3d12_device",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics",
+            "name": "feature_level",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics",
+            "name": "shader_model",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics",
+            "name": "root_signature_version",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics",
+            "name": "shader_visible_descriptor_heap",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics",
+            "name": "committed_buffer_resource",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics_format",
+            "name": "BGRA8_UNORM",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics_format",
+            "name": "RGBA8_UNORM",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics_format",
+            "name": "RGBA32_FLOAT",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics_format",
+            "name": "BC1_UNORM",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "graphics_format",
+            "name": "D32_FLOAT",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "local_filesystem_read_write",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "networking_api",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "network_connectivity",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "gamepad_api",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "physical_controller_input",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "audio_output_endpoint",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "application_launch",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        },
+        {
+            "category": "uwp",
+            "name": "suspend_resume_lifecycle",
+            "status": "REQUIRES_HARDWARE_TEST",
+            "observed": "NOT_TESTED",
+            "detail": "No XboxCapabilityProbe runtime result has been collected in this environment."
+        }
+    ]
+}
+exit_code=0
+
+$ python3 -m json.tool xbox-guest-memory.json
+{
+    "schema_version": 1,
+    "source_commit": "310269290a3c256f5911d4bc7e441489bffffbf6",
+    "run_state": "NOT_RUN",
+    "device_family": "UNKNOWN",
+    "guest_base": "0x0000000080000000",
+    "reservation_bytes": 2199023255552,
+    "allocation_search_bytes": 2147483648000,
+    "system_mapping_area": "0x0000001000000000",
+    "guest_page_bytes": 16384,
+    "note": "Repository baseline only. Replace or archive beside output produced by the Xbox guest-memory diagnostic on actual Xbox Dev Mode hardware.",
+    "results": {
+        "exact_reservation": "REQUIRES_HARDWARE_TEST",
+        "reservation_query": "REQUIRES_HARDWARE_TEST",
+        "commit": "REQUIRES_HARDWARE_TEST",
+        "write_read": "REQUIRES_HARDWARE_TEST",
+        "read_only_protection": "REQUIRES_HARDWARE_TEST",
+        "read_write_restore": "REQUIRES_HARDWARE_TEST",
+        "decommit": "REQUIRES_HARDWARE_TEST",
+        "shared_mapping": "REQUIRES_HARDWARE_TEST",
+        "release": "REQUIRES_HARDWARE_TEST",
+        "executable_guest_memory": "NOT_TESTED_M7",
+        "guest_execution": "NOT_TESTED_M7"
+    }
+}
+exit_code=0
+
+$ cmake -S . -B /mnt/data/chonkystation4-final-validation/upstream-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+-- The C compiler identification is GNU 14.2.0
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+CMake Error at CMakeLists.txt:86 (add_subdirectory):
+  The source directory
+
+    /mnt/data/chonkystation4-xbox-port/Dependencies/zydis
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at CMakeLists.txt:90 (add_subdirectory):
+  The source directory
+
+    /mnt/data/chonkystation4-xbox-port/Dependencies/SDL
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at CMakeLists.txt:91 (add_subdirectory):
+  add_subdirectory given source "Dependencies/xxHash/cmake_unofficial" which
+  is not an existing directory.
+
+
+CMake Error at CMakeLists.txt:92 (add_subdirectory):
+  The source directory
+
+    /mnt/data/chonkystation4-xbox-port/Dependencies/miniz
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at CMakeLists.txt:93 (add_subdirectory):
+  The source directory
+
+    /mnt/data/chonkystation4-xbox-port/Dependencies/cpp-httplib
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at CMakeLists.txt:96 (add_subdirectory):
+  The source directory
+
+    /mnt/data/chonkystation4-xbox-port/Dependencies/glslang
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at CMakeLists.txt:134 (add_subdirectory):
+  The source directory
+
+    /mnt/data/chonkystation4-xbox-port/Dependencies/cppco
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at /usr/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake:233 (message):
+  Could NOT find Vulkan (missing: Vulkan_LIBRARY Vulkan_INCLUDE_DIR) (found
+  version "")
+Call Stack (most recent call first):
+  /usr/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake:603 (_FPHSA_FAILURE_MESSAGE)
+  /usr/share/cmake-3.31/Modules/FindVulkan.cmake:595 (find_package_handle_standard_args)
+  CMakeLists.txt:139 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
+exit_code=1
+
+$ cmake --build /mnt/data/chonkystation4-final-validation/upstream-build
+ninja: error: loading 'build.ninja': No such file or directory
+exit_code=1
+
+$ ctest --test-dir /mnt/data/chonkystation4-final-validation/upstream-build --output-on-failure
+Internal ctest changing into directory: /mnt/data/chonkystation4-final-validation/upstream-build
+Test project /mnt/data/chonkystation4-final-validation/upstream-build
+No tests were found!!!
+exit_code=0
+
+$ msbuild platform/xbox/ChonkyStation4.Xbox.sln /m /t:Rebuild /p:Configuration=Release /p:Platform=x64
+environment: line 8: msbuild: command not found
+exit_code=127
+
+$ msbuild platform/xbox/XboxCapabilityProbe.sln /m /t:Rebuild /p:Configuration=Release /p:Platform=x64
+environment: line 8: msbuild: command not found
+exit_code=127
+
+$ git diff --check
+exit_code=0
+
+validation_finished_utc=2026-08-10T16:51:26Z

@@ -1,0 +1,58 @@
+#pragma once
+
+#include <Common.hpp>
+#include <OS/Libraries/Kernel/Equeue.hpp>
+
+
+class Module;
+
+namespace PS4::OS::Libs::SceGnmDriver {
+
+void init(Module& module);
+
+static constexpr s32 MAX_COMPUTE_QUEUES_PER_PIPE = 8;
+static constexpr s32 MAX_COMPUTE_PIPES           = 7;
+static constexpr s32 MAX_COMPUTE_QUEUES          = MAX_COMPUTE_QUEUES_PER_PIPE * MAX_COMPUTE_PIPES;
+
+struct ComputeQueue {
+    bool is_mapped = false;
+    void* ring_base_addr = nullptr;
+    u32 ring_size_dw = 0;
+    u32* read_ptr_addr = nullptr;
+    u32 next_offs_dw = 0;
+};
+
+s32 PS4_FUNC sceGnmSubmitAndFlipCommandBuffers(u32 cnt, u32** dcb_gpu_addrs, u32* dcb_sizes, u32** ccb_gpu_addrs, u32* ccb_sizes, u32 video_out_handle, u32 buf_idx, u32 flip_mode, u64 flip_arg);
+s32 PS4_FUNC sceGnmSubmitAndFlipCommandBuffersForWorkload(u64 workload, u32 cnt, u32** dcb_gpu_addrs, u32* dcb_sizes, u32** ccb_gpu_addrs, u32* ccb_sizes, u32 video_out_handle, u32 buf_idx, u32 flip_mode, u64 flip_arg);
+s32 PS4_FUNC sceGnmSubmitCommandBuffers(u32 cnt, u32** dcb_gpu_addrs, u32* dcb_sizes, u32** ccb_gpu_addrs, u32* ccb_sizes);
+s32 PS4_FUNC sceGnmSubmitDone();
+s32 PS4_FUNC sceGnmAddEqEvent(Libs::Kernel::SceKernelEqueue eq, u64 id, void* udata);
+s32 PS4_FUNC sceGnmMapComputeQueue(u32 pipe_id, u32 queue_id, void* ring_base_addr, u32 ring_size_dw, u32* read_ptr_addr);
+s32 PS4_FUNC sceGnmMapComputeQueueWithPriority(u32 pipe_id, u32 queue_id, void* ring_base_addr, u32 ring_size_dw, u32* read_ptr_addr, u32 prio);
+s32 PS4_FUNC sceGnmDingDong(u32 queue_id, u32 next_offs_dw);
+s32 PS4_FUNC sceGnmDingDongForWorkload(u32 queue_id, u32 next_offs_dw, u64 workload);
+s32 PS4_FUNC sceGnmCreateWorkloadStream(const char* name, u32* workload_stream_id);
+s32 PS4_FUNC sceGnmBeginWorkload(u32 workload_stream_id, u64* workload_id);
+s32 PS4_FUNC sceGnmEndWorkload(u64 workload_id);
+void* PS4_FUNC sceGnmGetTheTessellationFactorRingBufferBaseAddress();
+s32 PS4_FUNC sceGnmDrawInitDefaultHardwareState(u32* buf, u32 size);
+s32 PS4_FUNC sceGnmDrawInitDefaultHardwareState200(u32* buf, u32 size);
+s32 PS4_FUNC sceGnmDrawInitDefaultHardwareState350(u32* buf, u32 size);
+s32 PS4_FUNC sceGnmDispatchInitDefaultHardwareState(u32* buf, u32 size);
+s32 PS4_FUNC sceGnmSetEmbeddedVsShader(u32* buf, u32 size, u32 shader_id, u32 shader_modifier);
+s32 PS4_FUNC sceGnmSetEmbeddedPsShader(u32* buf, u32 size, u32 shader_id, u32 shader_modifier);
+s32 PS4_FUNC sceGnmDrawIndexAuto(u32* buf, u32 size, u32 cnt, u32 flags);
+s32 PS4_FUNC sceGnmDrawIndex(u32* buf, u32 size, u32 cnt, void* index_buf_ptr, u32 flags, u32 type);
+s32 PS4_FUNC sceGnmDrawIndexOffset(u32* buf, u32 size, u32 start, u32 cnt, u32 flags);
+s32 PS4_FUNC sceGnmDispatchDirect(u32* buf, u32 size, u32 threads_x, u32 threads_y, u32 threads_z, u32 flags);
+s32 PS4_FUNC sceGnmSetVsShader(u32* buf, u32 size, const u32* vs_regs, u32 shader_modifier);
+s32 PS4_FUNC sceGnmUpdateVsShader(u32* buf, u32 size, const u32* vs_regs, u32 shader_modifier);
+s32 PS4_FUNC sceGnmSetPsShader(u32* buf, u32 size, const u32* ps_regs);
+s32 PS4_FUNC sceGnmSetPsShader350(u32* buf, u32 size, const u32* ps_regs);
+s32 PS4_FUNC sceGnmUpdatePsShader(u32* buf, u32 size, const u32* ps_regs);
+s32 PS4_FUNC sceGnmUpdatePsShader350(u32* buf, u32 size, const u32* ps_regs);
+s32 PS4_FUNC sceGnmSetCsShader(u32* buf, u32 size, const u32* cs_regs);
+s32 PS4_FUNC sceGnmSetCsShaderWithModifier(u32* buf, u32 size, const u32* cs_regs, u32 shader_modifier);
+s32 PS4_FUNC sceGnmInsertWaitFlipDone(u32* buf, u32 size, s32 video_out_handle, u32 buf_idx);
+
+}   // End namespace PS4::OS::Libs::SceGnmDriver

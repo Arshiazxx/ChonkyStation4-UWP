@@ -1,0 +1,39 @@
+[submodule "Dependencies/ELFIO"]
+	path = Dependencies/ELFIO
+	url = https://github.com/serge1/ELFIO.git
+[submodule "Dependencies/xbyak"]
+	path = Dependencies/xbyak
+	url = https://github.com/herumi/xbyak.git
+[submodule "Dependencies/zydis"]
+	path = Dependencies/zydis
+	url = https://github.com/zyantific/zydis.git
+[submodule "Dependencies/SDL"]
+	path = Dependencies/SDL
+	url = https://github.com/ChonkyStation3/SDL.git
+[submodule "Dependencies/glslang"]
+	path = Dependencies/glslang
+	url = https://github.com/KhronosGroup/glslang.git
+[submodule "Dependencies/pthread-win32"]
+	path = Dependencies/pthread-win32
+	url = https://github.com/liuk7071/pthread-win32.git
+[submodule "Dependencies/xxHash"]
+	path = Dependencies/xxHash
+	url = https://github.com/Cyan4973/xxHash.git
+[submodule "Dependencies/VulkanMemoryAllocator"]
+	path = Dependencies/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "Dependencies/miniz"]
+	path = Dependencies/miniz
+	url = https://github.com/richgel999/miniz.git
+[submodule "Dependencies/asio"]
+	path = Dependencies/asio
+	url = https://github.com/chriskohlhoff/asio.git
+[submodule "Dependencies/cpp-httplib"]
+	path = Dependencies/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib.git
+[submodule "Dependencies/cppco"]
+	path = Dependencies/cppco
+	url = https://github.com/CzB404/cppco.git
+[submodule "Dependencies/TinySHA1"]
+	path = Dependencies/TinySHA1
+	url = https://github.com/mohaps/TinySHA1.git

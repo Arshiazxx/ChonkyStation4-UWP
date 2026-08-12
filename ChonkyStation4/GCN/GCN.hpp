@@ -1,0 +1,64 @@
+#pragma once
+
+#include <Common.hpp>
+#include <OS/Libraries/Kernel/Equeue.hpp>
+#include <GCN/Backends/Renderer.hpp>
+#include <GCN/Backends/RendererFactory.hpp>
+#include <atomic>
+
+
+namespace PS4::OS::Libs::SceGnmDriver {
+
+struct ComputeQueue;
+
+}   // End namespace PS4::OS::Libs::SceGnmDriver
+
+namespace PS4::GCN {
+
+static constexpr u32 EOP_EVENT_ID = 0x40;
+
+inline std::atomic<u64> global_flip_counter = 0;
+
+enum class CommandType {
+    SubmitGraphics,
+    SubmitCompute,
+    Flip
+};
+
+struct RendererCommand {
+    CommandType type;
+
+    // For SubmitGraphics
+    u32* dcb = nullptr;     // Reused for SubmitCompute too
+    size_t dcb_size = 0;    // Reused for SubmitCompute too
+    u32* ccb = nullptr;
+    size_t ccb_size = 0;
+
+    // For SubmitCompute
+    OS::Libs::SceGnmDriver::ComputeQueue* queue = nullptr;
+
+    // For Flip
+    u32 video_out_handle = 0;
+    u32 buf_idx = -1;
+    u64 flip_arg = 0;
+};
+
+inline std::atomic<bool> initialized = false;
+inline std::unique_ptr<Renderer> renderer;
+
+// Event sources
+inline OS::Libs::Kernel::EventSource eop_ev_source;
+
+void gcnThread();
+bool processAsyncCompute();
+void submitGraphics(u32* dcb, size_t dcb_size, u32* ccb, size_t ccb_size);
+void submitCompute(u32* cb, size_t cb_size, OS::Libs::SceGnmDriver::ComputeQueue* queue);
+void submitFlip(u32 video_out_handle, u32 buf_idx, u64 flip_arg);
+bool isCommandProcessorIdle();
+
+inline void initRenderer(RendererBackend backend = RendererBackend::Vulkan) {
+    renderer = createRenderer(backend);
+    renderer->init();
+}
+
+}   // End namespace PS4::GCN

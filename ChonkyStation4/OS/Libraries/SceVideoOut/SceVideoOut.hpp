@@ -1,0 +1,114 @@
+#pragma once
+
+#include <Common.hpp>
+#include <OS/SceObj.hpp>
+#include <OS/Libraries/Kernel/Equeue.hpp>
+#include <thread>
+#include <atomic>
+#include <mutex>
+
+
+class Module;
+
+namespace PS4::OS::Libs::SceVideoOut {
+
+void init(Module& module);
+
+static constexpr s32 SCE_VIDEO_OUT_MAX_DISPLAY_BUFFERS = 16;
+static constexpr s32 SCE_USER_SERVICE_USER_ID_SYSTEM = 255;
+static constexpr s32 SCE_VIDEO_OUT_BUS_TYPE_MAIN = 0;
+
+static constexpr s32 SCE_VIDEO_OUT_FLIP_EVENT_ID = 0x6;
+static constexpr s32 SCE_VIDEO_OUT_VBLANK_EVENT_ID = 0x7;
+
+static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A8R8G8B8_SRGB           = 0x80000000;
+static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB           = 0x80002200;
+static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A2R10G10B10             = 0x88060000;
+static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A2R10G10B10_SRGB        = 0x88000000;
+static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A2R10G10B10_BT2020_PQ   = 0x88740000;
+static constexpr s32 SCE_VIDEO_OUT_PIXEL_FORMAT_A16R16G16B16_FLOAT      = 0xC1060000;
+
+struct SceVideoOutBufferAttribute {
+	s32 pixel_format;
+	s32 tiling_mode;
+	s32 aspect_ratio;
+	u32 width;
+	u32 height;
+	u32 pitch_in_pixels;
+	u32 option;
+	u32 _reserved0;
+	u64 _reserved1;
+};
+
+struct SceVideoOutBuffer {
+    void* base;
+    SceVideoOutBufferAttribute attrib;
+};
+inline SceVideoOutBuffer bufs[16];
+
+struct SceVideoOutFlipStatus {
+	u64 count;
+	u64 process_time;
+	u64 tsc;
+	s64 flip_arg;
+	u64 submit_tsc;
+	u64 _reserved0;
+	s32 gc_queue_num;
+	s32 n_pending;
+	s32 curr_buf_idx;
+	u32 _reserved1;
+};
+
+struct SceVideoOutVblankStatus {
+    u64 count;
+    u64 process_time;
+    u64 tsc;
+    u64 _reserved;
+    u8 flags;
+    u8 pad1[7];
+};
+
+struct SceVideoOutResolutionStatus {
+	u32 full_width;
+	u32 full_height;
+	u32 pane_width;
+	u32 pane_height;
+	u64 refresh_rate;
+	float screen_size_in_inch;
+	u16 flags;
+	u16 _reserved0;
+	u32 _reserved1[3];
+};
+
+struct SceVideoOutPort : SceObj {
+    u64 buffer_labels[SCE_VIDEO_OUT_MAX_DISPLAY_BUFFERS];
+    SceVideoOutFlipStatus flip_status;
+    SceVideoOutVblankStatus vblank_status;
+    Libs::Kernel::EventSource flip_ev_source;
+    Libs::Kernel::EventSource vblank_ev_source;
+	SceVideoOutResolutionStatus resolution_status;
+    std::thread vblank_thread;
+    std::mutex vblank_mtx;
+    std::atomic<bool> vblank = false;
+
+    void signalFlip(u64 flip_arg);
+};
+
+inline void* sce_composite_color_target_addr = nullptr;
+
+s32 PS4_FUNC sceVideoOutOpen(s32 uid, s32 bus_type, s32 idx, const void* param);
+s32 PS4_FUNC sceVideoOutClose(s32 handle);
+s32 PS4_FUNC sceVideoOutGetBufferLabelAddress(s32 handle, void** label_addr);
+s32 PS4_FUNC sceVideoOutSetFlipRate(s32 handle, s32 rate);
+s32 PS4_FUNC sceVideoOutAddFlipEvent(Kernel::SceKernelEqueue eq, s32 handle, void* udata);
+s32 PS4_FUNC sceVideoOutAddVblankEvent(Kernel::SceKernelEqueue eq, s32 handle, void* udata);
+s32 PS4_FUNC sceVideoOutWaitVblank(s32 handle);
+s32 PS4_FUNC sceVideoOutRegisterBuffers(s32 handle, s32 start_idx, void** addrs, s32 n_bufs, SceVideoOutBufferAttribute* attrib);
+s32 PS4_FUNC sceVideoOutSetBufferAttribute(SceVideoOutBufferAttribute* attrib, u32 pixel_format, u32 tiling_mode, u32 aspect_ratio, u32 width, u32 height, u32 pitch_in_pixels);
+s32 PS4_FUNC sceVideoOutSubmitChangeBufferAttribute(s32 handle, s32 idx, SceVideoOutBufferAttribute* attrib);
+s32 PS4_FUNC sceVideoOutSubmitFlip(s32 handle, s32 buf_idx, s32 flip_mode, s64 flip_arg);
+s32 PS4_FUNC sceVideoOutGetFlipStatus(s32 handle, SceVideoOutFlipStatus* status);
+s32 PS4_FUNC sceVideoOutGetVblankStatus(s32 handle, SceVideoOutVblankStatus* status);
+s32 PS4_FUNC sceVideoOutGetResolutionStatus(s32 handle, SceVideoOutResolutionStatus* status);
+
+}   // End namespace PS4::OS::Libs::SceVideoOut

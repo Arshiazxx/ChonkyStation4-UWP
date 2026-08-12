@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7D1A45A7-4F84-4C36-9E11-2E7C1B4A4201}</ProjectGuid>
+    <RootNamespace>ChonkyStation4.Xbox</RootNamespace>
+    <ProjectName>ChonkyStation4.Xbox</ProjectName>
+    <ApplicationType>Windows Store</ApplicationType>
+    <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
+    <WindowsAppContainer>true</WindowsAppContainer>
+    <AppContainerApplication>true</AppContainerApplication>
+    <EnableDefaultApplicationDefinition>true</EnableDefaultApplicationDefinition>
+    <GenerateXamlMetadata>true</GenerateXamlMetadata>
+    <GenerateXamlCode>false</GenerateXamlCode>
+    <EnableXaml>true</EnableXaml>
+    <XamlTypeInfoGen>true</XamlTypeInfoGen>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion>
+    <CompileAsWinRT>true</CompileAsWinRT>
+    <EnableWinRT>true</EnableWinRT>
+    <EnableCppWinRT>false</EnableCppWinRT>
+    <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
+    <PackageCertificateKeyFile>..\..\..\ChonkyStation4.pfx</PackageCertificateKeyFile>
+    <PackageCertificatePassword>password</PackageCertificatePassword>
+    <AppxBundle>Never</AppxBundle>
+    <TrackFileAccess>false</TrackFileAccess>
+    <GeneratedFilesDir>$(IntDir)Generated Files\</GeneratedFilesDir>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <SubSystem>Windows</SubSystem>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <SubSystem>Windows</SubSystem>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Xaml.props"
+          Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.Xaml.props')" />
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugSymbols>false</DebugSymbols>
+      <AdditionalOptions>/ZW /Zm50 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>
+        $(MSBuildProjectDirectory)Generated Files;$(IntDir)Generated Files;$(ProjectDir)..\..\..;$(ProjectDir)..\..\..\Core;%(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>
+        windowsapp.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)
+      </AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Page Include="MainPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="App.xaml.h" />
+    <ClInclude Include="MainPage.xaml.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Host\HostServices.hpp" />
+    <ClInclude Include="Host\HostServices.h" />
+    <ClInclude Include="Graphics\D3D12Backend.hpp" />
+    <ClInclude Include="Graphics\D3D12Backend.h" />
+    <ClInclude Include="..\..\..\Core\Common\VirtualAddress.hpp" />
+    <ClInclude Include="..\..\..\Core\Loader\Elf64Loader.hpp" />
+    <ClInclude Include="..\..\..\Core\Memory\GuestMemory.hpp" />
+    <ClInclude Include="..\..\..\Core\CPU\CpuState.hpp" />
+    <ClInclude Include="..\..\..\Core\CPU\Registers.hpp" />
+    <ClInclude Include="..\..\..\Core\CPU\Flags.hpp" />
+    <ClInclude Include="..\..\..\Core\CPU\Instruction.hpp" />
+    <ClInclude Include="..\..\..\Core\CPU\CpuExecutor.hpp" />
+    <ClInclude Include="..\..\..\Core\CPU\CpuSmokeTests.hpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="App.xaml.cpp" />
+    <ClCompile Include="MainPage.xaml.cpp" />
+    <ClCompile Include="Host\HostServices.cpp"><PrecompiledHeader>Use</PrecompiledHeader></ClCompile>
+    <ClCompile Include="Graphics\D3D12Backend.cpp"><PrecompiledHeader>Use</PrecompiledHeader></ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Elf64Loader.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Memory\GuestMemory.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\Registers.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\Flags.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\Instruction.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\CpuExecutor.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\CpuSmokeTests.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+    <Image Include="Assets\Square44x44Logo.png" />
+    <Image Include="Assets\Square150x150Logo.png" />
+    <Image Include="Assets\Wide310x150Logo.png" />
+    <Image Include="Assets\StoreLogo.png" />
+    <Image Include="Assets\SplashScreen.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Update="$(GeneratedFilesDir)XamlTypeInfo.g.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Update="$(GeneratedFilesDir)XamlTypeInfo.Impl.g.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Xaml.targets"
+          Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.Xaml.targets')" />
+  <Target Name="ConfigureGeneratedXamlCompile" AfterTargets="ComputeXamlGeneratedCompileInputs">
+    <ItemGroup>
+      <ClCompile Update="$(GeneratedFilesDir)XamlTypeInfo.g.cpp">
+        <PrecompiledHeader>NotUsing</PrecompiledHeader>
+        <ForcedIncludeFiles>App.xaml.h;MainPage.xaml.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      </ClCompile>
+    </ItemGroup>
+  </Target>
+</Project>
+
+
+
+

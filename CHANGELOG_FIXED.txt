@@ -1,0 +1,13 @@
+ChonkyStation4 Xbox UWP project repair
+
+Changed:
+- Recreated ChonkyStation4.Xbox.vcxproj as valid VS C++/CX UWP XML.
+- Restored XAML build properties and C++/CX settings.
+- Preserved source references, assets, UWP/AppX configuration and D3D12 libraries.
+- Removed generated source file injection; XAML targets remain responsible for generated code.
+
+Validation performed:
+- XML parse successful.
+
+Build command to verify on Windows:
+msbuild .\ChonkyStation4.Xbox.vcxproj /t:Rebuild /p:Configuration=Debug /p:Platform=x64 /m:1

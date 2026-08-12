@@ -1,0 +1,185 @@
+#include "PipelineCache.hpp"
+#include <Logger.hpp>
+#include <GCN/FetchShader.hpp>
+#include <GCN/VSharp.hpp>
+#include <GCN/RegisterOffsets.hpp>
+#include <GCN/Backends/Vulkan/ShaderCache.hpp>
+#include <unordered_map>
+#include <memory>
+#include <xxhash.h>
+
+
+namespace PS4::GCN::Vulkan::PipelineCache {
+
+MAKE_LOG_FUNCTION(log, gcn_vulkan_renderer);
+
+std::unordered_map<u64, Pipeline*> pipelines;
+std::unordered_map<u64, ComputePipeline*> compute_pipelines;
+
+Pipeline& getPipeline(const u8* vert_shader_code, const u8* pixel_shader_code, const u8* fetch_shader_code, const u32* regs) {
+    // Compile shaders
+
+    auto check_fetch_shader = [&]() -> bool {
+        // The fetch shader jump is always a s_swappc_b64, but it's not always at the second instruction (most of the time it is).
+        // Check the first 0x20 bytes.
+        for (int i = 0; i < 0x20; i += 4) {
+            if (*(u32*)(vert_shader_code + i) == 0xbe802100)
+                return true;
+        }
+        return false;
+    };
+
+    auto fetch_ptr = fetch_shader_code;
+    if (!check_fetch_shader())
+        fetch_ptr = nullptr;
+
+    GCN::FetchShader fetch_shader = FetchShader(fetch_ptr);
+
+    PipelineConfig cfg;
+    const bool has_vs = vert_shader_code  != nullptr;
+    const bool has_ps = pixel_shader_code != nullptr;
+    cfg.has_vs = has_vs;
+    cfg.has_ps = has_ps;
+
+    ShaderCache::CachedShader* vert_shader  = nullptr;
+    ShaderCache::CachedShader* pixel_shader = nullptr;
+    
+    if (!has_vs)
+        Helpers::panic("TODO: no vertex shader");
+
+    if (has_vs) {
+        vert_shader = ShaderCache::getShader(vert_shader_code, Shader::ShaderStage::Vertex, &fetch_shader);
+        cfg.vertex_hash = vert_shader->data.hash;
+    }
+    if (has_ps) {
+        pixel_shader = ShaderCache::getShader(pixel_shader_code, Shader::ShaderStage::Fragment, &fetch_shader);
+        cfg.pixel_hash  = pixel_shader->data.hash;
+    }
+
+    // Hash fetch shader V#s
+    XXH3_state_t* state = XXH3_createState();
+    XXH3_64bits_reset(state);
+    int index = 0;
+    for (auto& binding : fetch_shader.bindings) {
+        auto* vsharp = binding.vsharp_loc.asPtr();
+        const u64 stride = vsharp->stride;
+        const u64 nfmt = vsharp->nfmt;
+        const u64 dfmt = vsharp->dfmt;
+        XXH3_64bits_update(state, &index, sizeof(index));
+        XXH3_64bits_update(state, &stride, sizeof(stride));
+        XXH3_64bits_update(state, &nfmt, sizeof(nfmt));
+        XXH3_64bits_update(state, &dfmt, sizeof(dfmt));
+        index++;
+    }
+    cfg.binding_hash = XXH3_64bits_digest(state);
+
+    XXH3_freeState(state);
+
+    // Primitive info
+    cfg.prim_type = regs[Reg::mmVGT_PRIMITIVE_TYPE__CI__VI];
+
+    // Color blending info
+    for (int i = 0; i < 8; i++) {
+        cfg.blend_control[i].raw = regs[Reg::mmCB_BLEND0_CONTROL + i];
+    }
+
+    // Color
+    cfg.degamma_enable = (regs[Reg::mmCB_COLOR_CONTROL] >> 3) & 1;
+
+    // Depth control
+    cfg.depth_control.raw   = regs[Reg::mmDB_DEPTH_CONTROL];
+    cfg.depth_clear_enable  = regs[Reg::mmDB_RENDER_CONTROL] & 1;
+    cfg.max_depth_bounds    = reinterpret_cast<const float&>(regs[Reg::mmDB_DEPTH_BOUNDS_MAX]);
+    cfg.min_depth_bounds    = reinterpret_cast<const float&>(regs[Reg::mmDB_DEPTH_BOUNDS_MIN]);
+
+    // Stencil control
+    cfg.stencil_control.raw         = regs[Reg::mmDB_STENCIL_CONTROL];
+    cfg.stencil_refmask_front.raw   = regs[Reg::mmDB_STENCILREFMASK];
+    cfg.stencil_refmask_back.raw    = regs[Reg::mmDB_STENCILREFMASK_BF];
+
+    // Depth clamp
+    cfg.enable_depth_clamp = ((regs[Reg::mmDB_RENDER_OVERRIDE] >> 16) & 1) != 1;   // DISABLE_VIEWPORT_CLAMP
+    
+    const bool zclip_near_disable = (regs[Reg::mmPA_CL_CLIP_CNTL] >> 26) & 1;
+    const bool zclip_far_disable  = (regs[Reg::mmPA_CL_CLIP_CNTL] >> 27) & 1;
+    cfg.enable_depth_clip = !zclip_near_disable && !zclip_far_disable;
+
+    // Viewport
+    cfg.viewport_control.raw = regs[Reg::mmPA_CL_VTE_CNTL];
+    cfg.x_offset = reinterpret_cast<const float&>(regs[Reg::mmPA_CL_VPORT_XOFFSET]);
+    cfg.x_scale  = reinterpret_cast<const float&>(regs[Reg::mmPA_CL_VPORT_XSCALE]);
+    cfg.y_offset = reinterpret_cast<const float&>(regs[Reg::mmPA_CL_VPORT_YOFFSET]);
+    cfg.y_scale  = reinterpret_cast<const float&>(regs[Reg::mmPA_CL_VPORT_YSCALE]);
+    cfg.z_offset = reinterpret_cast<const float&>(regs[Reg::mmPA_CL_VPORT_ZOFFSET]);
+    cfg.z_scale  = reinterpret_cast<const float&>(regs[Reg::mmPA_CL_VPORT_ZSCALE]);
+
+    // Culling & other
+    cfg.culling_poly_control.raw = regs[Reg::mmPA_SU_SC_MODE_CNTL];
+
+    // Clip space
+    cfg.dx_clip_space_enable = (regs[Reg::mmPA_CL_CLIP_CNTL] >> 19) & 1;
+
+    // Calculate final pipeline hash
+    state = XXH3_createState();
+    XXH3_64bits_reset(state);
+
+    XXH3_64bits_update(state, &cfg.has_vs, sizeof(cfg.has_vs));
+    XXH3_64bits_update(state, &cfg.has_ps, sizeof(cfg.has_ps));
+    if (cfg.has_vs) XXH3_64bits_update(state, &cfg.vertex_hash, sizeof(cfg.vertex_hash));
+    if (cfg.has_ps) XXH3_64bits_update(state, &cfg.pixel_hash, sizeof(cfg.pixel_hash));
+    XXH3_64bits_update(state, &cfg.prim_type, sizeof(cfg.prim_type));
+    XXH3_64bits_update(state, &cfg.blend_control, sizeof(BlendControl) * 8);
+    XXH3_64bits_update(state, &cfg.degamma_enable, sizeof(cfg.degamma_enable));
+    XXH3_64bits_update(state, &cfg.depth_control, sizeof(cfg.depth_control));
+    XXH3_64bits_update(state, &cfg.depth_clear_enable, sizeof(cfg.depth_clear_enable));
+    if (cfg.depth_control.depth_bounds_enable) {
+        XXH3_64bits_update(state, &cfg.max_depth_bounds, sizeof(cfg.max_depth_bounds));
+        XXH3_64bits_update(state, &cfg.min_depth_bounds, sizeof(cfg.min_depth_bounds));
+    }
+    if (cfg.depth_control.depth_enable)   XXH3_64bits_update(state, &cfg.enable_depth_clamp, sizeof(cfg.enable_depth_clamp));
+    if (cfg.depth_control.depth_enable)   XXH3_64bits_update(state, &cfg.enable_depth_clamp, sizeof(cfg.enable_depth_clip));
+    if (cfg.depth_control.stencil_enable) {
+        XXH3_64bits_update(state, &cfg.stencil_control, sizeof(cfg.stencil_control));
+        XXH3_64bits_update(state, &cfg.stencil_refmask_front, sizeof(cfg.stencil_refmask_front));
+        XXH3_64bits_update(state, &cfg.stencil_refmask_back,  sizeof(cfg.stencil_refmask_back));
+    }
+    XXH3_64bits_update(state, &cfg.viewport_control, sizeof(cfg.viewport_control));
+    if (cfg.viewport_control.x_offset_enable) XXH3_64bits_update(state, &cfg.x_offset, sizeof(cfg.x_offset));
+    if (cfg.viewport_control.x_scale_enable)  XXH3_64bits_update(state, &cfg.x_scale, sizeof(cfg.x_scale));
+    if (cfg.viewport_control.y_offset_enable) XXH3_64bits_update(state, &cfg.y_offset, sizeof(cfg.y_offset));
+    if (cfg.viewport_control.y_scale_enable)  XXH3_64bits_update(state, &cfg.y_scale, sizeof(cfg.y_scale));
+    if (cfg.viewport_control.z_offset_enable) XXH3_64bits_update(state, &cfg.z_offset, sizeof(cfg.z_offset));
+    if (cfg.viewport_control.z_scale_enable)  XXH3_64bits_update(state, &cfg.z_scale,  sizeof(cfg.z_scale));
+
+    XXH3_64bits_update(state, &cfg.culling_poly_control, sizeof(cfg.culling_poly_control));
+    XXH3_64bits_update(state, &cfg.dx_clip_space_enable, sizeof(cfg.dx_clip_space_enable));
+    XXH3_64bits_update(state, &cfg.binding_hash, sizeof(cfg.binding_hash));
+
+    const u64 pipeline_hash = XXH3_64bits_digest(state);
+    XXH3_freeState(state);
+    
+    if (pipelines.contains(pipeline_hash))
+        return *pipelines[pipeline_hash];
+
+    log("Compiling new pipeline\n");
+    auto* pipeline = new Pipeline(vert_shader, pixel_shader, fetch_shader, cfg);
+    pipelines[pipeline_hash] = pipeline;
+    return *pipeline;
+}
+
+ComputePipeline& getComputePipeline(const ComputeJob& job) {
+    const u8* compute_shader_code = (const u8*)job.addr;
+
+    // Compile shader (or get the cached one)
+    ShaderCache::CachedShader* compute_shader = ShaderCache::getShader(compute_shader_code, Shader::ShaderStage::Compute, nullptr, const_cast<ComputeJob*>(&job));
+
+    if (compute_pipelines.contains(compute_shader->data.hash))
+        return *compute_pipelines[compute_shader->data.hash];
+
+    log("Compiling new compute pipeline\n");
+    auto* pipeline = new ComputePipeline(compute_shader);
+    compute_pipelines[compute_shader->data.hash] = pipeline;
+    return *pipeline;
+}
+
+}   // End namespace PS4::GCN::Vulkan::PipelineCache

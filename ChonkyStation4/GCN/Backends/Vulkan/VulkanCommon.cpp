@@ -1,0 +1,437 @@
+#include "VulkanCommon.hpp"
+
+
+namespace PS4::GCN::Vulkan {
+
+vk::raii::CommandBuffer beginCommands() {
+    vk::CommandBufferAllocateInfo alloc_info = { .commandPool = *cmd_pool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1 };
+    vk::raii::CommandBuffer command_buffer = std::move(device.allocateCommandBuffers(alloc_info).front());
+
+    vk::CommandBufferBeginInfo begin_info = { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
+    command_buffer.begin(begin_info);
+
+    return command_buffer;
+}
+
+void endCommands(vk::raii::CommandBuffer& cmd_buffer) {
+    cmd_buffer.end();
+
+    vk::SubmitInfo submit_info = { .commandBufferCount = 1, .pCommandBuffers = &*cmd_buffer };
+    queue.submit(submit_info, nullptr);
+    queue.waitIdle();
+}
+
+void beginRendering(vk::RenderingInfo render_info) {
+    if (is_recording_render_block)
+        endRendering();
+
+    is_recording_render_block = true;
+    cmd_bufs[frame_idx].beginRendering(render_info);
+}
+
+void endRendering() {
+    if (is_recording_render_block) {
+        is_recording_render_block = false;
+        cmd_bufs[frame_idx].endRendering();
+    }
+}
+
+void transitionImageLayout(const vk::Image& image, const vk::Format fmt, vk::ImageLayout old_layout, vk::ImageLayout new_layout, vk::raii::CommandBuffer* cmd_buf) {
+    auto get_aspect = [](const vk::Format fmt) -> vk::Flags<vk::ImageAspectFlagBits> {
+        switch (fmt) {
+        case vk::Format::eD16Unorm:
+        case vk::Format::eD32Sfloat:
+            return vk::ImageAspectFlagBits::eDepth;
+        case vk::Format::eD16UnormS8Uint:
+        case vk::Format::eD32SfloatS8Uint:
+            return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+        default:
+            return vk::ImageAspectFlagBits::eColor;
+        }
+    };
+    
+    vk::ImageMemoryBarrier barrier = {
+        .oldLayout = old_layout,
+        .newLayout = new_layout,
+        .image = image,
+        .subresourceRange = {
+            get_aspect(fmt),
+            0, 1, 
+            0, 1
+        }
+    };
+    
+    auto get_access_and_stage_bits = [](vk::ImageLayout layout) -> std::pair<vk::Flags<vk::AccessFlagBits>, vk::Flags<vk::PipelineStageFlagBits>> {
+        switch (layout) {
+        case vk::ImageLayout::eUndefined:                           
+            return { 
+                {}, 
+                vk::PipelineStageFlagBits::eTopOfPipe 
+            };
+        
+        case vk::ImageLayout::eTransferSrcOptimal:    
+            return {
+                vk::AccessFlagBits::eTransferRead,
+                vk::PipelineStageFlagBits::eTransfer
+            };
+        
+        case vk::ImageLayout::eTransferDstOptimal:           
+            return {
+                vk::AccessFlagBits::eTransferWrite,
+                vk::PipelineStageFlagBits::eTransfer
+            };
+        
+        case vk::ImageLayout::eColorAttachmentOptimal:    
+            return {
+                vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, 
+                vk::PipelineStageFlagBits::eColorAttachmentOutput
+            };
+        
+        case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+        case vk::ImageLayout::eDepthAttachmentOptimal:  
+            return { 
+                vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite, 
+                vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests 
+            };
+        
+        case vk::ImageLayout::eShaderReadOnlyOptimal:         
+            return {
+                vk::AccessFlagBits::eShaderRead,
+                vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTessellationControlShader | vk::PipelineStageFlagBits::eTessellationEvaluationShader
+                | vk::PipelineStageFlagBits::eGeometryShader
+            };
+        
+        case vk::ImageLayout::eAttachmentFeedbackLoopOptimalEXT:   
+            return {
+                vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+                vk::PipelineStageFlagBits::eAllGraphics
+            };
+
+        case vk::ImageLayout::eGeneral:
+            return {
+                vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+                vk::PipelineStageFlagBits::eAllGraphics | vk::PipelineStageFlagBits::eComputeShader
+            };
+        
+        case vk::ImageLayout::ePresentSrcKHR:     
+            return {
+                {},
+                vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eTransfer
+            };
+        default:    Helpers::panic("transitionImageLayout: unhandled image layout %d\n", layout);
+        }
+    };
+
+    if (!cmd_buf)
+        cmd_buf = &cmd_bufs[frame_idx];
+
+    auto [src_access_mask, src_stage] = get_access_and_stage_bits(old_layout);
+    auto [dst_access_mask, dst_stage] = get_access_and_stage_bits(new_layout);
+
+    barrier.srcAccessMask = src_access_mask;
+    barrier.dstAccessMask = dst_access_mask;
+    cmd_buf->pipelineBarrier(src_stage, dst_stage, {}, {}, nullptr, barrier);
+}
+
+u32 findMemoryType(u32 type_filter, vk::MemoryPropertyFlags properties) {
+    vk::PhysicalDeviceMemoryProperties mem_properties = physical_device.getMemoryProperties();
+
+    for (u32 i = 0; i < mem_properties.memoryTypeCount; i++) {
+        if ((type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+
+    Helpers::panic("findMemoryType: failed to find suitable memory type");
+}
+
+// Returns a Vulkan format alongside the size of 1 pixel in bytes
+std::pair<vk::Format, size_t> getBufFormatAndSize(u32 dfmt, u32 nfmt) {
+    switch ((DataFormat)dfmt) {
+
+    case DataFormat::Format8: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm:   return { vk::Format::eR8Unorm, sizeof(u8) };
+        case NumberFormat::Snorm:   return { vk::Format::eR8Snorm, sizeof(u8) };
+        case NumberFormat::Uscaled: return { vk::Format::eR8Uscaled, sizeof(u8) };
+        case NumberFormat::Sscaled: return { vk::Format::eR8Sscaled, sizeof(u8) };
+        case NumberFormat::Uint:    return { vk::Format::eR8Uint, sizeof(u8) };
+        case NumberFormat::Sint:    return { vk::Format::eR8Sint, sizeof(u8) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format8_8: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm:   return { vk::Format::eR8G8Unorm, sizeof(u8) * 2 };
+        case NumberFormat::Snorm:   return { vk::Format::eR8G8Snorm, sizeof(u8) * 2 };
+        case NumberFormat::Uscaled: return { vk::Format::eR8G8Uscaled, sizeof(u8) * 2 };
+        case NumberFormat::Sscaled: return { vk::Format::eR8G8Sscaled, sizeof(u8) * 2 };
+        case NumberFormat::Uint:    return { vk::Format::eR8G8Uint, sizeof(u8) * 2 };
+        case NumberFormat::Sint:    return { vk::Format::eR8G8Sint, sizeof(u8) * 2 };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format16: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm:   return { vk::Format::eR16Unorm, sizeof(u16) };
+        case NumberFormat::Snorm:   return { vk::Format::eR16Snorm, sizeof(u16) };
+        case NumberFormat::Uscaled: return { vk::Format::eR16Uscaled, sizeof(u16) };
+        case NumberFormat::Sscaled: return { vk::Format::eR16Sscaled, sizeof(u16) };
+        case NumberFormat::Uint:    return { vk::Format::eR16Uint, sizeof(u16) };
+        case NumberFormat::Sint:    return { vk::Format::eR16Sint, sizeof(u16) };
+        case NumberFormat::Float:   return { vk::Format::eR16Sfloat, sizeof(u16) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format32: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Uint:    return { vk::Format::eR32Uint, sizeof(u32) };
+        case NumberFormat::Sint:    return { vk::Format::eR32Sint, sizeof(u32) };
+        case NumberFormat::Float:   return { vk::Format::eR32Sfloat, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format16_16: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm:   return { vk::Format::eR16G16Unorm, sizeof(u16) * 2 };
+        case NumberFormat::Snorm:   return { vk::Format::eR16G16Snorm, sizeof(u16) * 2 };
+        case NumberFormat::Sscaled: return { vk::Format::eR16G16Sscaled, sizeof(u16) * 2 };
+        case NumberFormat::Uint:    return { vk::Format::eR16G16Uint, sizeof(u16) * 2 };
+        case NumberFormat::Sint:    return { vk::Format::eR16G16Sint, sizeof(u16) * 2 };
+        case NumberFormat::Float:   return { vk::Format::eR16G16Sfloat, sizeof(u16) * 2 };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format10_11_11: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Snorm:   return { vk::Format::eR16G16B16Snorm, sizeof(u32) };    // TODO: No Vulkan equivalent. Rise of the Tomb Raider uses this
+        case NumberFormat::Float:   return { vk::Format::eB10G11R11UfloatPack32, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format2_10_10_10: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm:   return { vk::Format::eA2B10G10R10UnormPack32, sizeof(u32) };    // TODO: Verify this
+        case NumberFormat::Snorm:   return { vk::Format::eA2B10G10R10SnormPack32, sizeof(u32) };    // TODO: Verify this
+        case NumberFormat::Srgb:    return { vk::Format::eA2B10G10R10SnormPack32, sizeof(u32) };    // TODO: Verify this (no srgb?) (used by Puyo Puyo Tetris)
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format8_8_8_8: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm:   return { vk::Format::eR8G8B8A8Unorm, sizeof(u32) };
+        case NumberFormat::Snorm:   return { vk::Format::eR8G8B8A8Snorm, sizeof(u32) };
+        case NumberFormat::Uscaled: return { vk::Format::eR8G8B8A8Uscaled, sizeof(u32) };
+        case NumberFormat::Sscaled: return { vk::Format::eR8G8B8A8Sscaled, sizeof(u32) };
+        case NumberFormat::Uint:    return { vk::Format::eR8G8B8A8Uint, sizeof(u32) };
+        case NumberFormat::Sint:    return { vk::Format::eR8G8B8A8Sint, sizeof(u32) };
+        case NumberFormat::SnormNz: return { vk::Format::eR8G8B8A8Srgb, sizeof(u32) };  // TODO: ?
+        case NumberFormat::Srgb:    return { vk::Format::eR8G8B8A8Srgb, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format32_32: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Uint:        return { vk::Format::eR32G32Uint, sizeof(u32) * 2 };
+        case NumberFormat::Sint:        return { vk::Format::eR32G32Sint, sizeof(u32) * 2 };
+        case NumberFormat::SnormNz:     return { vk::Format::eR32G32Sint, sizeof(u32) * 2 };    // TODO: ?
+        case NumberFormat::Float:       return { vk::Format::eR32G32Sfloat, sizeof(u32) * 2 };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format16_16_16_16: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Snorm:   return { vk::Format::eR16G16B16A16Snorm, sizeof(u16) * 4 };
+        case NumberFormat::Uscaled: return { vk::Format::eR16G16B16A16Uscaled, sizeof(u16) * 4 };
+        case NumberFormat::Sscaled: return { vk::Format::eR16G16B16A16Sscaled, sizeof(u16) * 4 };
+        case NumberFormat::Uint:    return { vk::Format::eR16G16B16A16Uint, sizeof(u16) * 4 };
+        case NumberFormat::Sint:    return { vk::Format::eR16G16B16A16Sint, sizeof(u16) * 4 };
+        case NumberFormat::Float:   return { vk::Format::eR16G16B16A16Sfloat, sizeof(u16) * 4 };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format32_32_32: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Uint: return { vk::Format::eR32G32B32Uint, sizeof(u32) * 3 };
+        case NumberFormat::Sint: return { vk::Format::eR32G32B32Sint, sizeof(u32) * 3 };
+        case NumberFormat::Float: return { vk::Format::eR32G32B32Sfloat, sizeof(u32) * 3 };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format32_32_32_32: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Uint:  return { vk::Format::eR32G32B32A32Uint, sizeof(u32) * 4 };
+        case NumberFormat::Sint:  return { vk::Format::eR32G32B32A32Sint, sizeof(u32) * 4 };
+        case NumberFormat::Float: return { vk::Format::eR32G32B32A32Sfloat, sizeof(u32) * 4 };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format5_6_5: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eR5G6B5UnormPack16, sizeof(u16) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::Format4_4_4_4: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eR4G4B4A4UnormPack16, sizeof(u16) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc1: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc1RgbaUnormBlock, sizeof(u32) };
+        case NumberFormat::Srgb:  return { vk::Format::eBc1RgbaSrgbBlock, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc2: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc2UnormBlock, sizeof(u32) };
+        case NumberFormat::Srgb:  return { vk::Format::eBc2SrgbBlock, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc3: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc3UnormBlock, sizeof(u32) };
+        case NumberFormat::Srgb:  return { vk::Format::eBc3SrgbBlock, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc4: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc4UnormBlock, sizeof(u32) };
+        case NumberFormat::Snorm: return { vk::Format::eBc4SnormBlock, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc5: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc5UnormBlock, sizeof(u32) };
+        case NumberFormat::Snorm: return { vk::Format::eBc5SnormBlock, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc6: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc6HUfloatBlock, sizeof(u32) }; // TODO: ?
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    case DataFormat::FormatBc7: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Unorm: return { vk::Format::eBc7UnormBlock, sizeof(u32) };
+        case NumberFormat::Srgb:  return { vk::Format::eBc7SrgbBlock, sizeof(u32) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    // TODO: Fmask
+    case DataFormat::FormatFmask8_4: {
+        switch ((NumberFormat)nfmt) {
+
+        case NumberFormat::Uint: return { vk::Format::eR8Uint, sizeof(u8) };
+
+        default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+        }
+        break;
+    }
+
+    default:    Helpers::panic("Unimplemented buffer/texture format: dfmt=%d, nfmt=%d\n", dfmt, nfmt);
+    //default:    return { vk::Format::eR8G8B8A8Unorm, sizeof(u32) };
+    }
+
+    Helpers::panic("getBufFormatAndSize: unreachable\n");
+}
+
+vk::raii::ShaderModule createShaderModule(const std::vector<u32>& code) {
+    vk::ShaderModuleCreateInfo create_info = { .codeSize = code.size() * sizeof(u32), .pCode = code.data() };
+    vk::raii::ShaderModule shader_module = device.createShaderModule(create_info);
+    return shader_module;
+}
+
+}   // End namespace PS4::GCN::Vulkan

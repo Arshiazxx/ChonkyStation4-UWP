@@ -1,0 +1,199 @@
+#include "Equeue.hpp"
+#include <Logger.hpp>
+#include <OS/SceObj.hpp>
+#include <thread>
+#include <unordered_map>
+#ifdef _MSC_VER
+#include <intrin.h>
+#define RETURN_ADDRESS() _ReturnAddress()
+#else
+#define RETURN_ADDRESS() _builtin_return_address(0)
+#endif
+
+
+namespace PS4::OS::Libs::Kernel {
+
+MAKE_LOG_FUNCTION(log, lib_kernel_equeue);
+
+// TODO: level triggered events
+
+void Equeue::trigger(u64 ident, u16 filter, u64 data) {
+    bool has_triggered_event = false;
+    for (auto& ev : events) {
+        if (ev.second.ident == ident && ev.second.filter == filter) {
+            ev.first = true;    // Event arrived
+            has_triggered_event = true;
+            ev.second.data = data;
+        }
+    }
+
+    // Notify equeue condition variable
+    std::unique_lock lk(cv_m);
+    cv.notify_one();
+}
+
+std::pair<bool, std::vector<SceKernelEvent>> Equeue::wait(bool has_timeout, u32 timeout) {
+    auto poll_events = [&]() -> std::vector<SceKernelEvent> {
+        std::vector<SceKernelEvent> evs;
+        for (auto& ev : events) {
+            // Check if the event arrived and add it to the list of arrived events
+            if (ev.first) {
+                ev.first = false;   // Reset arrived state
+                evs.push_back(ev.second);
+            }
+        }
+        return evs;
+    };
+
+    std::vector<SceKernelEvent> evs;
+
+    // Poll events once to see if there already were arrived events
+    evs = poll_events();
+    if (!evs.empty()) return { false, evs };    // false means we did not timeout
+
+    // If we have a timeout, and the timeout is 0, only poll once.
+    // (This polls the events already present at the time of the wait and returns)
+    if (has_timeout && timeout == 0) {
+        return { evs.empty(), evs };
+    }
+
+    // Waiting for events is implemented via a condition variable
+    if (!has_timeout) {
+        // Wait for events without timeout 
+        std::unique_lock lk(cv_m);
+        cv.wait(lk);
+    }
+    else {
+        // Wait for events with timeout 
+        std::unique_lock lk(cv_m);
+        auto res = cv.wait_for(lk, std::chrono::microseconds(timeout));
+        // Did we timeout?
+        if (res == std::cv_status::timeout) return { true, {} };
+    }
+
+    // Return events
+    evs = poll_events();
+    return { false, evs };
+}
+
+void EventSource::init(u64 ident, u16 filter) {
+    Helpers::debugAssert(!initialized, "Tried to initialize event source twice\n");
+    initialized = true;
+    this->ident = ident;
+    this->filter = filter;
+}
+
+void EventSource::addToEventQueue(Equeue* eq, void* udata) {
+    eq->registerEvent({
+        .ident = ident,
+        .filter = filter,
+        .flags = 0,     // TODO
+        .fflags = 0,    // TODO
+        .data = 0,      
+        .udata = udata,
+    });
+    eqs.push_back(eq);
+}
+
+void EventSource::trigger(u64 data) {
+    for (auto& eq : eqs) {
+        eq->trigger(ident, filter, data);
+    }
+}
+
+s32 PS4_FUNC sceKernelCreateEqueue(SceKernelEqueue* eq, const char* name) {
+    log("sceKernelCreateEqueue(eq=*%p, name=\"%s\")\n", eq, name);
+
+    *eq = new Equeue();
+    (*eq)->name = name;
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelWaitEqueue(SceKernelEqueue eq, SceKernelEvent* ev, s32 n_evs, s32* n_out, u32* timeout) {
+    log("sceKernelWaitEqueue(eq=*%p, ev=*%p, n_evs=%d, n_out=*%p, timeout=*%p)\n", eq, ev, n_evs, n_out, timeout);
+
+    if (eq->name == "ScePsmSetModeEvent") {
+        *n_out = 1;
+        return SCE_OK;
+    }
+
+    // TODO
+    if (eq->has_hr_timer_event) {
+        eq->has_hr_timer_event = false;
+        *n_out = 1;
+        return SCE_OK;
+    }
+
+    auto [timed_out, events] = eq->wait(timeout != nullptr, timeout ? *timeout : 0);
+    if (timed_out) return SCE_KERNEL_ERROR_ETIMEDOUT;
+
+    // Return events
+    int written_evs = 0;
+    for (int i = 0; i < events.size(); i++) {
+        if (i >= n_evs) break;
+
+        ev[i] = events[i];
+        written_evs++;
+    }
+
+    *n_out = written_evs;
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelAddUserEvent(SceKernelEqueue eq, s32 id) {
+    log("sceKernelAddUserEvent(eq=%p, id=%d)\n", eq, id);
+
+    eq->registerEvent({
+        .ident = (u64)id,
+        .filter = 0,
+        .flags = 0,     
+        .fflags = 0,    
+        .data = 0,
+        .udata = 0,
+    });
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelAddHRTimerEvent(SceKernelEqueue eq, s32 id, SceKernelTimespec* timespec, void* udata) {
+    log("sceKernelAddHRTimerEvent(eq=%p, id=%d, timespec=*%p, udata=%p)\n", eq, id, timespec, udata);
+    
+    // TODO
+    eq->has_hr_timer_event = true;
+    return SCE_OK;
+}
+
+s32 PS4_FUNC sceKernelGetEventFilter(SceKernelEvent* ev) {
+    log("sceKernelGetEventFilter(eq=%p)\n", ev);
+    return (s32)(s16)ev->filter;
+}
+
+// Posix queues
+std::unordered_map<u64, SceKernelEqueue> posix_eqs;
+std::mutex posix_eq_mtx;
+
+s32 PS4_FUNC kernel_kqueue() {
+    log("kqueue()\n");
+
+    // Request a new handle and create the equeue
+    auto handle = OS::requestHandle();
+    SceKernelEqueue eq = nullptr;
+    sceKernelCreateEqueue(&eq, std::format("kqueue_{}", handle).c_str());
+    
+    // Insert into map
+    {
+        const std::unique_lock<std::mutex> lk(posix_eq_mtx);
+        posix_eqs[handle] = eq;
+    }
+
+    return handle;
+}
+
+s32 PS4_FUNC kernel_kevent(s32 handle, SceKernelEvent* changelist, u64 n_changes, SceKernelEvent* eventlist, u64 n_events, SceKernelTimespec* timeout) {
+    log("kernel_kevent(handle=%d, changelist=*%p, n_changes=%lld, eventlist=*%p, n_events=%lld, timeout=*%p)\n", handle, changelist, n_changes, eventlist, n_events, timeout);
+
+    // TODO: Important
+    printf("TODO: kevent\n");
+    return SCE_OK;
+}
+
+};  // End namespace PS4::OS::Libs::Kernel

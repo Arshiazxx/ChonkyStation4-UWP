@@ -1,0 +1,282 @@
+#include "pthread.hpp"
+#include <Logger.hpp>
+#include <ErrorCodes.hpp>
+#include <OS/Thread.hpp>
+#include <OS/SceObj.hpp>
+#include <config.h>
+#include <implement.h>
+#ifdef _WIN32
+#define NOMINMAX
+#include <codecvt>
+#include <windows.h>
+#include <WinBase.h>
+#define RETURN_ADDRESS() _ReturnAddress()
+#endif
+
+namespace PS4::OS::Libs::Kernel {
+
+MAKE_LOG_FUNCTION(log, lib_kernel);
+MAKE_LOG_FUNCTION(log_force, force_enable);
+
+PS4::OS::Thread::Thread& findThread(void* tid) {
+    pthread_t* pthread = (pthread_t*)tid;
+    PS4::OS::Thread::Thread* curr_thread = nullptr;
+    for (auto& thread : PS4::OS::Thread::threads) {
+        if (pthread->p == thread.getPThread().p) {
+            if (curr_thread == nullptr)
+                curr_thread = &thread;
+            else {
+                if (thread.getPThread().x > curr_thread->getPThread().x)
+                    curr_thread = &thread;
+            }
+        }
+    }
+
+    if (!curr_thread)
+        Helpers::panic("Could not find pthread");
+    return *curr_thread;
+}
+
+bool threadExists(void* tid) {
+    pthread_t* pthread = (pthread_t*)tid;
+    PS4::OS::Thread::Thread* curr_thread = nullptr;
+    for (auto& thread : PS4::OS::Thread::threads) {
+        if (pthread->p == thread.getPThread().p) {
+            if (curr_thread == nullptr)
+                curr_thread = &thread;
+            else {
+                if (thread.getPThread().x > curr_thread->getPThread().x)
+                    curr_thread = &thread;
+            }
+        }
+    }
+
+    return curr_thread != nullptr;
+}
+
+s32 PS4_FUNC kernel_pthread_once(kernel_pthread_once_t* once_control, void(*init_routine)()) {
+    log("pthread_once(once_control=*%p, init_routine=%p)\n", once_control, init_routine);
+
+    if (once_control->status.load() == 2)
+        return 0;
+
+    // TODO: freebsd uses a fourth "wait" state
+    // 0 - not called
+    // 1 - done
+    // 2 - in progress
+    
+    u32 expected = 0;
+    if (once_control->status.compare_exchange_strong(expected, 2)) {
+        init_routine();
+        once_control->status.store(1);
+        once_control->status.notify_all();
+    }
+    else {
+        while (once_control->status.load() != 1)
+            once_control->status.wait(2);
+    }
+
+    return 0;
+}
+
+void* PS4_FUNC kernel_pthread_self() {
+    //log("pthread_self()\n");
+    pthread_t self = pthread_self();
+    for (auto& thread : PS4::OS::Thread::threads) {
+        if (self.p == thread.getPThread().p && self.x == thread.getPThread().x) {
+            return &thread.getPThread();
+        }
+    }
+    Helpers::panic("pthread_self(): could not find self pthread\n");
+}
+
+thread_local std::unordered_map<s32, const void*> spec_map;
+
+const void* PS4_FUNC kernel_pthread_getspecific(s32  /* pthread_key_t */ key) {
+    log("pthread_getspecific(key=0x%x)\n", key);
+    
+    if (spec_map.contains(key)) return spec_map[key];
+    return nullptr;
+}
+
+s32 PS4_FUNC kernel_pthread_setspecific(s32 /* pthread_key_t */ key, const void* val) {
+    log("pthread_setspecific(key=0x%x, val=%p)\n", key, val);
+    
+    spec_map[key] = val;
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_key_create(s32* /* pthread_key_t */ key, void (*destructor)(void*)) {
+    log("pthread_key_create(key=*%p, destructor=%p)\n", key, destructor);
+    
+    *key = OS::requestHandle();
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_init(pthread_attr_t* attr) {
+    log("pthread_attr_init(attr=*%p)\n", attr);
+    return pthread_attr_init(attr);
+}
+
+s32 PS4_FUNC kernel_pthread_attr_get_np(void* pthread, pthread_attr_t* attr) {
+    log("pthread_attr_get_np(pthread=*%p, attr=*%p)\n", pthread, attr);
+
+    auto& thread = findThread(pthread);
+
+    // Assassin's Creed III Remastered relies on this
+    if (!threadExists(pthread) || thread.exited)
+        return POSIX_ESRCH;
+
+    **attr = *thread.attr;
+    return 0;
+}
+
+s32 PS4_FUNC scePthreadAttrGetaffinity(pthread_attr_t* attr, u64* mask) {
+    log("scePthreadAttrGetaffinity(attr=*%p, mask=*%p) TODO\n", attr, mask);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_getaffinity_np(const pthread_attr_t* attr, size_t cpusetsize, cpu_set_t* cpuset) {
+    log("pthread_attr_getaffinity_np(attr=*%p, cpusetsize=%d, cpuset=*%p) TODO\n", attr, cpusetsize, cpuset);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_getstack(pthread_attr_t* attr, void** stack_addr, size_t* stack_size) {
+    log("pthread_attr_getstack(attr=*%p, stack_addr=*%p, stack_size=*%p)\n", stack_addr, stack_size);
+    pthread_attr_getstackaddr(attr, stack_addr);
+    pthread_attr_getstacksize(attr, stack_size);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_getstackaddr(pthread_attr_t* attr, void** stack_addr) {
+    log("pthread_attr_getstackaddr(attr=*%p, stack_addr=*%p)\n", stack_addr);
+    pthread_attr_getstackaddr(attr, stack_addr);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_getstacksize(pthread_attr_t* attr, size_t* stack_size) {
+    log("pthread_attr_getstacksize(attr=*%p, stack_size=*%p)\n", stack_size);
+    pthread_attr_getstacksize(attr, stack_size);
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_attr_setstacksize(pthread_attr_t* attr, size_t stacksize) {
+    log("pthread_attr_setstacksize(attr=*%p, stacksize=%lld)\n", attr, stacksize);
+    return pthread_attr_setstacksize(attr, stacksize);
+}
+
+s32 PS4_FUNC kernel_pthread_attr_setdetachstate(pthread_attr_t* attr, int detachstate) {
+    log("pthread_attr_setdetachstate(attr=*%p, detachstate=%d)\n", attr, detachstate);
+    return pthread_attr_setdetachstate(attr, detachstate);
+}
+
+s32 PS4_FUNC kernel_pthread_attr_destroy(pthread_attr_t* attr) {
+    log("pthread_attr_destroy(attr=*%p) TODO\n", attr);
+    if ((uptr)*attr < 0x1000) return SCE_OK;
+    return pthread_attr_destroy(attr);
+}
+
+s32 PS4_FUNC kernel_pthread_create(void** tid, const pthread_attr_t* attr, void* (PS4_FUNC* start)(void*), void* arg) {
+    log("pthread_create(tid=*%p, attr=*%p, start=%p, arg=%p)\n", tid, attr, start, arg);
+    scePthreadCreate(tid, attr, start, arg, nullptr);
+    return 0;
+}
+
+s32 PS4_FUNC scePthreadCreate(void** tid, const pthread_attr_t* attr, void* (PS4_FUNC *start)(void*), void* arg, const char* name) {
+    // TODO: attr
+
+    std::string name_str;
+    if (name) {
+        // TODO: Switch away from this when we properly keep track of mapped memory
+        if (!IsBadReadPtr(name, 32))
+            name_str = name;
+        else name_str = "unnamed (bad ptr)";
+    }
+    else {
+        name_str = "unnamed";
+    }
+    
+    log("scePthreadCreate(tid=*%p, attr=*%p, start=%p, arg=%p, name=\"%s\")\n", tid, attr, start, arg, name_str.c_str());
+    
+    auto& thread = PS4::OS::Thread::createThread(name_str, (PS4::OS::Thread::ThreadStartFunc)start, arg);
+    pthread_attr_init(&thread.attr);
+    if (attr && *attr)
+        *thread.attr = **attr;
+    *tid = (void*)&thread.getPThread();
+    return 0;
+}
+
+// TODO: Make the mutex per-thread
+std::mutex thread_name_mtx;
+s32 PS4_FUNC scePthreadRename(void* pthread, const char* name) {
+    log("scePthreadRename(pthread=%p, name=\"%s\")\n", pthread, name);
+
+    const std::unique_lock<std::mutex> lock(thread_name_mtx);
+
+    auto& thread = findThread(pthread);
+#ifdef _WIN32
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    const std::string new_name = "[PS4](renamed) " + std::string(name);
+    SetThreadDescription(GetCurrentThread(), (PCWSTR)converter.from_bytes(new_name.c_str()).c_str());   // We are supposed to rename the thread pointed to by pthread, not the current one, but my setup doesnt allow me to easily retreive windows thread handles
+#endif
+
+    thread.name = std::string(name);
+    return SCE_OK;
+}
+
+s32 PS4_FUNC scePthreadGetname(void* pthread, char* name) {
+    log("scePthreadGetname(pthread=%p, name=*%p)\n", pthread, name);
+
+    const std::unique_lock<std::mutex> lock(thread_name_mtx);
+
+    auto& thread = findThread(pthread);
+    std::strncpy(name, thread.name.c_str(), 32);
+    return SCE_OK;
+}
+
+s32 PS4_FUNC kernel_pthread_detach(void* tid) {
+    log("pthread_detach(tid=%p)\n", tid);
+    return pthread_detach(*(pthread_t*)tid);
+}
+
+s32 PS4_FUNC kernel_pthread_equal(void* tid1, void* tid2) {
+    log("pthread_equal(tid1=%p, tid2=%p)\n", tid1, tid2);
+    return tid1 == tid2;
+}
+
+s32 PS4_FUNC kernel_pthread_yield() {
+    log("pthread_yield()\n");
+    //std::this_thread::yield();
+    return 0;
+}
+
+s32 PS4_FUNC kernel_pthread_join(void* pthread, void** ret) {
+    log("pthread_join(pthread=*%p, ret=*%p)\n", pthread, ret);
+    auto thread = findThread(pthread);
+    OS::Thread::joinThread(thread, ret);
+    return SCE_OK;
+}
+
+void PS4_FUNC kernel_pthread_exit(void* status) {
+    log("pthread_exit(status=%p)\n", status);
+
+    auto& thread = findThread(kernel_pthread_self());
+    thread.exited = true;
+    thread.ret_val = status;
+
+    // Free TLS before exiting
+    //std::free(Thread::guest_tls_ptr);
+
+#ifdef _WIN32
+    TerminateThread(GetCurrentThread(), 0);
+#else
+    Helpers::panic("Unsupported platform");
+#endif
+}
+
+s32 PS4_FUNC kernel_pthread_getthreadid_np() {
+    log("pthread_getthreadid_np()\n");
+    return findThread(kernel_pthread_self()).getTID();
+}
+
+};  // End namespace PS4::OS::Libs::Kernel

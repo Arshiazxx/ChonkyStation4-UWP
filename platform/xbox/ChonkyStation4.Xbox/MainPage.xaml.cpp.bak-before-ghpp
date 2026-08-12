@@ -1,0 +1,11 @@
+#include "pch.h"
+#include "MainPage.xaml.h"
+#include "MainPage.g.h"
+
+using namespace ChonkyStation4::Xbox;
+
+MainPage::MainPage()
+{
+    InitializeComponent();
+}
+

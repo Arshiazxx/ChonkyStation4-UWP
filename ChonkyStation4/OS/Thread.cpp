@@ -1,0 +1,123 @@
+#include "Thread.hpp"
+#include <Loaders/App.hpp>
+#ifdef _WIN32
+#define NOMINMAX
+#include <codecvt>
+#include <windows.h>
+#endif
+#include <thread>
+
+
+extern "C" unsigned long _tls_index;
+extern App g_app;
+
+namespace PS4::OS::Thread {
+
+void init() {
+    if (initialized) return;
+
+    // Get the offset of guest_tls_ptr in the host TLS image and save it for later.
+    // The pointer of the guest TLS area is stored in the host TLS. We need to access this variable from the patched guest TLS access code.
+    // To do that we need to know the offset of the variable in the host TLS image.
+
+    void* tls_ptr = nullptr;
+
+#ifdef _WIN32
+    asm volatile(R"(
+        movl %1, %%eax
+        movq %%gs:0x58, %%rcx
+        movq (%%rcx, %%rax, 8), %%rax
+        movq %%rax, %0
+    )"
+    : "=r"(tls_ptr)
+    : "r"(_tls_index)
+    :    
+    );
+#else
+    Helpers::panic("Unsupported platform\n");
+#endif
+
+    guest_tls_ptr_offs = (u8*)&guest_tls_ptr - (u8*)tls_ptr;
+    initialized = true;
+}
+
+void* getTLSPtr(u32 modid) {
+    Helpers::debugAssert(modid != 0, "getTLSPtr: modid is 0\n");
+    if (!tls_map.contains(modid)) {
+        // We are accessing this TLS block for the first time on this thread, allocate it
+        // Find module that contains this image
+        auto [tls_image_ptr, tls_image_size, tls_mem_size] = g_app.getTLSImage(modid);
+        // TODO: We should use the guest alloc function from _sceKernelRtldSetApplicationHeapAPI
+        void* tls_ptr = (u8*)std::malloc(tls_mem_size + 0x10) + 0x10;
+        std::memset((u8*)tls_ptr - 0x10, 0, 0x10);
+        std::memcpy(tls_ptr, tls_image_ptr, tls_image_size);
+        std::memset((u8*)tls_ptr + tls_image_size, 0, tls_mem_size - tls_image_size);
+        tls_map[modid] = tls_ptr;
+    }
+    
+    return tls_map[modid];
+}
+
+Thread& createThread(const std::string& name, ThreadStartFunc entry, void* args) {
+    auto& thread = threads.emplace_back();
+    thread.name = name;
+    thread.entry = entry;
+    thread.args = args;
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 4_MB); // Default stacksize is 1MB. TODO: Make this function take in a pthread_attr and just pass that in below
+    pthread_create(&thread.getPThread(), &attr, (void*(*)(void*))threadStart, &thread);
+    return thread;
+}
+
+void joinThread(Thread& thread, void** ret) {
+    if (!thread.exited)
+        Helpers::debugAssert(pthread_join(thread.getPThread(), nullptr) == 0, "pthread_join failed");
+    if (ret) *ret = thread.ret_val;
+}
+
+void joinThread(Thread& thread) {
+    joinThread(thread, nullptr);
+}
+
+void* threadStart(Thread* thread) {
+#ifdef _WIN32
+    // For debugging, set the thread name
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    const std::string name = "[PS4] " + thread->name;
+    SetThreadDescription(GetCurrentThread(), (PCWSTR)converter.from_bytes(name.c_str()).c_str());
+#endif
+
+#ifdef _WIN32
+    // Get thread stack
+    uptr low_limit;
+    uptr high_limit;
+    GetCurrentThreadStackLimits(&low_limit, &high_limit);
+    pthread_attr_init(&thread->attr);
+    pthread_attr_setstackaddr(&thread->attr, (void*)low_limit);
+    pthread_attr_setstacksize(&thread->attr, high_limit - low_limit);
+#endif
+
+    // Initialize TLS and TCB.
+    // TODO: I currently do not initialize the TCB struct.
+    // The static TLS is allocated before the TCB
+    static constexpr size_t tcb_size = 0x40;
+    auto [tls_image_ptr, tls_image_size, tls_mem_size] = g_app.getTLSImage(0);
+    const auto tls_size = tls_mem_size + tcb_size;
+    thread->tls_size = tls_size;
+
+    guest_tls_ptr = (u8*)std::malloc(tls_size) + tls_mem_size;
+    std::memset((u8*)guest_tls_ptr - tls_mem_size, 0, tls_mem_size + tcb_size);
+    std::memcpy((u8*)guest_tls_ptr - tls_mem_size, tls_image_ptr, tls_image_size);
+    
+    // Call entry function
+    void* ret = thread->entry(thread->args);
+    
+    // Set exited flag
+    thread->exited = true;
+    thread->ret_val = ret;
+    return ret;
+}
+
+}   // End namespace PS4::OS::Thread

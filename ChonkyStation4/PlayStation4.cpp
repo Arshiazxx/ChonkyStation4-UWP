@@ -1,0 +1,86 @@
+#include "PlayStation4.hpp"
+#include <Configuration.hpp>
+#include <Loaders/App.hpp>
+#include <Loaders/App/AppLoader.hpp>
+#include <Loaders/ELF/CodePatcher.hpp>
+#include <Loaders/Linker/Linker.hpp>
+#include <OS/Thread.hpp>
+#include <OS/Filesystem.hpp>
+#include <OS/UserManagement.hpp>
+#include <PSN/PSN.hpp>
+#include <GCN/GCN.hpp>
+#include <thread>
+
+
+App g_app;
+
+namespace PS4 {
+
+void init() {
+    // Create GCN thread
+    std::thread gcn_thread(GCN::gcnThread);
+    gcn_thread.detach();
+
+    FS::mount(FS::Device::DEV, "./dev");    // TODO: Properly handle /dev
+    FS::mount(FS::Device::TEMP0, "./temp0");
+    FS::mount(FS::Device::SYSTEM, Configuration::system_dir_path);
+    FS::mount(FS::Device::SYSTEM_EX, Configuration::system_ex_dir_path);
+    FS::init();
+
+    // Write random data to /dev/urandom
+    auto urandom = std::make_unique<u8[]>(16_KB);
+    for (size_t i = 0; i < 16_KB; i++)
+        urandom[i] = std::rand() & 0xff;
+    std::ofstream urandom_file(FS::guestPathToHost("/dev/urandom"), std::ios::binary);
+    urandom_file.write((char*)urandom.get(), 16_KB);
+
+    // Wait for graphics initialization to complete
+    while (!GCN::initialized) std::this_thread::sleep_for(std::chrono::microseconds(1000));
+}
+
+void loadAndRun(const fs::path& path) {
+    try {
+        // Login our user to PSN.
+        //PSN::psn->login(OS::User::current);
+
+        // The threading system needs to be initialized before we run the app.
+        // Everything else will be initialized in the init() function, which is called by g_app.run() from the app's main thread (NOT the host's)
+        OS::Thread::init();
+
+        // Use AppLoader if it's a game (aka if it's a directory), otherwise manually load and link if it's an elf
+        if (fs::is_directory(path)) {
+            Loader::App::AppInfo app_info;
+            Loader::App::prepareApp(path, app_info);
+            Loader::App::getApp(app_info, g_app);
+        } else {
+            g_app = std::move(Loader::Linker::loadAndLink(path));
+            Loader::App::linkSysmodules(g_app);
+            g_app.name = path.filename().generic_string();
+
+            // Mount /app0 to the elf file's directory
+            FS::mount(FS::Device::APP0, path.parent_path());
+        }
+
+        // Log module base addresses (for debugging)
+        std::ofstream log_out;
+        log_out.open("log_baseaddress.txt");
+        for (auto& mod : g_app.modules) {
+            const auto base_address_str = std::format("{:016p}:\t{}\n", mod->base_address, mod->filename);
+            log_out.write(base_address_str.c_str(), base_address_str.length());
+        }
+        log_out.close();
+
+        // Game specific patches. Move these elsewhere when I have a proper patch system.
+        if (g_app.title_id == "CUSA00107") {
+            Loader::ELF::patchRedZone((u8*)0x8000D86F30, (u8*)0x8000D87189, (u8*)0x8000D86F30, (size_t)0xD86F3A - (size_t)0xD86F30, (u8*)0x8000D8717F, (size_t)0xD8718A - (size_t)0xD8717F);
+        }
+
+        g_app.run();
+    }
+    catch (std::runtime_error e) {
+        printf(e.what());
+        return;
+    }
+}
+
+}   // End namespace PS4

@@ -1,0 +1,76 @@
+#include "rwlock.hpp"
+#include <Logger.hpp>
+#include <ErrorCodes.hpp>
+
+
+namespace PS4::OS::Libs::Kernel {
+
+MAKE_LOG_FUNCTION(log, lib_kernel);
+
+s32 PS4_FUNC scePthreadRwlockInit(pthread_rwlock_t* lock, const pthread_rwlockattr_t* attr, const char* name) {
+    log("scePthreadRwlockInit(lock=*%p, attr=*%p, name=\"%s\")\n", lock, attr, name);
+    //s32 ret = pthread_rwlock_init(lock, attr);
+    s32 ret = pthread_rwlock_init(lock, nullptr); // TODO: attr
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_rdlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_rdlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
+    s32 ret = pthread_rwlock_rdlock(lock);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_wrlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_wrlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
+    s32 ret = pthread_rwlock_wrlock(lock);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_tryrdlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_tryrdlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
+    s32 ret = pthread_rwlock_tryrdlock(lock);
+    if (ret != POSIX_EBUSY)
+        PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_trywrlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_trywrlock(lock=*%p)\n", lock);
+
+    if (*lock == 0)
+        *lock = PTHREAD_RWLOCK_INITIALIZER;
+
+    s32 ret = pthread_rwlock_trywrlock(lock);
+    if (ret != POSIX_EBUSY)
+        PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+s32 PS4_FUNC kernel_pthread_rwlock_unlock(pthread_rwlock_t* lock) {
+    log("pthread_rwlock_unlock(lock=*%p)\n", lock);
+    return pthread_rwlock_unlock(lock);
+}
+
+s32 PS4_FUNC kernel_pthread_rwlockattr_init(pthread_rwlockattr_t* attr) {
+    log("pthread_rwlockattr_init(attr=*%p)\n", attr);
+    s32 ret = pthread_rwlockattr_init(attr);
+    PTHREAD_CHECK_RESULT(ret);
+    return ret;
+}
+
+}   // End namespace PS4::OS::Libs::Kernel

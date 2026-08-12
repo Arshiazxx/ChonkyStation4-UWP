@@ -1,0 +1,54 @@
+#include "pch.h"
+#include "App.xaml.h"
+#include "App.g.h"
+#include "MainPage.xaml.h"
+
+using namespace Platform;
+
+using namespace Windows::ApplicationModel;
+using namespace Windows::ApplicationModel::Activation;
+using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Navigation;
+
+namespace ChonkyStation4
+{
+namespace Xbox
+{
+
+App::App()
+{
+    InitializeComponent();
+
+    Suspending += ref new SuspendingEventHandler(
+        this,
+        &App::OnSuspending
+    );
+}
+
+void App::OnLaunched(
+    LaunchActivatedEventArgs^ args
+)
+{
+    Window::Current->Content = ref new MainPage();
+    Window::Current->Activate();
+}
+
+void App::OnSuspending(
+    Platform::Object^,
+    SuspendingEventArgs^
+)
+{
+}
+
+void App::OnNavigationFailed(
+    Platform::Object^,
+    NavigationFailedEventArgs^
+)
+{
+}
+
+}
+}
+
+
+

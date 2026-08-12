@@ -1,0 +1,19 @@
+<Project>
+  <Target Name="_CheckXamlProps" BeforeTargets="MarkupCompilePass1">
+    <Message Importance="High" Text="=== XAML Property Check ===" />
+    <Message Importance="High" Text="Language=$(Language)" />
+    <Message Importance="High" Text="XamlLanguage=$(XamlLanguage)" />
+    <Message Importance="High" Text="IsNativeLanguage=$(IsNativeLanguage)" />
+    <Message Importance="High" Text="ManagedAssembly=$(ManagedAssembly)" />
+    <Message Importance="High" Text="DefaultLanguageSourceExtension=$(DefaultLanguageSourceExtension)" />
+    <Message Importance="High" Text="XamlGeneratedOutputPath=$(XamlGeneratedOutputPath)" />
+    <Message Importance="High" Text="OutputType=$(OutputType)" />
+    <Message Importance="High" Text="ConfigurationType=$(ConfigurationType)" />
+    <Message Importance="High" Text="CompileAsWinRT=$(CompileAsWinRT)" />
+    <Message Importance="High" Text="TargetPlatformIdentifier=$(TargetPlatformIdentifier)" />
+    <Message Importance="High" Text="TargetPlatformVersion=$(TargetPlatformVersion)" />
+    <Message Importance="High" Text="ApplicationType=$(ApplicationType)" />
+    <Message Importance="High" Text="GenerateXamlMetadata=$(GenerateXamlMetadata)" />
+    <Message Importance="High" Text="XamlCodeGenerationControlFlags=$(XamlCodeGenerationControlFlags)" />
+  </Target>
+</Project>

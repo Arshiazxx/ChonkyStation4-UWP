@@ -1,0 +1,37 @@
+<Page
+    x:Class="ChonkyStation4.Xbox.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="OnPageLoaded"
+    Background="#FF101018">
+    <Grid Padding="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="ChonkyStation4 Xbox" FontSize="34" FontWeight="SemiBold" />
+            <TextBlock Text="Xbox Dev Mode / UWP host and D3D12 vertical-slice diagnostic" Opacity="0.72" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Spacing="4" Margin="0,18,0,12">
+            <TextBlock x:Name="StatusText" Text="Starting host..." TextWrapping="Wrap" />
+            <TextBlock x:Name="RuntimeText" Text="Runtime: detecting..." TextWrapping="Wrap" Opacity="0.82" />
+            <TextBlock x:Name="StorageText" Text="Storage: detecting..." TextWrapping="Wrap" Opacity="0.82" />
+            <TextBlock x:Name="GamepadText" Text="Controllers: detecting..." TextWrapping="Wrap" Opacity="0.82" />
+        </StackPanel>
+
+        <SwapChainPanel x:Name="GraphicsPanel" Grid.Row="2" MinHeight="360" />
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
+            <Button x:Name="ClearButton" Content="Render clear" Click="OnRenderClear" />
+            <Button x:Name="TriangleButton" Content="Render triangle" Click="OnRenderTriangle" />
+            <Button x:Name="TexturedQuadButton" Content="Render textured quad" Click="OnRenderTexturedQuad" />
+            <Button x:Name="LoadTestElfButton" Content="Load Test ELF" Click="OnLoadTestElf" />
+            <Button x:Name="RunCpuTestButton" Content="Run CPU Test" Click="OnRunCpuTest" />
+        </StackPanel>
+    </Grid>
+</Page>

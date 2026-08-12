@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Host">
+      <UniqueIdentifier>{9E67C723-A2D2-47BD-94E5-6D61FCD1F461}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{318B3D16-7990-4BF0-8C21-798D9F4A8D76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{DA3B7CA4-6E32-4D4F-88EF-D6F5A7C7604D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{F2AF3CE1-2A59-4D8B-B0B6-F3B8C50D8A8A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\CPU">
+      <UniqueIdentifier>{62E3B9A7-6F37-427A-9AE8-E3797E1A1B75}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App.xaml.h" />
+    <ClInclude Include="MainPage.xaml.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Host\HostServices.h" />
+    <ClInclude Include="Graphics\D3D12Backend.h" />
+    <ClInclude Include="..\..\..\Core\Common\VirtualAddress.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Elf64Loader.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Memory\GuestMemory.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\CPU\CpuState.hpp">
+      <Filter>Core\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\CPU\Registers.hpp">
+      <Filter>Core\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\CPU\Flags.hpp">
+      <Filter>Core\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\CPU\Instruction.hpp">
+      <Filter>Core\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\CPU\CpuExecutor.hpp">
+      <Filter>Core\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\CPU\CpuSmokeTests.hpp">
+      <Filter>Core\CPU</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Host\HostServices.cpp">
+      <Filter>Host</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\D3D12Backend.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Elf64Loader.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Memory\GuestMemory.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\Registers.cpp">
+      <Filter>Core\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\Flags.cpp">
+      <Filter>Core\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\Instruction.cpp">
+      <Filter>Core\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\CpuExecutor.cpp">
+      <Filter>Core\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\CPU\CpuSmokeTests.cpp">
+      <Filter>Core\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="App.xaml.cpp" />
+    <ClCompile Include="MainPage.xaml.cpp" />
+    <ClCompile Include="Generated Files\XamlTypeInfo.g.cpp" />
+    <ClCompile Include="Generated Files\XamlTypeInfo.Impl.g.cpp" />
+    <ClCompile Include="Generated Files\XamlLibMetadataProvider.g.cpp" />
+    <ClCompile Include="pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Square44x44Logo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.png">
+      <Filter>Assets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="MainPage.xaml" />
+  </ItemGroup>
+</Project>
