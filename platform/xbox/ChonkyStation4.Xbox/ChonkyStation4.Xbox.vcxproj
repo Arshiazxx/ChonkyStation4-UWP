@@ -135,6 +135,9 @@
     <ClInclude Include="..\..\..\Core\Execution\ExecutionContext.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\IExecutionBackend.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\NativeExecutionBackend.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\SyntheticTestBackend.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\CpuBackendSmokeTests.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\ModuleSmokeTests.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.hpp" />
   </ItemGroup>
@@ -232,6 +235,15 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\NativeExecutionBackend.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\SyntheticTestBackend.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\CpuBackendSmokeTests.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\ModuleSmokeTests.cpp">

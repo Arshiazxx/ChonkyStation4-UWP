@@ -1,4 +1,8 @@
-# CPU foundation
+# Synthetic CPU test harness (M8)
+
+This directory is not the PS4 CPU emulator. It contains a deterministic,
+platform-neutral execution harness used to validate CPU-shaped state, guest
+memory access, arithmetic flags, and runtime fault handling.
 
 M8 adds a platform-neutral CPU execution harness. `CpuState` models the
 x86-64-shaped register file, RIP, RSP, arithmetic flags, and execution state.

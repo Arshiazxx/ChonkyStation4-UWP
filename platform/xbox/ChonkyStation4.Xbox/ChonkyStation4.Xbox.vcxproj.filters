@@ -149,6 +149,15 @@
     <ClInclude Include="..\..\..\Core\Execution\NativeExecutionBackend.hpp">
       <Filter>Core\Execution</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\SyntheticTestBackend.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\CpuBackendSmokeTests.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Core\Execution\ModuleSmokeTests.hpp">
       <Filter>Core\Execution</Filter>
     </ClInclude>
@@ -251,6 +260,15 @@
       <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\NativeExecutionBackend.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\SyntheticTestBackend.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\CpuBackendSmokeTests.cpp">
       <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\ModuleSmokeTests.cpp">

@@ -22,10 +22,15 @@ public:
     virtual const char* Name() const noexcept = 0;
     virtual bool IsAvailable() const noexcept = 0;
 
-    // Starts no guest or host code by contract. A future backend may use this
-    // boundary to hand the context to native execution, a JIT, or the M8
-    // synthetic executor.
+    // This is the common backend boundary. Native/upstream-compatible
+    // backends must not enter guest code until their mapping, ABI, TLS,
+    // exception, and security contracts are implemented. The synthetic M8
+    // backend may execute only its private test encoding.
     virtual ExecutionBoundaryResult Start(ExecutionContext& context) const = 0;
 };
+
+// The shorter name describes the intended architecture while retaining the
+// IExecutionBackend spelling used by the M11/M12 code.
+using ExecutionBackend = IExecutionBackend;
 
 } // namespace ChonkyStation4::Core::Execution

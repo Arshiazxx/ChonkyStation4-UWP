@@ -1,7 +1,7 @@
 #include "ModuleSmokeTests.hpp"
 
 #include "Core/Execution/ExecutionContext.hpp"
-#include "Core/Execution/NativeExecutionBackend.hpp"
+#include "Core/Execution/UpstreamCompatibleX64Backend.hpp"
 #include "Core/Kernel/Process/Process.hpp"
 #include "Core/Kernel/Thread/Thread.hpp"
 #include "Core/Loader/Module/LoadedModule.hpp"
@@ -140,7 +140,7 @@ ModuleSmokeTestReport RunModuleSmokeTests() {
         }
     }
 
-    NativeExecutionBackend backend;
+    UpstreamCompatibleX64Backend backend;
     const auto boundary = backend.Start(context);
     if (report.failure.empty() &&
         (!boundary.available || !boundary.accepted || boundary.executed)) {
