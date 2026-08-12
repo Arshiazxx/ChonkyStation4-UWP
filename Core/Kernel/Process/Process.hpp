@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Loader/Elf64Loader.hpp"
-#include "Core/Loader/Module/LoadedModule.hpp"
+#include "Core/Loader/Module/ModuleManager.hpp"
 #include "Core/Memory/GuestMemory.hpp"
 
 #include <cstdint>
@@ -52,6 +52,23 @@ public:
         std::string* error = nullptr);
     const std::vector<Loader::LoadedModule>& Modules() const noexcept;
     const Loader::LoadedModule* MainModule() const noexcept;
+    Loader::ModuleManager& ModuleManager() noexcept;
+    const Loader::ModuleManager& ModuleManager() const noexcept;
+
+    bool LoadModule(
+        const std::string& name,
+        const std::string& path,
+        Loader::ModuleKind kind = Loader::ModuleKind::SharedObject,
+        std::string* error = nullptr);
+    bool LoadModuleBytes(
+        const std::string& name,
+        const std::string& sourcePath,
+        const std::vector<std::uint8_t>& bytes,
+        Loader::ModuleKind kind = Loader::ModuleKind::SharedObject,
+        std::string* error = nullptr);
+    bool UnloadModule(const std::string& name, std::string* error = nullptr);
+    const Loader::LoadedModule* FindModule(const std::string& name) const noexcept;
+    Loader::SymbolResolutionResult ResolveSymbol(const std::string& name) const;
 
     void AttachThread(ThreadId id);
     const std::vector<ThreadId>& ThreadIds() const noexcept;
@@ -64,9 +81,8 @@ public:
 private:
     ProcessId id_ = 0;
     Memory::GuestMemory* addressSpace_ = nullptr;
+    Loader::ModuleManager moduleManager_;
     LoadedExecutable executable_{};
-    std::vector<Loader::LoadedModule> modules_;
-    std::size_t mainModuleIndex_ = (std::numeric_limits<std::size_t>::max)();
     ProcessState state_ = ProcessState::Created;
     std::vector<ThreadId> threadIds_;
     std::int64_t exitCode_ = 0;

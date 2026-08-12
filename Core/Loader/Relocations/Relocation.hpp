@@ -12,11 +12,12 @@ class GuestMemory;
 namespace ChonkyStation4::Core::Loader {
 
 enum class RelocationType : std::uint32_t {
-    Unknown = 0,
+    None = 0,
     Absolute64 = 1,
     GlobDat64 = 6,
     JumpSlot64 = 7,
     Relative64 = 8,
+    Unknown = 0xffffffffu,
 };
 
 const char* RelocationTypeName(RelocationType type) noexcept;
@@ -34,6 +35,7 @@ enum class RelocationStatus {
     NoOp,
     Unsupported,
     OutOfBounds,
+    MissingSymbol,
     Invalid,
 };
 
@@ -52,6 +54,17 @@ struct RelocationContext {
     Memory::GuestMemory& memory;
     GuestVirtualAddress moduleBase = InvalidGuestVirtualAddress;
     std::uint64_t moduleSize = 0;
+    const class IRelocationSymbolResolver* symbolResolver = nullptr;
+};
+
+class IRelocationSymbolResolver {
+public:
+    virtual ~IRelocationSymbolResolver() = default;
+
+    virtual bool ResolveSymbol(
+        const std::string& symbolName,
+        GuestVirtualAddress& address,
+        std::string* error = nullptr) const = 0;
 };
 
 class IRelocationResolver {
@@ -63,8 +76,8 @@ public:
         RelocationContext& context) const = 0;
 };
 
-// M11 deliberately supports only the safe, non-symbolic R_X86_64_RELATIVE
-// shape. Other relocations are reported and never written to guest memory.
+// The resolver supports bounded relative relocations and symbol-based
+// absolute/GOT/PLT-shaped writes. Unsupported records are never written.
 class SafeRelocationResolver final : public IRelocationResolver {
 public:
     RelocationResult Resolve(

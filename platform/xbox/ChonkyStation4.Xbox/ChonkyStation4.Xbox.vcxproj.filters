@@ -56,13 +56,25 @@
     <ClInclude Include="..\..\..\Core\Loader\Module\LoadedModule.hpp">
       <Filter>Core\Loader\Module</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Module\ModuleRegistry.hpp">
+      <Filter>Core\Loader\Module</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Module\ModuleManager.hpp">
+      <Filter>Core\Loader\Module</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Core\Loader\Relocations\Relocation.hpp">
       <Filter>Core\Loader\Relocations</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Core\Loader\Symbols\Symbol.hpp">
       <Filter>Core\Loader\Symbols</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Symbols\SymbolResolver.hpp">
+      <Filter>Core\Loader\Symbols</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Core\Loader\Dependencies\Dependency.hpp">
+      <Filter>Core\Loader\Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Loader\Dependencies\DependencyResolver.hpp">
       <Filter>Core\Loader\Dependencies</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Core\Memory\GuestMemory.hpp">
@@ -140,6 +152,9 @@
     <ClInclude Include="..\..\..\Core\Execution\ModuleSmokeTests.hpp">
       <Filter>Core\Execution</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Host\HostServices.cpp">
@@ -154,13 +169,25 @@
     <ClCompile Include="..\..\..\Core\Loader\Module\LoadedModule.cpp">
       <Filter>Core\Loader\Module</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Module\ModuleRegistry.cpp">
+      <Filter>Core\Loader\Module</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Module\ModuleManager.cpp">
+      <Filter>Core\Loader\Module</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Relocations\Relocation.cpp">
       <Filter>Core\Loader\Relocations</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Symbols\Symbol.cpp">
       <Filter>Core\Loader\Symbols</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Symbols\SymbolResolver.cpp">
+      <Filter>Core\Loader\Symbols</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Dependencies\Dependency.cpp">
+      <Filter>Core\Loader\Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Dependencies\DependencyResolver.cpp">
       <Filter>Core\Loader\Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Memory\GuestMemory.cpp">
@@ -227,6 +254,9 @@
       <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\ModuleSmokeTests.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.cpp">
       <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="App.xaml.cpp" />

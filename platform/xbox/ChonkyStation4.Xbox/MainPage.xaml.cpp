@@ -8,6 +8,7 @@
 #include "Core/Kernel/RuntimeSmokeTests.hpp"
 #include "Core/ABI/AbiSmokeTests.hpp"
 #include "Core/Execution/ModuleSmokeTests.hpp"
+#include "Core/Execution/DynamicModuleSmokeTests.hpp"
 
 using namespace ChonkyStation4::Xbox;
 
@@ -182,6 +183,15 @@ void MainPage::OnRunModuleTest(
     Platform::Object^,
     Windows::UI::Xaml::RoutedEventArgs^) {
     const auto report = Core::Execution::RunModuleSmokeTests();
+    const auto wideReport = WidenUtf8(report.log);
+    StatusText->Text = ref new Platform::String(wideReport.c_str());
+    Host::Log(wideReport.c_str());
+}
+
+void MainPage::OnRunDependencyTest(
+    Platform::Object^,
+    Windows::UI::Xaml::RoutedEventArgs^) {
+    const auto report = Core::Execution::RunDynamicModuleSmokeTests();
     const auto wideReport = WidenUtf8(report.log);
     StatusText->Text = ref new Platform::String(wideReport.c_str());
     Host::Log(wideReport.c_str());

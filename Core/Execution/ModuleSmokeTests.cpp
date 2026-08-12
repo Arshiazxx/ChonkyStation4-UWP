@@ -131,7 +131,7 @@ ModuleSmokeTestReport RunModuleSmokeTests() {
         Loader::RelocationContext relocationContext{
             memory, module.BaseAddress(), module.Size()};
         const auto unsupported = resolver.Resolve(
-            {Loader::RelocationType::Absolute64, 0, 0, 0, {}}, relocationContext);
+            {Loader::RelocationType::Unknown, 0, 0, 0, {}}, relocationContext);
         const auto outOfBounds = resolver.Resolve(
             {Loader::RelocationType::Relative64, module.Size(), 0, 0, {}}, relocationContext);
         if (unsupported.status != Loader::RelocationStatus::Unsupported ||

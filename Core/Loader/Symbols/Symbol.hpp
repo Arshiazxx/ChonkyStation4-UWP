@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Common/VirtualAddress.hpp"
+
 #include <cstdint>
 #include <string>
 
@@ -21,13 +23,21 @@ enum class SymbolType : std::uint8_t {
     Unknown,
 };
 
+enum class SymbolValueKind : std::uint8_t {
+    RelativeToModule,
+    Absolute,
+};
+
 struct SymbolInfo {
     std::string name;
     std::uint64_t value = 0;
     std::uint64_t size = 0;
     SymbolBinding binding = SymbolBinding::Unknown;
     SymbolType type = SymbolType::Unknown;
+    SymbolValueKind valueKind = SymbolValueKind::RelativeToModule;
     bool defined = false;
+    bool resolved = false;
+    GuestVirtualAddress resolvedAddress = InvalidGuestVirtualAddress;
 };
 
 } // namespace ChonkyStation4::Core::Loader

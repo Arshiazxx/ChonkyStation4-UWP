@@ -6,7 +6,7 @@
 namespace ChonkyStation4::Core::Kernel {
 
 Process::Process(ProcessId id, Memory::GuestMemory& addressSpace) noexcept
-    : id_(id), addressSpace_(&addressSpace) {}
+    : id_(id), addressSpace_(&addressSpace), moduleManager_(addressSpace) {}
 
 ProcessId Process::Id() const noexcept {
     return id_;
@@ -48,7 +48,7 @@ bool Process::LoadExecutable(const std::string& path, std::string* error) {
     Loader::LoadedModule mainModule(
         "Main Executable", Loader::ModuleKind::MainExecutable);
     if (!Loader::LoadedModule::FromElfReport(path, report, mainModule, error) ||
-        !RegisterMainModule(mainModule, error)) {
+        !moduleManager_.RegisterMainModule(mainModule, error)) {
         state_ = ProcessState::Faulted;
         exceptionMessage_ = error != nullptr ? *error : "unable to register main executable module";
         return false;
@@ -63,13 +63,9 @@ const LoadedExecutable& Process::Executable() const noexcept {
 }
 
 bool Process::RegisterModule(const Loader::LoadedModule& module, std::string* error) {
-    if (!module.IsLoaded()) {
-        if (error != nullptr) {
-            *error = "cannot register an unloaded module";
-        }
+    if (!moduleManager_.RegisterModule(module, error)) {
         return false;
     }
-    modules_.push_back(module);
     if (state_ == ProcessState::Created) {
         state_ = ProcessState::Ready;
     }
@@ -77,17 +73,8 @@ bool Process::RegisterModule(const Loader::LoadedModule& module, std::string* er
 }
 
 bool Process::RegisterMainModule(const Loader::LoadedModule& module, std::string* error) {
-    if (!module.IsLoaded()) {
-        if (error != nullptr) {
-            *error = "cannot register an unloaded main module";
-        }
+    if (!moduleManager_.RegisterMainModule(module, error)) {
         return false;
-    }
-    if (mainModuleIndex_ == (std::numeric_limits<std::size_t>::max)()) {
-        mainModuleIndex_ = modules_.size();
-        modules_.push_back(module);
-    } else {
-        modules_[mainModuleIndex_] = module;
     }
     if (state_ == ProcessState::Created) {
         state_ = ProcessState::Ready;
@@ -96,14 +83,60 @@ bool Process::RegisterMainModule(const Loader::LoadedModule& module, std::string
 }
 
 const std::vector<Loader::LoadedModule>& Process::Modules() const noexcept {
-    return modules_;
+    return moduleManager_.Registry().Modules();
 }
 
 const Loader::LoadedModule* Process::MainModule() const noexcept {
-    if (mainModuleIndex_ == (std::numeric_limits<std::size_t>::max)()) {
-        return nullptr;
+    return moduleManager_.MainModule();
+}
+
+Loader::ModuleManager& Process::ModuleManager() noexcept {
+    return moduleManager_;
+}
+
+const Loader::ModuleManager& Process::ModuleManager() const noexcept {
+    return moduleManager_;
+}
+
+bool Process::LoadModule(
+    const std::string& name,
+    const std::string& path,
+    Loader::ModuleKind kind,
+    std::string* error) {
+    if (!moduleManager_.LoadModuleFromFile(name, path, kind, error)) {
+        return false;
     }
-    return &modules_[mainModuleIndex_];
+    if (state_ == ProcessState::Created) {
+        state_ = ProcessState::Ready;
+    }
+    return true;
+}
+
+bool Process::LoadModuleBytes(
+    const std::string& name,
+    const std::string& sourcePath,
+    const std::vector<std::uint8_t>& bytes,
+    Loader::ModuleKind kind,
+    std::string* error) {
+    if (!moduleManager_.LoadModuleFromBytes(name, sourcePath, bytes, kind, error)) {
+        return false;
+    }
+    if (state_ == ProcessState::Created) {
+        state_ = ProcessState::Ready;
+    }
+    return true;
+}
+
+bool Process::UnloadModule(const std::string& name, std::string* error) {
+    return moduleManager_.UnloadModule(name, error);
+}
+
+const Loader::LoadedModule* Process::FindModule(const std::string& name) const noexcept {
+    return moduleManager_.FindModule(name);
+}
+
+Loader::SymbolResolutionResult Process::ResolveSymbol(const std::string& name) const {
+    return moduleManager_.ResolveSymbol(name);
 }
 
 void Process::AttachThread(ThreadId id) {

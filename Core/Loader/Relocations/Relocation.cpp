@@ -44,6 +44,8 @@ RelocationResult Unsupported(const RelocationRecord& relocation) {
 
 const char* RelocationTypeName(RelocationType type) noexcept {
     switch (type) {
+    case RelocationType::None:
+        return "R_X86_64_NONE";
     case RelocationType::Absolute64:
         return "R_X86_64_64";
     case RelocationType::GlobDat64:
@@ -61,7 +63,16 @@ const char* RelocationTypeName(RelocationType type) noexcept {
 RelocationResult SafeRelocationResolver::Resolve(
     const RelocationRecord& relocation,
     RelocationContext& context) const {
-    if (relocation.type != RelocationType::Relative64) {
+    if (relocation.type == RelocationType::None) {
+        RelocationResult result;
+        result.status = RelocationStatus::NoOp;
+        result.log = "ignored R_X86_64_NONE relocation";
+        return result;
+    }
+    if (relocation.type != RelocationType::Relative64 &&
+        relocation.type != RelocationType::Absolute64 &&
+        relocation.type != RelocationType::GlobDat64 &&
+        relocation.type != RelocationType::JumpSlot64) {
         return Unsupported(relocation);
     }
 
@@ -90,8 +101,30 @@ RelocationResult SafeRelocationResolver::Resolve(
         return result;
     }
 
+    std::uint64_t valueBase = context.moduleBase;
+    if (relocation.type != RelocationType::Relative64) {
+        if (relocation.symbolName.empty() || context.symbolResolver == nullptr) {
+            RelocationResult result;
+            result.status = RelocationStatus::MissingSymbol;
+            result.error = "symbol-based relocation has no resolver or symbol name";
+            result.log = result.error;
+            return result;
+        }
+        std::string symbolError;
+        if (!context.symbolResolver->ResolveSymbol(
+                relocation.symbolName, valueBase, &symbolError)) {
+            RelocationResult result;
+            result.status = RelocationStatus::MissingSymbol;
+            result.error = symbolError.empty()
+                ? "unable to resolve relocation symbol: " + relocation.symbolName
+                : symbolError;
+            result.log = result.error;
+            return result;
+        }
+    }
+
     std::uint64_t value = 0;
-    if (!AddSignedOffset(context.moduleBase, relocation.addend, value)) {
+    if (!AddSignedOffset(valueBase, relocation.addend, value)) {
         RelocationResult result;
         result.status = RelocationStatus::Invalid;
         result.error = "ELF relative relocation value overflows";

@@ -104,9 +104,13 @@
     <ClInclude Include="..\..\..\Core\Common\VirtualAddress.hpp" />
     <ClInclude Include="..\..\..\Core\Loader\Elf64Loader.hpp" />
     <ClInclude Include="..\..\..\Core\Loader\Module\LoadedModule.hpp" />
+    <ClInclude Include="..\..\..\Core\Loader\Module\ModuleRegistry.hpp" />
+    <ClInclude Include="..\..\..\Core\Loader\Module\ModuleManager.hpp" />
     <ClInclude Include="..\..\..\Core\Loader\Relocations\Relocation.hpp" />
     <ClInclude Include="..\..\..\Core\Loader\Symbols\Symbol.hpp" />
+    <ClInclude Include="..\..\..\Core\Loader\Symbols\SymbolResolver.hpp" />
     <ClInclude Include="..\..\..\Core\Loader\Dependencies\Dependency.hpp" />
+    <ClInclude Include="..\..\..\Core\Loader\Dependencies\DependencyResolver.hpp" />
     <ClInclude Include="..\..\..\Core\Memory\GuestMemory.hpp" />
     <ClInclude Include="..\..\..\Core\CPU\CpuState.hpp" />
     <ClInclude Include="..\..\..\Core\CPU\Registers.hpp" />
@@ -132,6 +136,7 @@
     <ClInclude Include="..\..\..\Core\Execution\IExecutionBackend.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\NativeExecutionBackend.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\ModuleSmokeTests.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.hpp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -145,13 +150,25 @@
     <ClCompile Include="..\..\..\Core\Loader\Module\LoadedModule.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Module\ModuleRegistry.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Module\ModuleManager.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Relocations\Relocation.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Symbols\Symbol.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Symbols\SymbolResolver.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\..\Core\Loader\Dependencies\Dependency.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Loader\Dependencies\DependencyResolver.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Memory\GuestMemory.cpp">
@@ -218,6 +235,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\ModuleSmokeTests.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">
