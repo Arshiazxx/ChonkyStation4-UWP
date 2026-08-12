@@ -34,6 +34,7 @@ struct CpuStepReport {
 struct CpuExecutionReport {
     bool success = false;
     ExecutionState finalState = ExecutionState::Ready;
+    CpuExceptionKind exceptionKind = CpuExceptionKind::None;
     std::uint64_t instructionsExecuted = 0;
     std::string log;
     std::string error;

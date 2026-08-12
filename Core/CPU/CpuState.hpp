@@ -16,11 +16,21 @@ enum class ExecutionState {
     StepLimitReached,
 };
 
+enum class CpuExceptionKind {
+    None,
+    MemoryFault,
+    InvalidInstruction,
+    AddressFault,
+    ExecutionFault,
+    StepLimit,
+};
+
 struct CpuState {
     Registers registers;
     std::uint64_t instructionPointer = 0;
     Flags flags;
     ExecutionState executionState = ExecutionState::Ready;
+    CpuExceptionKind exceptionKind = CpuExceptionKind::None;
     std::uint64_t executedInstructions = 0;
     std::string exceptionMessage;
 
@@ -37,6 +47,7 @@ struct CpuState {
         instructionPointer = 0;
         flags.Reset();
         executionState = ExecutionState::Ready;
+        exceptionKind = CpuExceptionKind::None;
         executedInstructions = 0;
         exceptionMessage.clear();
     }

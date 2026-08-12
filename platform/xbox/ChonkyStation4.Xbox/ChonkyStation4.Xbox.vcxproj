@@ -110,6 +110,20 @@
     <ClInclude Include="..\..\..\Core\CPU\Instruction.hpp" />
     <ClInclude Include="..\..\..\Core\CPU\CpuExecutor.hpp" />
     <ClInclude Include="..\..\..\Core\CPU\CpuSmokeTests.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Process\Process.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Thread\Thread.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Scheduler\Scheduler.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\SyscallDispatcher.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\SyscallTypes.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\SyscallRegistry.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\Ps4SyscallStubs.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\Exceptions\ExceptionBoundary.hpp" />
+    <ClInclude Include="..\..\..\Core\Kernel\RuntimeSmokeTests.hpp" />
+    <ClInclude Include="..\..\..\Core\ABI\CallingConvention\X86_64CallingConvention.hpp" />
+    <ClInclude Include="..\..\..\Core\ABI\Arguments\AbiContext.hpp" />
+    <ClInclude Include="..\..\..\Core\ABI\ReturnValues\ReturnValue.hpp" />
+    <ClInclude Include="..\..\..\Core\ABI\Syscall\SyscallTransition.hpp" />
+    <ClInclude Include="..\..\..\Core\ABI\AbiSmokeTests.hpp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -136,6 +150,45 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\CPU\CpuSmokeTests.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Process\Process.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Thread\Thread.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Scheduler\Scheduler.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Syscalls\SyscallDispatcher.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Syscalls\SyscallRegistry.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Syscalls\Ps4SyscallStubs.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Exceptions\ExceptionBoundary.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\RuntimeSmokeTests.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\CallingConvention\X86_64CallingConvention.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\Arguments\AbiContext.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\ReturnValues\ReturnValue.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\Syscall\SyscallTransition.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\AbiSmokeTests.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">

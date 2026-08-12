@@ -78,20 +78,34 @@ void ::ChonkyStation4::Xbox::MainPage::Connect(int __connectionId, ::Platform::O
         break;
     case 8:
         {
-            this->StatusText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
+            this->RunRuntimeTestButton = safe_cast<::Windows::UI::Xaml::Controls::Button^>(__target);
+            (safe_cast<::Windows::UI::Xaml::Controls::Button^>(this->RunRuntimeTestButton))->Click += ref new ::Windows::UI::Xaml::RoutedEventHandler(this, (void (::ChonkyStation4::Xbox::MainPage::*)
+                (::Platform::Object^, ::Windows::UI::Xaml::RoutedEventArgs^))&MainPage::OnRunRuntimeTest);
         }
         break;
     case 9:
         {
-            this->RuntimeText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
+            this->RunAbiTestButton = safe_cast<::Windows::UI::Xaml::Controls::Button^>(__target);
+            (safe_cast<::Windows::UI::Xaml::Controls::Button^>(this->RunAbiTestButton))->Click += ref new ::Windows::UI::Xaml::RoutedEventHandler(this, (void (::ChonkyStation4::Xbox::MainPage::*)
+                (::Platform::Object^, ::Windows::UI::Xaml::RoutedEventArgs^))&MainPage::OnRunAbiTest);
         }
         break;
     case 10:
         {
-            this->StorageText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
+            this->StatusText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
         }
         break;
     case 11:
+        {
+            this->RuntimeText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
+        }
+        break;
+    case 12:
+        {
+            this->StorageText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
+        }
+        break;
+    case 13:
         {
             this->GamepadText = safe_cast<::Windows::UI::Xaml::Controls::TextBlock^>(__target);
         }

@@ -16,6 +16,12 @@
     <Filter Include="Core\CPU">
       <UniqueIdentifier>{62E3B9A7-6F37-427A-9AE8-E3797E1A1B75}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Kernel">
+      <UniqueIdentifier>{7A5B4E83-4E8F-4D85-91AA-2EDC7D60B0C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\ABI">
+      <UniqueIdentifier>{D0AF4691-47D4-4D9B-9AA2-1C3E07CC4B1A}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.xaml.h" />
@@ -50,6 +56,48 @@
     <ClInclude Include="..\..\..\Core\CPU\CpuSmokeTests.hpp">
       <Filter>Core\CPU</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Process\Process.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Thread\Thread.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Scheduler\Scheduler.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\SyscallDispatcher.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Exceptions\ExceptionBoundary.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\RuntimeSmokeTests.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\SyscallTypes.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\SyscallRegistry.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Kernel\Syscalls\Ps4SyscallStubs.hpp">
+      <Filter>Core\Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\ABI\CallingConvention\X86_64CallingConvention.hpp">
+      <Filter>Core\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\ABI\Arguments\AbiContext.hpp">
+      <Filter>Core\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\ABI\ReturnValues\ReturnValue.hpp">
+      <Filter>Core\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\ABI\Syscall\SyscallTransition.hpp">
+      <Filter>Core\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\ABI\AbiSmokeTests.hpp">
+      <Filter>Core\ABI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Host\HostServices.cpp">
@@ -78,6 +126,45 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Core\CPU\CpuSmokeTests.cpp">
       <Filter>Core\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Process\Process.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Thread\Thread.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Scheduler\Scheduler.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Syscalls\SyscallDispatcher.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Exceptions\ExceptionBoundary.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\RuntimeSmokeTests.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Syscalls\SyscallRegistry.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Kernel\Syscalls\Ps4SyscallStubs.cpp">
+      <Filter>Core\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\CallingConvention\X86_64CallingConvention.cpp">
+      <Filter>Core\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\Arguments\AbiContext.cpp">
+      <Filter>Core\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\ReturnValues\ReturnValue.cpp">
+      <Filter>Core\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\Syscall\SyscallTransition.cpp">
+      <Filter>Core\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\ABI\AbiSmokeTests.cpp">
+      <Filter>Core\ABI</Filter>
     </ClCompile>
     <ClCompile Include="App.xaml.cpp" />
     <ClCompile Include="MainPage.xaml.cpp" />

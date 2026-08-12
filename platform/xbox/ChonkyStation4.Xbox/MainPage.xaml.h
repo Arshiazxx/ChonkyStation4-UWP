@@ -32,6 +32,12 @@ private:
     void OnRunCpuTest(
         Platform::Object^ sender,
         Windows::UI::Xaml::RoutedEventArgs^ e);
+    void OnRunRuntimeTest(
+        Platform::Object^ sender,
+        Windows::UI::Xaml::RoutedEventArgs^ e);
+    void OnRunAbiTest(
+        Platform::Object^ sender,
+        Windows::UI::Xaml::RoutedEventArgs^ e);
 
     void Render(Graphics::DemoScene scene, const wchar_t* label);
     void RefreshControllerText();

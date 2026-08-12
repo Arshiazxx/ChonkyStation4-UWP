@@ -32,6 +32,8 @@
             <Button x:Name="TexturedQuadButton" Content="Render textured quad" Click="OnRenderTexturedQuad" />
             <Button x:Name="LoadTestElfButton" Content="Load Test ELF" Click="OnLoadTestElf" />
             <Button x:Name="RunCpuTestButton" Content="Run CPU Test" Click="OnRunCpuTest" />
+            <Button x:Name="RunRuntimeTestButton" Content="Run Runtime Test" Click="OnRunRuntimeTest" />
+            <Button x:Name="RunAbiTestButton" Content="Run ABI Test" Click="OnRunAbiTest" />
         </StackPanel>
     </Grid>
 </Page>

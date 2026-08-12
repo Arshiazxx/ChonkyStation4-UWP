@@ -40,6 +40,23 @@ void AppendLine(std::ostringstream& log, const std::string& line) {
     log << line << '\n';
 }
 
+CpuExceptionKind ClassifyError(const std::string& error) {
+    if (error.find("invalid synthetic opcode") != std::string::npos) {
+        return CpuExceptionKind::InvalidInstruction;
+    }
+    if (error.find("instruction fetch") != std::string::npos ||
+        error.find("guest memory") != std::string::npos ||
+        error.find("LOAD") != std::string::npos ||
+        error.find("STORE") != std::string::npos) {
+        return CpuExceptionKind::MemoryFault;
+    }
+    if (error.find("address") != std::string::npos ||
+        error.find("overflow") != std::string::npos) {
+        return CpuExceptionKind::AddressFault;
+    }
+    return CpuExceptionKind::ExecutionFault;
+}
+
 } // namespace
 
 CpuExecutor::CpuExecutor(Memory::GuestMemory& memory) noexcept
@@ -92,6 +109,7 @@ CpuStepReport CpuExecutor::Step(CpuState& state) const {
     const auto fetched = Fetch(state);
     if (!fetched.success) {
         state.executionState = ExecutionState::Faulted;
+        state.exceptionKind = ClassifyError(fetched.error);
         state.exceptionMessage = fetched.error;
         result.error = fetched.error;
         std::ostringstream log;
@@ -111,6 +129,7 @@ CpuStepReport CpuExecutor::Step(CpuState& state) const {
     if (fetched.instruction.encodedSize >
         (std::numeric_limits<std::uint64_t>::max)() - rip) {
         state.executionState = ExecutionState::Faulted;
+        state.exceptionKind = CpuExceptionKind::AddressFault;
         state.exceptionMessage = "instruction pointer overflow";
         result.error = state.exceptionMessage;
         AppendLine(log, "Exception:");
@@ -169,6 +188,7 @@ CpuStepReport CpuExecutor::Step(CpuState& state) const {
         std::uint64_t address = 0;
         if (!EffectiveAddress(state, fetched.instruction, address, result.error)) {
             state.executionState = ExecutionState::Faulted;
+            state.exceptionKind = CpuExceptionKind::AddressFault;
             state.exceptionMessage = result.error;
             AppendLine(log, "Exception:");
             AppendLine(log, result.error);
@@ -178,6 +198,7 @@ CpuStepReport CpuExecutor::Step(CpuState& state) const {
         std::uint64_t value = 0;
         if (!memory_.Read(address, &value, sizeof(value), &result.error)) {
             state.executionState = ExecutionState::Faulted;
+            state.exceptionKind = CpuExceptionKind::MemoryFault;
             state.exceptionMessage = "LOAD at " + Hex(address) + " failed: " + result.error;
             result.error = state.exceptionMessage;
             AppendLine(log, "Exception:");
@@ -198,6 +219,7 @@ CpuStepReport CpuExecutor::Step(CpuState& state) const {
         std::uint64_t address = 0;
         if (!EffectiveAddress(state, fetched.instruction, address, result.error)) {
             state.executionState = ExecutionState::Faulted;
+            state.exceptionKind = CpuExceptionKind::AddressFault;
             state.exceptionMessage = result.error;
             AppendLine(log, "Exception:");
             AppendLine(log, result.error);
@@ -207,6 +229,7 @@ CpuStepReport CpuExecutor::Step(CpuState& state) const {
         const auto value = state.registers[fetched.instruction.destination];
         if (!memory_.Write(address, &value, sizeof(value), &result.error)) {
             state.executionState = ExecutionState::Faulted;
+            state.exceptionKind = CpuExceptionKind::MemoryFault;
             state.exceptionMessage = "STORE at " + Hex(address) + " failed: " + result.error;
             result.error = state.exceptionMessage;
             AppendLine(log, "Exception:");
@@ -247,6 +270,7 @@ CpuExecutionReport CpuExecutor::Run(CpuState& state, std::uint64_t maxInstructio
         state.Reset();
     }
     state.executionState = ExecutionState::Running;
+    state.exceptionKind = CpuExceptionKind::None;
     state.exceptionMessage.clear();
 
     std::uint64_t steps = 0;
@@ -264,6 +288,7 @@ CpuExecutionReport CpuExecutor::Run(CpuState& state, std::uint64_t maxInstructio
 
     if (state.executionState == ExecutionState::Running) {
         state.executionState = ExecutionState::StepLimitReached;
+        state.exceptionKind = CpuExceptionKind::StepLimit;
         state.exceptionMessage = "instruction limit reached";
         report.error = state.exceptionMessage;
         AppendLine(log, "Exception:");
@@ -290,6 +315,7 @@ CpuExecutionReport CpuExecutor::Run(CpuState& state, std::uint64_t maxInstructio
 
     report.success = state.executionState == ExecutionState::Halted;
     report.finalState = state.executionState;
+    report.exceptionKind = state.exceptionKind;
     report.instructionsExecuted = state.executedInstructions;
     report.log = log.str();
     return report;

@@ -5,6 +5,8 @@
 #include "Host/HostServices.hpp"
 #include "Core/Loader/Elf64Loader.hpp"
 #include "Core/CPU/CpuSmokeTests.hpp"
+#include "Core/Kernel/RuntimeSmokeTests.hpp"
+#include "Core/ABI/AbiSmokeTests.hpp"
 
 using namespace ChonkyStation4::Xbox;
 
@@ -151,6 +153,25 @@ void MainPage::OnRunCpuTest(
     Platform::Object^,
     Windows::UI::Xaml::RoutedEventArgs^) {
     const auto report = Core::CPU::RunCpuSmokeTests();
+    const auto wideReport = WidenUtf8(report.log);
+    StatusText->Text = ref new Platform::String(wideReport.c_str());
+    Host::Log(wideReport.c_str());
+}
+
+void MainPage::OnRunRuntimeTest(
+    Platform::Object^,
+    Windows::UI::Xaml::RoutedEventArgs^) {
+    const auto report = Core::Kernel::RunRuntimeSmokeTests();
+    const std::string output = "ChonkyStation4 Runtime Test\n\n" + report.log;
+    const auto wideReport = WidenUtf8(output);
+    StatusText->Text = ref new Platform::String(wideReport.c_str());
+    Host::Log(wideReport.c_str());
+}
+
+void MainPage::OnRunAbiTest(
+    Platform::Object^,
+    Windows::UI::Xaml::RoutedEventArgs^) {
+    const auto report = Core::ABI::RunAbiSmokeTests();
     const auto wideReport = WidenUtf8(report.log);
     StatusText->Text = ref new Platform::String(wideReport.c_str());
     Host::Log(wideReport.c_str());
