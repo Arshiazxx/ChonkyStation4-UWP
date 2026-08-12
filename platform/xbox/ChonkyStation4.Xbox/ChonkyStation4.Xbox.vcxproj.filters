@@ -40,6 +40,9 @@
     <Filter Include="Core\Execution">
       <UniqueIdentifier>{4F1D88BA-1A4D-4C87-9D36-6E4D3CF1BD82}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Execution\Upstream">
+      <UniqueIdentifier>{D7E6F4BB-1CB8-4FD0-A6FC-60DD2AF5F3D9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.xaml.h" />
@@ -155,6 +158,15 @@
     <ClInclude Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.hpp">
       <Filter>Core\Execution</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\Upstream\UpstreamExecutionTypes.hpp">
+      <Filter>Core\Execution\Upstream</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\Upstream\XboxUwpExecutionPlatform.hpp">
+      <Filter>Core\Execution\Upstream</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\Upstream\UpstreamExecutionBackend.hpp">
+      <Filter>Core\Execution\Upstream</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Core\Execution\CpuBackendSmokeTests.hpp">
       <Filter>Core\Execution</Filter>
     </ClInclude>
@@ -162,6 +174,9 @@
       <Filter>Core\Execution</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.hpp">
+      <Filter>Core\Execution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\Execution\UpstreamExecutionSmokeTests.hpp">
       <Filter>Core\Execution</Filter>
     </ClInclude>
   </ItemGroup>
@@ -268,6 +283,12 @@
     <ClCompile Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.cpp">
       <Filter>Core\Execution</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\Upstream\XboxUwpExecutionPlatform.cpp">
+      <Filter>Core\Execution\Upstream</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\Upstream\UpstreamExecutionBackend.cpp">
+      <Filter>Core\Execution\Upstream</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\CpuBackendSmokeTests.cpp">
       <Filter>Core\Execution</Filter>
     </ClCompile>
@@ -275,6 +296,9 @@
       <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.cpp">
+      <Filter>Core\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\UpstreamExecutionSmokeTests.cpp">
       <Filter>Core\Execution</Filter>
     </ClCompile>
     <ClCompile Include="App.xaml.cpp" />

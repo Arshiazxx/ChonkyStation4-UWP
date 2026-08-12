@@ -70,6 +70,7 @@
       <DebugInformationFormat>None</DebugInformationFormat>
       <DebugSymbols>false</DebugSymbols>
       <AdditionalOptions>/ZW /Zm50 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>CHONKYSTATION4_XBOX_UWP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
         $(MSBuildProjectDirectory)Generated Files;$(IntDir)Generated Files;$(ProjectDir)..\..\..;$(ProjectDir)..\..\..\Core;%(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -137,9 +138,13 @@
     <ClInclude Include="..\..\..\Core\Execution\NativeExecutionBackend.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\SyntheticTestBackend.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\Upstream\UpstreamExecutionTypes.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\Upstream\XboxUwpExecutionPlatform.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\Upstream\UpstreamExecutionBackend.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\CpuBackendSmokeTests.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\ModuleSmokeTests.hpp" />
     <ClInclude Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.hpp" />
+    <ClInclude Include="..\..\..\Core\Execution\UpstreamExecutionSmokeTests.hpp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -243,6 +248,12 @@
     <ClCompile Include="..\..\..\Core\Execution\UpstreamCompatibleX64Backend.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\Upstream\XboxUwpExecutionPlatform.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\Upstream\UpstreamExecutionBackend.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\CpuBackendSmokeTests.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -250,6 +261,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\Execution\DynamicModuleSmokeTests.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Core\Execution\UpstreamExecutionSmokeTests.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">

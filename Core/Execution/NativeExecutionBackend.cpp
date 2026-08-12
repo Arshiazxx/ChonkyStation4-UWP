@@ -6,7 +6,7 @@
 namespace ChonkyStation4::Core::Execution {
 
 const char* NativeExecutionBackend::Name() const noexcept {
-    return "Upstream-compatible x86-64 execution boundary";
+    return "Upstream native x86-64 execution backend";
 }
 
 bool NativeExecutionBackend::IsAvailable() const noexcept {

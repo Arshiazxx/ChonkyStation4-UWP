@@ -47,6 +47,14 @@ void ExecutionContext::SetInstructionPointer(std::uint64_t value) noexcept {
     cpu_.instructionPointer = value;
 }
 
+std::uintptr_t ExecutionContext::NativeEntryPoint() const noexcept {
+    return nativeEntryPoint_;
+}
+
+void ExecutionContext::SetNativeEntryPoint(std::uintptr_t value) noexcept {
+    nativeEntryPoint_ = value;
+}
+
 std::uint64_t ExecutionContext::StackPointer() const noexcept {
     return cpu_.StackPointer();
 }

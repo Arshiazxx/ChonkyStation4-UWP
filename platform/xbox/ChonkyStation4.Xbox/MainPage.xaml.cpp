@@ -9,6 +9,8 @@
 #include "Core/ABI/AbiSmokeTests.hpp"
 #include "Core/Execution/ModuleSmokeTests.hpp"
 #include "Core/Execution/DynamicModuleSmokeTests.hpp"
+#include "Core/Execution/UpstreamExecutionSmokeTests.hpp"
+#include "Core/Execution/Upstream/XboxUwpExecutionPlatform.hpp"
 
 using namespace ChonkyStation4::Xbox;
 
@@ -66,6 +68,8 @@ MainPage::MainPage()
 
     RuntimeText->Text = ref new Platform::String(WithPrefix(L"Runtime device family", Host::RuntimeDeviceFamily()->Data()).c_str());
     StorageText->Text = ref new Platform::String(WithPrefix(L"Local storage", Host::LocalStoragePath()->Data()).c_str());
+    Core::Execution::Upstream::XboxUwpExecutionPlatform{}.SetApplicationDataRoot(
+        NarrowUtf8(Host::LocalStoragePath()->Data()));
     RefreshControllerText();
 
     const auto panel = reinterpret_cast<IUnknown*>(GraphicsPanel);
@@ -192,6 +196,15 @@ void MainPage::OnRunDependencyTest(
     Platform::Object^,
     Windows::UI::Xaml::RoutedEventArgs^) {
     const auto report = Core::Execution::RunDynamicModuleSmokeTests();
+    const auto wideReport = WidenUtf8(report.log);
+    StatusText->Text = ref new Platform::String(wideReport.c_str());
+    Host::Log(wideReport.c_str());
+}
+
+void MainPage::OnRunUpstreamExecutionTest(
+    Platform::Object^,
+    Windows::UI::Xaml::RoutedEventArgs^) {
+    const auto report = Core::Execution::RunUpstreamExecutionSmokeTests();
     const auto wideReport = WidenUtf8(report.log);
     StatusText->Text = ref new Platform::String(wideReport.c_str());
     Host::Log(wideReport.c_str());

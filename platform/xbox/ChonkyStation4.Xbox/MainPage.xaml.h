@@ -44,6 +44,9 @@ private:
     void OnRunDependencyTest(
         Platform::Object^ sender,
         Windows::UI::Xaml::RoutedEventArgs^ e);
+    void OnRunUpstreamExecutionTest(
+        Platform::Object^ sender,
+        Windows::UI::Xaml::RoutedEventArgs^ e);
 
     void Render(Graphics::DemoScene scene, const wchar_t* label);
     void RefreshControllerText();

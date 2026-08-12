@@ -38,6 +38,8 @@ public:
 
     std::uint64_t InstructionPointer() const noexcept;
     void SetInstructionPointer(std::uint64_t value) noexcept;
+    std::uintptr_t NativeEntryPoint() const noexcept;
+    void SetNativeEntryPoint(std::uintptr_t value) noexcept;
     std::uint64_t StackPointer() const noexcept;
     void SetStackPointer(std::uint64_t value) noexcept;
 
@@ -52,6 +54,9 @@ private:
     Kernel::Process* process_ = nullptr;
     Kernel::Thread* thread_ = nullptr;
     CPU::CpuState cpu_{};
+    // A host pointer supplied only by a validated native module mapper. The
+    // guest instruction pointer is never reinterpreted as this value.
+    std::uintptr_t nativeEntryPoint_ = 0;
 };
 
 } // namespace ChonkyStation4::Core::Execution
